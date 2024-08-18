@@ -99,7 +99,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
-message(STATUS ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/cpp-pinyin/dict)
+
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
@@ -116,7 +116,7 @@ if (LANG_MANAGER_INSTALL)
 
     install(TARGETS ${PROJECT_NAME}
             EXPORT ${PROJECT_NAME}Targets
-            RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" OPTIONAL
+            RUNTIME DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
     )
@@ -152,13 +152,6 @@ if (LANG_MANAGER_INSTALL)
     )
 
     install(DIRECTORY ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
-            DESTINATION ${CMAKE_INSTALL_PREFIX}
+            DESTINATION "${CMAKE_INSTALL_BINDIR}"
     )
-
-    install(FILES ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-pinyin.dll
-            DESTINATION ${CMAKE_INSTALL_PREFIX})
-
-
-    install(FILES ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-kana.dll
-            DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif ()
