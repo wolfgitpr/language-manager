@@ -1,4 +1,4 @@
-# LangMgr
+# language-manager
 
 ## Intro
 

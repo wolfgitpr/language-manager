@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(LangMgr VERSION 0.0.0.1 LANGUAGES CXX)  # Language and G2p Manager
+project(language-manager VERSION 0.0.0.1 LANGUAGES CXX)  # Language and G2p Manager
 
 set(CMAKE_CXX_STANDARD 17)
 
