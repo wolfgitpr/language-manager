@@ -100,23 +100,25 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
-        ${CMAKE_BINARY_DIR}/bin/dict
-)
+if (NOT DEFINED VCPKG_INSTALL)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
+            ${CMAKE_BINARY_DIR}/bin/dict
+    )
+endif ()
 
 # ----------------------------------
 # install
 # ----------------------------------
 if (LANG_MANAGER_INSTALL)
     target_include_directories(${PROJECT_NAME} PUBLIC
-            $<INSTALL_INTERFACE:"${CMAKE_CURRENT_SOURCE_DIR}/include">
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
     install(TARGETS ${PROJECT_NAME}
             EXPORT ${PROJECT_NAME}Targets
-            RUNTIME DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL
             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
     )
@@ -154,4 +156,18 @@ if (LANG_MANAGER_INSTALL)
     install(DIRECTORY ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
             DESTINATION "${CMAKE_INSTALL_BINDIR}"
     )
+
+    if (WIN32)
+        install(FILES
+                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-pinyin.dll
+                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-kana.dll
+                DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    else ()
+        install(FILES
+                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-pinyin.a
+                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-kana.a
+                DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        )
+    endif ()
 endif ()
