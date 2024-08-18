@@ -1,10 +1,10 @@
-#include <LangMgr/IG2pManager.h>
+#include <language-manager/IG2pManager.h>
 
 #include <QDebug>
 #include <QCoreApplication>
 
 #include "IG2pManager_p.h"
-#include <LangMgr/IG2pFactory.h>
+#include <language-manager/IG2pFactory.h>
 
 #include <cpp-pinyin/G2pglobal.h>
 

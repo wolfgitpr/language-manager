@@ -1,7 +1,7 @@
 #ifndef UNKNOWN_H
 #define UNKNOWN_H
 
-#include <LangMgr/IG2pFactory.h>
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr {
 

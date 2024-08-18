@@ -1,10 +1,10 @@
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 #include "ILanguageFactory_p.h"
 
 #include <QDebug>
 #include <QtConcurrent/QtConcurrent>
 
-#include <LangMgr/IG2pManager.h>
+#include <language-manager/IG2pManager.h>
 
 namespace LangMgr {
 

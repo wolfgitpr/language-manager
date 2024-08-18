@@ -1,4 +1,4 @@
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 #include "IG2pFactory_p.h"
 
 #include <QJsonObject>

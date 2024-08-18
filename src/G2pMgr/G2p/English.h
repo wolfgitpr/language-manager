@@ -1,7 +1,7 @@
 #ifndef ENGLISH_H
 #define ENGLISH_H
 
-#include <LangMgr/IG2pFactory.h>
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr {
 

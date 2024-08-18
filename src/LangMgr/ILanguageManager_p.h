@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QMap>
 
-#include <LangMgr/ILanguageManager.h>
+#include <language-manager/ILanguageManager.h>
 
 namespace LangMgr {
 

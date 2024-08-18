@@ -3,8 +3,8 @@
 #include <QCoreApplication>
 #include <algorithm>
 
-#include <LangMgr/ILanguageManager.h>
-#include <LangMgr/IG2pManager.h>
+#include <language-manager/ILanguageManager.h>
+#include <language-manager/IG2pManager.h>
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);

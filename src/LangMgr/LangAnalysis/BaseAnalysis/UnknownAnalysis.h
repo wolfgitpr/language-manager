@@ -1,7 +1,7 @@
 #ifndef UNKNOWANALYSIS_H
 #define UNKNOWANALYSIS_H
 
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 
 namespace LangMgr {
 

@@ -3,7 +3,7 @@
 
 #include <QString>
 
-#include <LangMgr/LangGlobal.h>
+#include <language-manager/LangGlobal.h>
 
 struct LANG_MANAGER_EXPORT LangNote {
     QString lyric;

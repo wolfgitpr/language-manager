@@ -5,7 +5,7 @@
 
 #include <cpp-pinyin/Pinyin.h>
 
-#include <LangMgr/IG2pFactory.h>
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr {
 

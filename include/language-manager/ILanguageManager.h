@@ -3,9 +3,9 @@
 
 #include <QObject>
 
-#include <LangMgr/LangGlobal.h>
-#include <LangMgr/Singleton.h>
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/LangGlobal.h>
+#include <language-manager/Singleton.h>
+#include <language-manager/ILanguageFactory.h>
 
 namespace LangMgr {
 

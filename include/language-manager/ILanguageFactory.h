@@ -3,8 +3,8 @@
 
 #include <QObject>
 
-#include <LangMgr/LangGlobal.h>
-#include <LangMgr/LangCommon.h>
+#include <language-manager/LangGlobal.h>
+#include <language-manager/LangCommon.h>
 
 namespace LangMgr {
 

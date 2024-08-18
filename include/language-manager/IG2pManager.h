@@ -3,11 +3,11 @@
 
 #include <QObject>
 
-#include <LangMgr/LangGlobal.h>
-#include <LangMgr/Singleton.h>
-#include <LangMgr/LangCommon.h>
+#include <language-manager/LangGlobal.h>
+#include <language-manager/Singleton.h>
+#include <language-manager/LangCommon.h>
 
-#include <LangMgr/IG2pFactory.h>
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr {
 

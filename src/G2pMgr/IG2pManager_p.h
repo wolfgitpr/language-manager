@@ -3,7 +3,7 @@
 
 #include <QObject>
 
-#include <LangMgr/IG2pManager.h>
+#include <language-manager/IG2pManager.h>
 
 namespace LangMgr {
 

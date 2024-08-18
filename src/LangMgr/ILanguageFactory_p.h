@@ -1,7 +1,7 @@
 #ifndef ILANGUAGEFACTORY_P_H
 #define ILANGUAGEFACTORY_P_H
 
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 
 #include <QObject>
 #include <QJsonObject>

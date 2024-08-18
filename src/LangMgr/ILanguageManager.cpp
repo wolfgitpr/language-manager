@@ -1,7 +1,7 @@
-#include <LangMgr/ILanguageManager.h>
+#include <language-manager/ILanguageManager.h>
 #include "ILanguageManager_p.h"
 
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 
 #include "LangAnalysis/BaseAnalysis/NumberAnalysis.h"
 #include "LangAnalysis/BaseAnalysis/SlurAnalysis.h"
@@ -18,7 +18,7 @@
 #include "LangAnalysis/RomajiAnalysis.h"
 #include "LangAnalysis/EnglishAnalysis.h"
 
-#include <LangMgr/IG2pManager.h>
+#include <language-manager/IG2pManager.h>
 
 #include <QCoreApplication>
 

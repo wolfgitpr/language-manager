@@ -5,7 +5,7 @@
 #include <QString>
 #include <QDebug>
 
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 
 namespace LangMgr {
 

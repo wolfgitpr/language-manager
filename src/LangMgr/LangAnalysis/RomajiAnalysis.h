@@ -3,7 +3,7 @@
 
 #include <QSet>
 
-#include <LangMgr/ILanguageFactory.h>
+#include <language-manager/ILanguageFactory.h>
 
 namespace LangMgr {
 
