@@ -13,6 +13,7 @@ set(CMAKE_AUTOUIC ON)
 option(LANG_MANAGER_BUILD_STATIC "Build static library" OFF)
 option(LANG_MANAGER_BUILD_TESTS "Build test cases" ON)
 option(LANG_MANAGER_INSTALL "Install library" ON)
+option(LANG_VCPKG_INSTALL "Use vcpkg installed library" OFF)
 
 # ----------------------------------
 # CMake Settings
@@ -100,7 +101,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-if (NOT DEFINED VCPKG_INSTALL)
+if (NOT LANG_VCPKG_INSTALL)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
@@ -153,21 +154,23 @@ if (LANG_MANAGER_INSTALL)
             DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
     )
 
-    install(DIRECTORY ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
-            DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    )
+    if (NOT LANG_VCPKG_INSTALL)
+        install(DIRECTORY ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
+                DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        )
 
-    if (WIN32)
-        install(FILES
-                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-pinyin.dll
-                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-kana.dll
-                DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
-    else ()
-        install(FILES
-                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-pinyin.a
-                ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-kana.a
-                DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        )
+        if (WIN32)
+            install(FILES
+                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-pinyin.dll
+                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-kana.dll
+                    DESTINATION ${CMAKE_INSTALL_BINDIR}
+            )
+        else ()
+            install(FILES
+                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-pinyin.a
+                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-kana.a
+                    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            )
+        endif ()
     endif ()
 endif ()
