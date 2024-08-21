@@ -27,7 +27,7 @@ namespace LangMgr {
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
-            langNote.syllable = QString::fromUtf8(g2pRes[i].romaji);
+            langNote.syllable = QString::fromUtf8(g2pRes[i].romaji.c_str());
             langNote.candidates = QStringList() << langNote.syllable;
             langNote.error = g2pRes[i].error;
             result.append(langNote);

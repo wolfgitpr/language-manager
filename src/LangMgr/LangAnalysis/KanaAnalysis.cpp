@@ -60,7 +60,7 @@ namespace LangMgr {
         QString result =
             QRandomGenerator::global()->bounded(2) == 0 ? QChar(unicode) : QChar(unicode2);
         if (QRandomGenerator::global()->bounded(2) == 0) {
-            result += specialKana[QRandomGenerator::global()->bounded(specialKana.size())];
+            result += specialKana[QRandomGenerator::global()->bounded(static_cast<quint32>(specialKana.size()))];
         }
         return result;
     }

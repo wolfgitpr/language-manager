@@ -1,6 +1,7 @@
 #include "Cantonese.h"
 
-namespace LangMgr {
+namespace LangMgr
+{
     Cantonese::Cantonese(QObject *parent) : IG2pFactory("yue", parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Cantonese"));
@@ -29,14 +30,12 @@ namespace LangMgr {
     static QStringList fromStdVector(const std::vector<std::string> &input) {
         QStringList result;
         for (const auto &str : input)
-            result.append(QString::fromUtf8(str));
+            result.append(QString::fromUtf8(str.c_str()));
         return result;
     }
 
     QList<LangNote> Cantonese::convert(const QStringList &input, const QJsonObject *config) const {
-        const auto tone = config && config->keys().contains("tone")
-                              ? config->value("tone").toBool()
-                              : this->m_tone;
+        const auto tone = config && config->keys().contains("tone") ? config->value("tone").toBool() : this->m_tone;
 
         const auto style = tone ? Pinyin::CanTone::Style::TONE3 : Pinyin::CanTone::Style::NORMAL;
 
@@ -45,7 +44,7 @@ namespace LangMgr {
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
-            langNote.syllable = QString::fromUtf8(g2pRes[i].pinyin);
+            langNote.syllable = QString::fromUtf8(g2pRes[i].pinyin.c_str());
             langNote.candidates = fromStdVector(g2pRes[i].candidates);
             langNote.error = g2pRes[i].error;
             result.append(langNote);
@@ -60,19 +59,11 @@ namespace LangMgr {
         return config;
     }
 
-    bool Cantonese::tone() const {
-        return m_tone;
-    }
+    bool Cantonese::tone() const { return m_tone; }
 
-    void Cantonese::setTone(const bool &tone) {
-        m_tone = tone;
-    }
+    void Cantonese::setTone(const bool &tone) { m_tone = tone; }
 
-    bool Cantonese::convertNum() const {
-        return m_convertNum;
-    }
+    bool Cantonese::convertNum() const { return m_convertNum; }
 
-    void Cantonese::setConvetNum(const bool &convertNum) {
-        m_convertNum = convertNum;
-    }
-} // LangMgr
+    void Cantonese::setConvetNum(const bool &convertNum) { m_convertNum = convertNum; }
+} // namespace LangMgr

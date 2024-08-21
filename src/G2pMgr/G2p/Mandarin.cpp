@@ -1,6 +1,7 @@
 #include "Mandarin.h"
 
-namespace LangMgr {
+namespace LangMgr
+{
     Mandarin::Mandarin(QObject *parent) : IG2pFactory("cmn", parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Mandarin"));
@@ -29,14 +30,12 @@ namespace LangMgr {
     static QStringList fromStdVector(const std::vector<std::string> &input) {
         QStringList result;
         for (const auto &str : input)
-            result.append(QString::fromUtf8(str));
+            result.append(QString::fromUtf8(str.c_str()));
         return result;
     }
 
     QList<LangNote> Mandarin::convert(const QStringList &input, const QJsonObject *config) const {
-        const auto tone = config && config->keys().contains("tone")
-                              ? config->value("tone").toBool()
-                              : this->m_tone;
+        const auto tone = config && config->keys().contains("tone") ? config->value("tone").toBool() : this->m_tone;
         const auto style = tone ? Pinyin::ManTone::Style::TONE3 : Pinyin::ManTone::Style::NORMAL;
 
         QList<LangNote> result;
@@ -44,7 +43,7 @@ namespace LangMgr {
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
-            langNote.syllable = QString::fromUtf8(g2pRes[i].pinyin);
+            langNote.syllable = QString::fromUtf8(g2pRes[i].pinyin.c_str());
             langNote.candidates = fromStdVector(g2pRes[i].candidates);
             langNote.error = g2pRes[i].error;
             result.append(langNote);
@@ -59,19 +58,11 @@ namespace LangMgr {
         return config;
     }
 
-    bool Mandarin::tone() const {
-        return m_tone;
-    }
+    bool Mandarin::tone() const { return m_tone; }
 
-    void Mandarin::setTone(const bool &tone) {
-        m_tone = tone;
-    }
+    void Mandarin::setTone(const bool &tone) { m_tone = tone; }
 
-    bool Mandarin::convertNum() const {
-        return m_convertNum;
-    }
+    bool Mandarin::convertNum() const { return m_convertNum; }
 
-    void Mandarin::setConvetNum(const bool &convertNum) {
-        m_convertNum = convertNum;
-    }
-} // LangMgr
+    void Mandarin::setConvetNum(const bool &convertNum) { m_convertNum = convertNum; }
+} // namespace LangMgr
