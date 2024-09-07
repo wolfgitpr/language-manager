@@ -3,24 +3,20 @@
 
 #include <QJsonObject>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
-    IG2pFactoryPrivate::IG2pFactoryPrivate() {
-    }
+    IG2pFactoryPrivate::IG2pFactoryPrivate() {}
 
     IG2pFactoryPrivate::~IG2pFactoryPrivate() = default;
 
-    void IG2pFactoryPrivate::init() {
-    }
+    void IG2pFactoryPrivate::init() {}
 
-    IG2pFactory::IG2pFactory(const QString &id, QObject *parent)
-        : IG2pFactory(*new IG2pFactoryPrivate(), id, parent) {
-    }
+    IG2pFactory::IG2pFactory(const QString &id, QObject *parent) : IG2pFactory(*new IG2pFactoryPrivate(), id, parent) {}
 
     IG2pFactory::~IG2pFactory() = default;
 
-    IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, QObject *parent)
-        : QObject(parent), d_ptr(&d) {
+    IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
         d.id = id;
 
@@ -67,9 +63,7 @@ namespace LangMgr {
         d->description = description;
     }
 
-    QJsonObject IG2pFactory::config() {
-        return {};
-    }
+    QJsonObject IG2pFactory::config() { return {}; }
 
     LangNote IG2pFactory::convert(const QString &input, const QJsonObject *config) const {
         return convert(QStringList() << input, config).at(0);
@@ -80,4 +74,4 @@ namespace LangMgr {
         Q_UNUSED(config);
         return {};
     }
-}
+} // namespace LangMgr

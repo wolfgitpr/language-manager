@@ -1,10 +1,10 @@
-#include <QDebug>
-#include <qrandom.h>
 #include <QCoreApplication>
+#include <QDebug>
 #include <algorithm>
+#include <qrandom.h>
 
-#include <language-manager/ILanguageManager.h>
 #include <language-manager/IG2pManager.h>
+#include <language-manager/ILanguageManager.h>
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     const auto langMgr = LangMgr::ILanguageManager::instance();
 
     QString errorMsg;
-    g2pMgr->initialize(errorMsg);
+    g2pMgr->initialize(qApp->applicationDirPath() + "/dict", errorMsg);
 
     qDebug() << "LangMgr: errorMsg" << errorMsg << "initialized:" << g2pMgr->initialized();
 
@@ -44,8 +44,7 @@ int main(int argc, char *argv[]) {
 
     for (const auto &note : langNotes) {
         if (note->language != note->standard) {
-            qDebug() << "lyric: " << note->lyric << " standard: " << note->standard
-                << " res: " << note->language;
+            qDebug() << "lyric: " << note->lyric << " standard: " << note->standard << " res: " << note->language;
         }
     }
 

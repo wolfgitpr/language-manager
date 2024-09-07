@@ -5,7 +5,8 @@
 
 #include <language-manager/IG2pManager.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class IG2pManagerPrivate final : public QObject {
         Q_OBJECT
@@ -19,11 +20,13 @@ namespace LangMgr {
 
         QMap<QString, IG2pFactory *> g2ps;
 
+        QString m_pinyinDictPath;
+
         bool initialized = false;
 
         QStringList baseG2p = {"slur", "linebreak", "number", "space", "punctuation"};
     };
 
-}
+} // namespace LangMgr
 
 #endif // IG2PPRIVATE_H

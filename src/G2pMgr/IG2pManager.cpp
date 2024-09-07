@@ -1,23 +1,23 @@
 #include <language-manager/IG2pManager.h>
 
-#include <QDebug>
 #include <QCoreApplication>
+#include <QDebug>
 
-#include "IG2pManager_p.h"
 #include <language-manager/IG2pFactory.h>
+#include "IG2pManager_p.h"
 
 #include <cpp-pinyin/G2pglobal.h>
 
-#include "G2p/Mandarin.h"
 #include "G2p/Cantonese.h"
 #include "G2p/English.h"
 #include "G2p/Kana.h"
+#include "G2p/Mandarin.h"
 #include "G2p/Unknown.h"
 
-namespace LangMgr {
+namespace LangMgr
+{
 
-    IG2pManagerPrivate::IG2pManagerPrivate() {
-    }
+    IG2pManagerPrivate::IG2pManagerPrivate() {}
 
     IG2pManagerPrivate::~IG2pManagerPrivate() = default;
 
@@ -44,8 +44,7 @@ namespace LangMgr {
             return false;
         }
         if (d->g2ps.contains(factory->id())) {
-            qWarning() << "LangMgr::IG2pManager::addG2p(): trying to add duplicated factory:"
-                << factory->id();
+            qWarning() << "LangMgr::IG2pManager::addG2p(): trying to add duplicated factory:" << factory->id();
             return false;
         }
         factory->setParent(this);
@@ -78,8 +77,7 @@ namespace LangMgr {
         d->g2ps.clear();
     }
 
-    IG2pManager::IG2pManager(QObject *parent) : IG2pManager(*new IG2pManagerPrivate(), parent) {
-    }
+    IG2pManager::IG2pManager(QObject *parent) : IG2pManager(*new IG2pManagerPrivate(), parent) {}
 
     IG2pManager::~IG2pManager() = default;
 
@@ -93,9 +91,9 @@ namespace LangMgr {
         addG2p(new Unknown());
     }
 
-    bool IG2pManager::initialize(QString &errMsg) {
+    bool IG2pManager::initialize(const QString &pinyinDictPath, QString &errMsg) {
         Q_D(IG2pManager);
-        Pinyin::setDictionaryPath((qApp->applicationDirPath() + "/dict").toUtf8().toStdString());
+        Pinyin::setDictionaryPath(pinyinDictPath.toUtf8().toStdString());
         const auto g2ps = d->g2ps.values();
         for (const auto g2p : g2ps) {
             g2p->initialize(errMsg);
@@ -112,4 +110,4 @@ namespace LangMgr {
         return d->initialized;
     }
 
-}
+} // namespace LangMgr

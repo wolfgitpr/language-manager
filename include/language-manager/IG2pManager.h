@@ -3,13 +3,14 @@
 
 #include <QObject>
 
+#include <language-manager/LangCommon.h>
 #include <language-manager/LangGlobal.h>
 #include <language-manager/Singleton.h>
-#include <language-manager/LangCommon.h>
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class IG2pManagerPrivate;
 
@@ -20,7 +21,7 @@ namespace LangMgr {
         explicit IG2pManager(QObject *parent = nullptr);
         ~IG2pManager() override;
 
-        bool initialize(QString &errMsg);
+        bool initialize(const QString &pinyinDictPath, QString &errMsg);
         bool initialized();
 
     public:
@@ -38,6 +39,6 @@ namespace LangMgr {
         QScopedPointer<IG2pManagerPrivate> d_ptr;
     };
 
-}
+} // namespace LangMgr
 
 #endif // IG2PMANAGER_H

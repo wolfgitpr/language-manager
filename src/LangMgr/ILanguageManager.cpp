@@ -3,28 +3,28 @@
 
 #include <language-manager/ILanguageFactory.h>
 
+#include "LangAnalysis/BaseAnalysis/LinebreakAnalysis.h"
 #include "LangAnalysis/BaseAnalysis/NumberAnalysis.h"
+#include "LangAnalysis/BaseAnalysis/Punctuation.h"
 #include "LangAnalysis/BaseAnalysis/SlurAnalysis.h"
 #include "LangAnalysis/BaseAnalysis/SpaceAnalysis.h"
-#include "LangAnalysis/BaseAnalysis/LinebreakAnalysis.h"
-#include "LangAnalysis/BaseAnalysis/Punctuation.h"
 #include "LangAnalysis/BaseAnalysis/UnknownAnalysis.h"
 
-#include "LangAnalysis/MandarinAnalysis.h"
-#include "LangAnalysis/PinyinAnalysis.h"
 #include "LangAnalysis/CantoneseAnalysis.h"
+#include "LangAnalysis/EnglishAnalysis.h"
 #include "LangAnalysis/JyutpingAnalysis.h"
 #include "LangAnalysis/KanaAnalysis.h"
+#include "LangAnalysis/MandarinAnalysis.h"
+#include "LangAnalysis/PinyinAnalysis.h"
 #include "LangAnalysis/RomajiAnalysis.h"
-#include "LangAnalysis/EnglishAnalysis.h"
 
 #include <language-manager/IG2pManager.h>
 
 #include <QCoreApplication>
 
-namespace LangMgr {
-    ILanguageManagerPrivate::ILanguageManagerPrivate() {
-    }
+namespace LangMgr
+{
+    ILanguageManagerPrivate::ILanguageManagerPrivate() {}
 
     ILanguageManagerPrivate::~ILanguageManagerPrivate() = default;
 
@@ -50,9 +50,8 @@ namespace LangMgr {
             return false;
         }
         if (d->languages.contains(factory->id())) {
-            qWarning()
-                << "LangMgr::ILanguageManager::addLanguage(): trying to add duplicated factory:"
-                << factory->id();
+            qWarning() << "LangMgr::ILanguageManager::addLanguage(): trying to add duplicated factory:"
+                       << factory->id();
             return false;
         }
         factory->setParent(this);
@@ -62,8 +61,7 @@ namespace LangMgr {
 
     bool ILanguageManager::removeLanguage(const ILanguageFactory *factory) {
         if (factory == nullptr) {
-            qWarning()
-                << "LangMgr::ILanguageManager::removeLanguage(): trying to remove null factory";
+            qWarning() << "LangMgr::ILanguageManager::removeLanguage(): trying to remove null factory";
             return false;
         }
         return removeLanguage(factory->id());
@@ -72,8 +70,7 @@ namespace LangMgr {
     bool ILanguageManager::removeLanguage(const QString &id) {
         Q_D(ILanguageManager);
         if (!d->languages.contains(id)) {
-            qWarning() << "LangMgr::ILanguageManager::removeLanguage(): factory does not exist:"
-                << id;
+            qWarning() << "LangMgr::ILanguageManager::removeLanguage(): factory does not exist:" << id;
             return false;
         }
         d->languages.remove(id);
@@ -85,8 +82,7 @@ namespace LangMgr {
         d->languages.clear();
     }
 
-    QList<ILanguageFactory *>
-        ILanguageManager::priorityLanguages(const QStringList &priorityList) const {
+    QList<ILanguageFactory *> ILanguageManager::priorityLanguages(const QStringList &priorityList) const {
         Q_D(const ILanguageManager);
         QStringList order = d->defaultOrder;
 
@@ -128,16 +124,14 @@ namespace LangMgr {
         return result;
     }
 
-    void ILanguageManager::correct(const QList<LangNote *> &input,
-                                   const QStringList &priorityList) const {
+    void ILanguageManager::correct(const QList<LangNote *> &input, const QStringList &priorityList) const {
         const auto langFactorys = this->priorityLanguages(priorityList);
         for (const auto &factory : langFactorys) {
             factory->correct(input);
         }
     }
 
-    QString ILanguageManager::analysis(const QString &input,
-                                       const QStringList &priorityList) const {
+    QString ILanguageManager::analysis(const QString &input, const QStringList &priorityList) const {
         QString result = "unknown";
         auto analysis = this->priorityLanguages(priorityList);
 
@@ -150,8 +144,7 @@ namespace LangMgr {
         return result;
     }
 
-    QStringList ILanguageManager::analysis(const QStringList &input,
-                                           const QStringList &priorityList) const {
+    QStringList ILanguageManager::analysis(const QStringList &input, const QStringList &priorityList) const {
         auto analysis = this->priorityLanguages(priorityList);
         QList<LangNote *> inputNote;
         for (const auto &lyric : input) {
@@ -168,9 +161,7 @@ namespace LangMgr {
         return result;
     }
 
-    ILanguageManager::ILanguageManager(QObject *parent)
-        : ILanguageManager(*new ILanguageManagerPrivate(), parent) {
-    }
+    ILanguageManager::ILanguageManager(QObject *parent) : ILanguageManager(*new ILanguageManagerPrivate(), parent) {}
 
     ILanguageManager::~ILanguageManager() = default;
 
@@ -190,8 +181,7 @@ namespace LangMgr {
         return d->initialized;
     }
 
-    ILanguageManager::ILanguageManager(ILanguageManagerPrivate &d, QObject *parent)
-        : QObject(parent), d_ptr(&d) {
+    ILanguageManager::ILanguageManager(ILanguageManagerPrivate &d, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
 
         addLanguage(new NumberAnalysis());
@@ -238,4 +228,4 @@ namespace LangMgr {
         }
     }
 
-} // LangMgr
+} // namespace LangMgr
