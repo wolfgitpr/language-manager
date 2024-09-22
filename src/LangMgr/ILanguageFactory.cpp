@@ -3,22 +3,21 @@
 
 #include <QDebug>
 #include <QtConcurrent/QtConcurrent>
+#include <memory>
 
 #include <language-manager/IG2pManager.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
-    ILanguageFactoryPrivate::ILanguageFactoryPrivate() {
-    }
+    ILanguageFactoryPrivate::ILanguageFactoryPrivate() {}
 
     ILanguageFactoryPrivate::~ILanguageFactoryPrivate() = default;
 
-    void ILanguageFactoryPrivate::init() {
-    }
+    void ILanguageFactoryPrivate::init() {}
 
-    ILanguageFactory::ILanguageFactory(const QString &id, QObject *parent)
-        : ILanguageFactory(*new ILanguageFactoryPrivate(), id, parent) {
-    }
+    ILanguageFactory::ILanguageFactory(const QString &id, QObject *parent) :
+        ILanguageFactory(*new ILanguageFactoryPrivate(), id, parent) {}
 
     ILanguageFactory::~ILanguageFactory() = default;
 
@@ -27,16 +26,15 @@ namespace LangMgr {
         return true;
     }
 
-    ILanguageFactory::ILanguageFactory(ILanguageFactoryPrivate &d, const QString &id,
-                                       QObject *parent)
-        : QObject(parent), d_ptr(&d) {
+    ILanguageFactory::ILanguageFactory(ILanguageFactoryPrivate &d, const QString &id, QObject *parent) :
+        QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
         d.id = id;
         d.m_selectedG2p = id;
         d.categroy = id;
 
         d.init();
-        d.m_g2pConfig = new QJsonObject();
+        d.m_g2pConfig = std::make_unique<QJsonObject>();
     }
 
     QString ILanguageFactory::id() const {
@@ -114,9 +112,7 @@ namespace LangMgr {
         d->author = author;
     }
 
-    QString ILanguageFactory::randString() const {
-        return QString();
-    }
+    QString ILanguageFactory::randString() const { return QString(); }
 
     bool ILanguageFactory::contains(const QChar &c) const {
         Q_UNUSED(c);
@@ -156,9 +152,7 @@ namespace LangMgr {
         return result;
     }
 
-    QString ILanguageFactory::analysis(const QString &input) const {
-        return contains(input) ? id() : "unknown";
-    }
+    QString ILanguageFactory::analysis(const QString &input) const { return contains(input) ? id() : "unknown"; }
 
     void ILanguageFactory::correct(const QList<LangNote *> &input) const {
         for (const auto &note : input) {
@@ -171,7 +165,7 @@ namespace LangMgr {
 
     QJsonObject *ILanguageFactory::g2pConfig() {
         Q_D(const ILanguageFactory);
-        return d->m_g2pConfig;
+        return d->m_g2pConfig.get();
     }
 
     void ILanguageFactory::loadConfig(const QJsonObject &config) {
@@ -189,7 +183,7 @@ namespace LangMgr {
             d->m_selectedG2p = config.value("g2p").toString();
         }
         if (config.contains("g2pConfig")) {
-            d->m_g2pConfig = new QJsonObject(config.value("g2pConfig").toObject());
+            d->m_g2pConfig = std::make_unique<QJsonObject>(config.value("g2pConfig").toObject());
         }
     }
 
@@ -204,4 +198,4 @@ namespace LangMgr {
         return config;
     }
 
-} // LangMgr
+} // namespace LangMgr

@@ -7,7 +7,8 @@
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class Cantonese final : public IG2pFactory {
         Q_OBJECT
@@ -28,12 +29,12 @@ namespace LangMgr {
         void setConvetNum(const bool &convertNum);
 
     private:
-        Pinyin::Jyutping *m_cantonese;
+        std::unique_ptr<Pinyin::Jyutping> m_cantonese;
 
         bool m_tone = false;
         bool m_convertNum = false;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // CANTONESE_H

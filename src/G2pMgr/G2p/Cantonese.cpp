@@ -11,7 +11,7 @@ namespace LangMgr
     Cantonese::~Cantonese() = default;
 
     bool Cantonese::initialize(QString &errMsg) {
-        m_cantonese = new Pinyin::Jyutping();
+        m_cantonese = std::make_unique<Pinyin::Jyutping>();
         if (!m_cantonese->initialized()) {
             errMsg = tr("Failed to initialize Cantonese G2P");
             return false;

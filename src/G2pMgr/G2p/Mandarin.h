@@ -7,7 +7,8 @@
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class Mandarin final : public IG2pFactory {
         Q_OBJECT
@@ -28,11 +29,11 @@ namespace LangMgr {
         void setConvetNum(const bool &convertNum);
 
     private:
-        Pinyin::Pinyin *m_mandarin;
+        std::unique_ptr<Pinyin::Pinyin> m_mandarin;
 
         bool m_tone = false;
         bool m_convertNum = false;
     };
-} // LangMgr
+} // namespace LangMgr
 
 #endif // MANDARIN_H

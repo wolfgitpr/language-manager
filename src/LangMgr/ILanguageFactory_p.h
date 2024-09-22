@@ -3,10 +3,11 @@
 
 #include <language-manager/ILanguageFactory.h>
 
-#include <QObject>
 #include <QJsonObject>
+#include <QObject>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class ILanguageFactoryPrivate final : public QObject {
         Q_OBJECT
@@ -32,9 +33,9 @@ namespace LangMgr {
         QString displayCategory;
 
         QString m_selectedG2p;
-        QJsonObject *m_g2pConfig;
+        std::unique_ptr<QJsonObject> m_g2pConfig;
     };
 
-}
+} // namespace LangMgr
 
 #endif // ILANGUAGEFACTORY_P_H

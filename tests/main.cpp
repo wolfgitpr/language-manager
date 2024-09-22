@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
         if (note->language != note->standard) {
             qDebug() << "lyric: " << note->lyric << " standard: " << note->standard << " res: " << note->language;
         }
+        delete note;
     }
 
     qDebug() << "LangMgrTest: success";

@@ -11,7 +11,7 @@ namespace LangMgr
     Mandarin::~Mandarin() = default;
 
     bool Mandarin::initialize(QString &errMsg) {
-        m_mandarin = new Pinyin::Pinyin();
+        m_mandarin = std::make_unique<Pinyin::Pinyin>();
         if (!m_mandarin->initialized()) {
             errMsg = tr("Failed to initialize Mandarin G2P");
             return false;
