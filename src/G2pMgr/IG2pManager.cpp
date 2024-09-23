@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QTranslator>
 
 #include <language-manager/IG2pFactory.h>
 #include "IG2pManager_p.h"
@@ -83,6 +84,16 @@ namespace LangMgr
 
     IG2pManager::IG2pManager(IG2pManagerPrivate &d, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
+
+        const QString locale = QLocale::system().name();
+        auto *translator = new QTranslator(this);
+        if (translator->load(QString(":/share/translations/language-manager_%1.qm").arg(locale))) {
+            qDebug() << "IG2pManager: Loaded translation from resources:"
+                     << QString(":/share/translations/language-manager_%1.qm").arg(locale);
+        } else {
+            qWarning() << "IG2pManager: Failed to load translation";
+        }
+        QCoreApplication::installTranslator(translator);
 
         addG2p(new Mandarin());
         addG2p(new Cantonese());

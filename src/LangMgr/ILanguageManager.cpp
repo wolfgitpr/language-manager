@@ -21,6 +21,8 @@
 #include <language-manager/IG2pManager.h>
 
 #include <QCoreApplication>
+#include <QLocale>
+#include <QTranslator>
 
 namespace LangMgr
 {
@@ -183,6 +185,16 @@ namespace LangMgr
 
     ILanguageManager::ILanguageManager(ILanguageManagerPrivate &d, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
+
+        const QString locale = QLocale::system().name();
+        auto *translator = new QTranslator(this);
+        if (translator->load(QString(":/share/translations/language-manager_%1.qm").arg(locale))) {
+            qDebug() << "ILanguageManager: Loaded translation from resources:"
+                     << QString(":/share/translations/language-manager_%1.qm").arg(locale);
+        } else {
+            qWarning() << "ILanguageManager: Failed to load translation";
+        }
+        QCoreApplication::installTranslator(translator);
 
         addLanguage(new NumberAnalysis());
         addLanguage(new SlurAnalysis());

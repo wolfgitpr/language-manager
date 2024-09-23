@@ -58,7 +58,7 @@ else ()
 endif ()
 target_compile_definitions(${PROJECT_NAME} PRIVATE LANG_MANAGER_LIBRARY)
 
-target_sources(${PROJECT_NAME} PRIVATE ${_src})
+target_sources(${PROJECT_NAME} PRIVATE ${_src} language-manager_res.qrc)
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 # ----------------------------------
