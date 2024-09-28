@@ -93,7 +93,8 @@ namespace LangMgr
         } else {
             qWarning() << "IG2pManager: Failed to load translation";
         }
-        QCoreApplication::installTranslator(translator);
+        // TODO: Install translator
+        // QCoreApplication::installTranslator(translator);
 
         addG2p(new Mandarin());
         addG2p(new Cantonese());

@@ -195,7 +195,8 @@ namespace LangMgr
         } else {
             qWarning() << "ILanguageManager: Failed to load translation";
         }
-        QCoreApplication::installTranslator(translator);
+        // TODO: Install translator
+        // QCoreApplication::installTranslator(translator);
 
         addLanguage(new NumberAnalysis());
         addLanguage(new SlurAnalysis());
