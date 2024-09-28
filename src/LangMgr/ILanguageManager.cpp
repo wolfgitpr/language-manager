@@ -21,6 +21,7 @@
 #include <language-manager/IG2pManager.h>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QLocale>
 #include <QTranslator>
 
