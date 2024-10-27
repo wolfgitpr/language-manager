@@ -168,6 +168,11 @@ namespace LangMgr
 
     ILanguageManager::~ILanguageManager() = default;
 
+    ILanguageManager *ILanguageManager::instance() {
+        static ILanguageManager obj;
+        return &obj;
+    }
+
     bool ILanguageManager::initialize(QString &errMsg) {
         Q_D(ILanguageManager);
         for (const auto &factory : d->languages) {

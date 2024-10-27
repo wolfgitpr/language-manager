@@ -14,12 +14,17 @@ namespace LangMgr
 
     class IG2pManagerPrivate;
 
-    class LANG_MANAGER_EXPORT IG2pManager final : public QObject, public Singleton<IG2pManager> {
+    class LANG_MANAGER_EXPORT IG2pManager final : public QObject {
         Q_OBJECT
         Q_DECLARE_PRIVATE(IG2pManager)
     public:
         explicit IG2pManager(QObject *parent = nullptr);
         ~IG2pManager() override;
+
+        IG2pManager(const IG2pManager &) = delete;
+        IG2pManager &operator=(const IG2pManager &) = delete;
+
+        static IG2pManager *instance();
 
         bool initialize(const QString &pinyinDictPath, QString &errMsg);
         bool initialized();

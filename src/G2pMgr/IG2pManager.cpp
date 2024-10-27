@@ -103,6 +103,11 @@ namespace LangMgr
         addG2p(new Unknown());
     }
 
+    IG2pManager *IG2pManager::instance() {
+        static IG2pManager obj;
+        return &obj;
+    }
+
     bool IG2pManager::initialize(const QString &pinyinDictPath, QString &errMsg) {
         Q_D(IG2pManager);
         Pinyin::setDictionaryPath(pinyinDictPath.toUtf8().toStdString());

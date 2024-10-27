@@ -11,14 +11,18 @@ namespace LangMgr {
 
     class ILanguageManagerPrivate;
 
-    class LANG_MANAGER_EXPORT ILanguageManager final : public QObject,
-                                                       public Singleton<ILanguageManager> {
+    class LANG_MANAGER_EXPORT ILanguageManager final : public QObject {
         Q_OBJECT
         Q_DECLARE_PRIVATE(ILanguageManager)
 
     public:
         explicit ILanguageManager(QObject *parent = nullptr);
         ~ILanguageManager() override;
+
+        ILanguageManager(const ILanguageManager &) = delete;
+        ILanguageManager &operator=(const ILanguageManager &) = delete;
+
+        static ILanguageManager *instance();
 
         bool initialize(QString &errMsg);
         bool initialized();
