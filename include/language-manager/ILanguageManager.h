@@ -4,7 +4,6 @@
 #include <QObject>
 
 #include <language-manager/LangGlobal.h>
-#include <language-manager/Singleton.h>
 #include <language-manager/ILanguageFactory.h>
 
 namespace LangMgr {

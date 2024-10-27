@@ -5,7 +5,6 @@
 
 #include <language-manager/LangCommon.h>
 #include <language-manager/LangGlobal.h>
-#include <language-manager/Singleton.h>
 
 #include <language-manager/IG2pFactory.h>
 
