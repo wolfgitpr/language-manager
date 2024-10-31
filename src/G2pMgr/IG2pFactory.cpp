@@ -12,14 +12,16 @@ namespace LangMgr
 
     void IG2pFactoryPrivate::init() {}
 
-    IG2pFactory::IG2pFactory(const QString &id, QObject *parent) : IG2pFactory(*new IG2pFactoryPrivate(), id, parent) {}
+    IG2pFactory::IG2pFactory(const QString &id, const QString &categroy, QObject *parent) :
+        IG2pFactory(*new IG2pFactoryPrivate(), id, categroy, parent) {}
 
     IG2pFactory::~IG2pFactory() = default;
 
-    IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, QObject *parent) : QObject(parent), d_ptr(&d) {
+    IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, const QString &categroy, QObject *parent) :
+        QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
         d.id = id;
-        d.categroy = id;
+        d.categroy = categroy.isEmpty() ? id : categroy;
 
         d.init();
     }

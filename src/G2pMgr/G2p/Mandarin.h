@@ -13,7 +13,7 @@ namespace LangMgr
     class Mandarin final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit Mandarin(QObject *parent = nullptr);
+        explicit Mandarin(const QString &id = "cmn", const QString &categroy = "cmn", QObject *parent = nullptr);
         ~Mandarin() override;
 
         bool initialize(QString &errMsg) override;

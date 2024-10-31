@@ -2,7 +2,8 @@
 
 namespace LangMgr
 {
-    Cantonese::Cantonese(QObject *parent) : IG2pFactory("yue", parent) {
+    Cantonese::Cantonese(const QString &id, const QString &categroy, QObject *parent) :
+        IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Cantonese"));
         setDescription(tr("Using Cantonese Pinyin as the phonetic notation method."));

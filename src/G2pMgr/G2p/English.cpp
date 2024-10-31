@@ -2,7 +2,7 @@
 
 namespace LangMgr
 {
-    English::English(QObject *parent) : IG2pFactory("en", parent) {
+    English::English(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("English"));
         setDescription(tr("Greedy matching of consecutive English letters."));

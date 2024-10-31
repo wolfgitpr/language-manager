@@ -235,7 +235,7 @@ namespace LangMgr
         addLanguage(new EnglishAnalysis());
     }
 
-    void ILanguageManager::convert(const QList<LangNote *> &input) const {
+    void ILanguageManager::convert(const QList<LangNote *> &input) {
         const auto &g2pMgr = LangMgr::IG2pManager::instance();
 
         QMap<QString, QList<int>> indexMap;

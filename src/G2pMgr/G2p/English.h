@@ -10,7 +10,7 @@ namespace LangMgr
         Q_OBJECT
 
     public:
-        explicit English(QObject *parent = nullptr);
+        explicit English(const QString &id = "en", const QString &categroy = "en", QObject *parent = nullptr);
         ~English() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;

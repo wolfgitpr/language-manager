@@ -13,7 +13,7 @@ namespace LangMgr
     class Cantonese final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit Cantonese(QObject *parent = nullptr);
+        explicit Cantonese(const QString &id = "yue", const QString &categroy = "yue", QObject *parent = nullptr);
         ~Cantonese() override;
 
         bool initialize(QString &errMsg) override;

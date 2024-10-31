@@ -2,7 +2,8 @@
 
 namespace LangMgr
 {
-    Mandarin::Mandarin(QObject *parent) : IG2pFactory("cmn", parent) {
+    Mandarin::Mandarin(const QString &id, const QString &categroy, QObject *parent) :
+        IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Mandarin"));
         setDescription(tr("Using Pinyin as the phonetic notation method."));

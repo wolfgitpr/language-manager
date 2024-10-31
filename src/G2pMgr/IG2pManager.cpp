@@ -96,11 +96,19 @@ namespace LangMgr
         // TODO: Install translator
         // QCoreApplication::installTranslator(translator);
 
-        addG2p(new Mandarin());
-        addG2p(new Cantonese());
-        addG2p(new English());
-        addG2p(new KanaG2p());
+        addG2p(new Unknown("number"));
+        addG2p(new Unknown("slur"));
+        addG2p(new Unknown("space"));
+        addG2p(new Unknown("linebreak"));
+        addG2p(new Unknown("punctuation"));
         addG2p(new Unknown());
+
+        addG2p(new Mandarin());
+        addG2p(new English("cmn-pinyin", "cmn"));
+        addG2p(new Cantonese());
+        addG2p(new KanaG2p());
+        addG2p(new English("ja-romaji", "ja-kana"));
+        addG2p(new English());
     }
 
     IG2pManager *IG2pManager::instance() {

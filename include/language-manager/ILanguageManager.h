@@ -1,8 +1,6 @@
 #ifndef ILANGUAGEMANAGER_H
 #define ILANGUAGEMANAGER_H
 
-#include <QObject>
-
 #include <language-manager/ILanguageFactory.h>
 #include <language-manager/LangGlobal.h>
 
@@ -42,7 +40,7 @@ namespace LangMgr
         [[nodiscard]] QList<LangNote> split(const QString &input) const;
 
         void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
-        void convert(const QList<LangNote *> &input) const;
+        static void convert(const QList<LangNote *> &input);
 
         [[nodiscard]] QString analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
         [[nodiscard]] QStringList analysis(const QStringList &input, const QStringList &priorityG2pIds = {}) const;

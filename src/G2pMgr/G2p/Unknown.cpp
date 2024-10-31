@@ -2,7 +2,7 @@
 
 namespace LangMgr
 {
-    Unknown::Unknown(QObject *parent) : IG2pFactory("unknown", parent) {
+    Unknown::Unknown(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Unknown"));
         setDescription(tr("Unknown language, no conversion required."));

@@ -9,10 +9,10 @@ namespace LangMgr
     class Unknown final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit Unknown(QObject *parent = nullptr);
+        explicit Unknown(const QString &id = "unknown", const QString &categroy = "unknown", QObject *parent = nullptr);
         ~Unknown() override;
 
-        QList<LangNote> convert(const QStringList &input) const override;
+        [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject config() override;
     };

@@ -16,7 +16,7 @@ namespace LangMgr
         Q_OBJECT
         Q_DECLARE_PRIVATE(IG2pFactory)
     public:
-        explicit IG2pFactory(const QString &id, QObject *parent = nullptr);
+        explicit IG2pFactory(const QString &id, const QString &categroy = "", QObject *parent = nullptr);
         ~IG2pFactory() override;
 
         virtual bool initialize(QString &errMsg);
@@ -43,7 +43,7 @@ namespace LangMgr
         void setDescription(const QString &description);
 
     protected:
-        IG2pFactory(IG2pFactoryPrivate &d, const QString &id, QObject *parent = nullptr);
+        IG2pFactory(IG2pFactoryPrivate &d, const QString &id, const QString &categroy = "", QObject *parent = nullptr);
 
         QScopedPointer<IG2pFactoryPrivate> d_ptr;
 

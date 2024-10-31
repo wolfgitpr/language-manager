@@ -4,7 +4,7 @@
 
 namespace LangMgr
 {
-    KanaG2p::KanaG2p(QObject *parent) : IG2pFactory("ja-kana", parent) {
+    KanaG2p::KanaG2p(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Kana"));
         setDescription(tr("Kana to Romanization converter."));
