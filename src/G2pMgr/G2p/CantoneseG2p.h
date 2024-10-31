@@ -10,11 +10,11 @@
 namespace LangMgr
 {
 
-    class Cantonese final : public IG2pFactory {
+    class CantoneseG2p final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit Cantonese(const QString &id = "yue", const QString &categroy = "yue", QObject *parent = nullptr);
-        ~Cantonese() override;
+        explicit CantoneseG2p(const QString &id = "yue", const QString &categroy = "yue", QObject *parent = nullptr);
+        ~CantoneseG2p() override;
 
         bool initialize(QString &errMsg) override;
 

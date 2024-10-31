@@ -9,11 +9,20 @@
 
 #include <cpp-pinyin/G2pglobal.h>
 
-#include "G2p/Cantonese.h"
-#include "G2p/English.h"
-#include "G2p/Kana.h"
-#include "G2p/Mandarin.h"
-#include "G2p/Unknown.h"
+#include "G2p/BaseG2p/LinebreakG2p.h"
+#include "G2p/BaseG2p/NumberG2p.h"
+#include "G2p/BaseG2p/PunctuationG2p.h"
+#include "G2p/BaseG2p/SlurG2p.h"
+#include "G2p/BaseG2p/SpaceG2p.h"
+#include "G2p/BaseG2p/UnknownG2p.h"
+
+#include "G2p/CantoneseG2p.h"
+#include "G2p/EnglishG2p.h"
+#include "G2p/Jyutping.h"
+#include "G2p/KanaG2p.h"
+#include "G2p/MandarinG2p.h"
+#include "G2p/PinyinG2p.h"
+#include "G2p/Romaji.h"
 
 namespace LangMgr
 {
@@ -96,20 +105,20 @@ namespace LangMgr
         // TODO: Install translator
         // QCoreApplication::installTranslator(translator);
 
-        addG2p(new Unknown("number"));
-        addG2p(new Unknown("slur"));
-        addG2p(new Unknown("space"));
-        addG2p(new Unknown("linebreak"));
-        addG2p(new Unknown("punctuation"));
-        addG2p(new Unknown());
+        addG2p(new LinebreakG2p());
+        addG2p(new NumberG2p());
+        addG2p(new PunctuationG2p());
+        addG2p(new SlurG2p());
+        addG2p(new SpaceG2p());
+        addG2p(new UnknownG2p());
 
-        addG2p(new Mandarin());
-        addG2p(new English("cmn-pinyin", "cmn"));
-        addG2p(new Cantonese());
-        addG2p(new English("yue-jyutping", "yue"));
+        addG2p(new MandarinG2p());
+        addG2p(new PinyinG2p());
+        addG2p(new CantoneseG2p());
+        addG2p(new Jyutping());
         addG2p(new KanaG2p());
-        addG2p(new English("ja-romaji", "ja-kana"));
-        addG2p(new English());
+        addG2p(new Romaji());
+        addG2p(new EnglishG2p());
     }
 
     IG2pManager *IG2pManager::instance() {

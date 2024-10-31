@@ -1,20 +1,20 @@
-#include "Cantonese.h"
+#include "MandarinG2p.h"
 
 namespace LangMgr
 {
-    Cantonese::Cantonese(const QString &id, const QString &categroy, QObject *parent) :
+    MandarinG2p::MandarinG2p(const QString &id, const QString &categroy, QObject *parent) :
         IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
-        setDisplayName(tr("Cantonese"));
-        setDescription(tr("Using Cantonese Pinyin as the phonetic notation method."));
+        setDisplayName(tr("Mandarin"));
+        setDescription(tr("Using Pinyin as the phonetic notation method."));
     }
 
-    Cantonese::~Cantonese() = default;
+    MandarinG2p::~MandarinG2p() = default;
 
-    bool Cantonese::initialize(QString &errMsg) {
-        m_cantonese = std::make_unique<Pinyin::Jyutping>();
-        if (!m_cantonese->initialized()) {
-            errMsg = tr("Failed to initialize Cantonese G2P");
+    bool MandarinG2p::initialize(QString &errMsg) {
+        m_mandarin = std::make_unique<Pinyin::Pinyin>();
+        if (!m_mandarin->initialized()) {
+            errMsg = tr("Failed to initialize Mandarin G2P");
             return false;
         }
         return true;
@@ -35,11 +35,11 @@ namespace LangMgr
         return result;
     }
 
-    QList<LangNote> Cantonese::convert(const QStringList &input) const {
-        const auto style = m_tone ? Pinyin::CanTone::Style::TONE3 : Pinyin::CanTone::Style::NORMAL;
+    QList<LangNote> MandarinG2p::convert(const QStringList &input) const {
+        const auto style = m_tone ? Pinyin::ManTone::Style::TONE3 : Pinyin::ManTone::Style::NORMAL;
 
         QList<LangNote> result;
-        const auto g2pRes = m_cantonese->hanziToPinyin(toStdVector(input), style);
+        const auto g2pRes = m_mandarin->hanziToPinyin(toStdVector(input), style);
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
@@ -51,18 +51,18 @@ namespace LangMgr
         return result;
     }
 
-    QJsonObject Cantonese::config() {
+    QJsonObject MandarinG2p::config() {
         QJsonObject config;
         config["tone"] = m_tone;
         return config;
     }
 
-    void Cantonese::loadConfig(const QJsonObject &config) {
+    void MandarinG2p::loadConfig(const QJsonObject &config) {
         if (config.contains("tone"))
             m_tone = config.value("tone").toBool();
     }
 
-    bool Cantonese::tone() const { return m_tone; }
+    bool MandarinG2p::tone() const { return m_tone; }
 
-    void Cantonese::setTone(const bool &tone) { m_tone = tone; }
+    void MandarinG2p::setTone(const bool &tone) { m_tone = tone; }
 } // namespace LangMgr

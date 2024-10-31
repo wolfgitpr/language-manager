@@ -1,4 +1,4 @@
-#include "Kana.h"
+#include "KanaG2p.h"
 
 #include <cpp-kana/Kana.h>
 

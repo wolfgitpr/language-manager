@@ -1,16 +1,16 @@
-#include "English.h"
+#include "EnglishG2p.h"
 
 namespace LangMgr
 {
-    English::English(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
+    EnglishG2p::EnglishG2p(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("English"));
         setDescription(tr("Greedy matching of consecutive English letters."));
     }
 
-    English::~English() = default;
+    EnglishG2p::~EnglishG2p() = default;
 
-    QList<LangNote> English::convert(const QStringList &input) const {
+    QList<LangNote> EnglishG2p::convert(const QStringList &input) const {
         QList<LangNote> result;
         for (auto &c : input) {
             const auto syllable = m_toLower ? c.toLower() : c;
@@ -24,18 +24,18 @@ namespace LangMgr
         return result;
     }
 
-    QJsonObject English::config() {
+    QJsonObject EnglishG2p::config() {
         QJsonObject config;
         config["toLower"] = m_toLower;
         return config;
     }
 
-    void English::loadConfig(const QJsonObject &config) {
+    void EnglishG2p::loadConfig(const QJsonObject &config) {
         if (config.contains("toLower"))
             m_toLower = config.value("toLower").toBool();
     }
 
-    bool English::toLower() const { return m_toLower; }
+    bool EnglishG2p::toLower() const { return m_toLower; }
 
-    void English::setToLower(const bool &toLower) { m_toLower = toLower; }
+    void EnglishG2p::setToLower(const bool &toLower) { m_toLower = toLower; }
 } // namespace LangMgr

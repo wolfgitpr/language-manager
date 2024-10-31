@@ -1,16 +1,16 @@
-#include "Unknown.h"
+#include "UnknownG2p.h"
 
 namespace LangMgr
 {
-    Unknown::Unknown(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
+    UnknownG2p::UnknownG2p(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Unknown"));
         setDescription(tr("Unknown language, no conversion required."));
     }
 
-    Unknown::~Unknown() = default;
+    UnknownG2p::~UnknownG2p() = default;
 
-    QList<LangNote> Unknown::convert(const QStringList &input) const {
+    QList<LangNote> UnknownG2p::convert(const QStringList &input) const {
         QList<LangNote> result;
         for (const auto &i : input) {
             LangNote langNote;
@@ -22,5 +22,5 @@ namespace LangMgr
         return result;
     }
 
-    QJsonObject Unknown::config() { return {}; }
+    QJsonObject UnknownG2p::config() { return {}; }
 } // namespace LangMgr

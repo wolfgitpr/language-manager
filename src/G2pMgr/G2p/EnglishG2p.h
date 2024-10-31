@@ -6,12 +6,12 @@
 namespace LangMgr
 {
 
-    class English final : public IG2pFactory {
+    class EnglishG2p : public IG2pFactory {
         Q_OBJECT
 
     public:
-        explicit English(const QString &id = "en", const QString &categroy = "en", QObject *parent = nullptr);
-        ~English() override;
+        explicit EnglishG2p(const QString &id = "en", const QString &categroy = "en", QObject *parent = nullptr);
+        ~EnglishG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 

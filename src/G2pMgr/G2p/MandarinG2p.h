@@ -10,11 +10,11 @@
 namespace LangMgr
 {
 
-    class Mandarin final : public IG2pFactory {
+    class MandarinG2p final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit Mandarin(const QString &id = "cmn", const QString &categroy = "cmn", QObject *parent = nullptr);
-        ~Mandarin() override;
+        explicit MandarinG2p(const QString &id = "cmn", const QString &categroy = "cmn", QObject *parent = nullptr);
+        ~MandarinG2p() override;
 
         bool initialize(QString &errMsg) override;
 
