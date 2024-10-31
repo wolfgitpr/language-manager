@@ -12,7 +12,7 @@ namespace LangMgr
         Q_OBJECT
 
     public:
-        explicit KanaG2p(const QString &id = "jp-kana", const QString &categroy = "jp-kana", QObject *parent = nullptr);
+        explicit KanaG2p(const QString &id = "ja-kana", const QString &categroy = "jp-kana", QObject *parent = nullptr);
         ~KanaG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
