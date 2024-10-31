@@ -19,7 +19,7 @@ namespace LangMgr
             setDisplayName(tr("Jyutping"));
             setDescription(tr("Capture Jyutping words."));
             setCategory("yue");
-            setG2p("unknown");
+            setG2p("yue-jyutping");
         }
 
         bool initialize(QString &errMsg) override;

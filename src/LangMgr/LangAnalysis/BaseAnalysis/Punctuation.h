@@ -15,7 +15,7 @@ namespace LangMgr {
             setDisplayName(tr("Punctuation"));
             setDescription(tr("Capture punctuations."));
             setDiscardResult(true);
-            setG2p("unknown");
+            setG2p("punctuation");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

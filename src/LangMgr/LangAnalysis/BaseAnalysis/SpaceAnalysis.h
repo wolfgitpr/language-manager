@@ -15,7 +15,7 @@ namespace LangMgr {
             setDisplayName(tr("Space"));
             setDescription(tr("Capture spaces."));
             setDiscardResult(true);
-            setG2p("unknown");
+            setG2p("space");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

@@ -14,7 +14,7 @@ namespace LangMgr {
             setDisplayName(tr("Number"));
             setDescription(tr("Capture numbers."));
             setDiscardResult(true);
-            setG2p("unknown");
+            setG2p("number");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

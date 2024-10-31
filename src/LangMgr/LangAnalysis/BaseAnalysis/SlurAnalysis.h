@@ -14,7 +14,7 @@ namespace LangMgr {
             setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Slur"));
             setDescription(tr("Capture slurs."));
-            setG2p("unknown");
+            setG2p("slur");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

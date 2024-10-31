@@ -18,7 +18,7 @@ namespace LangMgr
             setDisplayName(tr("Romaji"));
             setDescription(tr("Capture Romaji words."));
             setCategory("ja");
-            setG2p("unknown");
+            setG2p("ja-romaji");
         }
 
         bool initialize(QString &errMsg) override;

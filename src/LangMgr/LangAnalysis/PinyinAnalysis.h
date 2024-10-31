@@ -18,7 +18,7 @@ namespace LangMgr
             setDisplayName(tr("Pinyin"));
             setDescription(tr("Capture Pinyin words."));
             setCategory("cmn");
-            setG2p("unknown");
+            setG2p("cmn-pinyin");
         }
 
         bool initialize(QString &errMsg) override;
