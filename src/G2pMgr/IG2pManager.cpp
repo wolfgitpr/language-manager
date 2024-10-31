@@ -106,6 +106,7 @@ namespace LangMgr
         addG2p(new Mandarin());
         addG2p(new English("cmn-pinyin", "cmn"));
         addG2p(new Cantonese());
+        addG2p(new English("yue-jyutping", "yue"));
         addG2p(new KanaG2p());
         addG2p(new English("ja-romaji", "ja-kana"));
         addG2p(new English());
