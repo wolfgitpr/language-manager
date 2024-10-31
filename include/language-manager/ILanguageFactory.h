@@ -3,10 +3,11 @@
 
 #include <QObject>
 
-#include <language-manager/LangGlobal.h>
 #include <language-manager/LangCommon.h>
+#include <language-manager/LangGlobal.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class ILanguageFactoryPrivate;
 
@@ -24,12 +25,10 @@ namespace LangMgr {
 
         [[nodiscard]] virtual QString randString() const;
 
-        [[nodiscard]] virtual QList<LangNote> split(const QString &input) const;
-        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input) const;
+        [[nodiscard]] virtual QList<LangNote> split(const QString &input, const QString &g2pId) const;
+        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &g2pId = "unknown") const;
         [[nodiscard]] QString analysis(const QString &input) const;
-        void correct(const QList<LangNote *> &input) const;
-
-        [[nodiscard]] QJsonObject *g2pConfig();
+        void correct(const QList<LangNote *> &input, const QString &g2pId) const;
 
         virtual void loadConfig(const QJsonObject &config);
         [[nodiscard]] virtual QJsonObject exportConfig() const;
@@ -67,6 +66,6 @@ namespace LangMgr {
 
     }; // ILanguageFactory
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // ILANGUAGEFACTORY_H

@@ -2,21 +2,21 @@
 
 #include <QRandomGenerator>
 
-namespace LangMgr {
+namespace LangMgr
+{
     bool JyutpingAnalysis::initialize(QString &errMsg) {
         loadDict();
         return true;
     }
 
     void JyutpingAnalysis::loadDict() {
-        QStringList initials = {"b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "ng", "z",
-                                "c", "s", "j", "gw", "kw", "w"};
-        QStringList finals = {"aa", "aai", "aau", "aam", "aan", "aang", "aap", "aat", "aak", "a",
-                              "ai", "au", "am", "an", "ang", "ap", "at", "ak", "e", "ei", "eu",
-                              "em", "eng", "ep", "ek", "eoi", "eon", "eot", "oe", "oeng", "oet",
-                              "oek", "o", "oi", "ou", "on", "ong", "ot", "ok", "i", "iu", "im",
-                              "in", "ing", "ip", "it", "ik", "u", "ui", "un", "ung", "ut", "uk",
-                              "yu", "yun", "yut"};
+        QStringList initials = {"b", "p",  "m", "f", "d", "t", "n",  "l",  "g", "k",
+                                "h", "ng", "z", "c", "s", "j", "gw", "kw", "w"};
+        QStringList finals = {"aa",  "aai", "aau", "aam", "aan", "aang", "aap", "aat", "aak", "a",  "ai",  "au",
+                              "am",  "an",  "ang", "ap",  "at",  "ak",   "e",   "ei",  "eu",  "em", "eng", "ep",
+                              "ek",  "eoi", "eon", "eot", "oe",  "oeng", "oet", "oek", "o",   "oi", "ou",  "on",
+                              "ong", "ot",  "ok",  "i",   "iu",  "im",   "in",  "ing", "ip",  "it", "ik",  "u",
+                              "ui",  "un",  "ung", "ut",  "uk",  "yu",   "yun", "yut"};
 
         for (const auto &initial : initials) {
             for (const auto &final : finals) {
@@ -33,15 +33,11 @@ namespace LangMgr {
         }
     }
 
-    static bool isLetter(QChar c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\'';
-    }
+    static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
-    bool JyutpingAnalysis::contains(const QString &input) const {
-        return jyutpingSet.contains(input);
-    }
+    bool JyutpingAnalysis::contains(const QString &input) const { return jyutpingSet.contains(input); }
 
-    QList<LangNote> JyutpingAnalysis::split(const QString &input) const {
+    QList<LangNote> JyutpingAnalysis::split(const QString &input, const QString &g2pId) const {
         QList<LangNote> result;
 
         int pos = 0;
@@ -58,9 +54,11 @@ namespace LangMgr {
                 if (contains(note.lyric)) {
                     note.language = id();
                     note.category = category();
+                    note.g2pId = g2pId;
                 } else {
                     note.language = QStringLiteral("en");
                     note.category = QStringLiteral("en");
+                    note.g2pId = QStringLiteral("en");
                 }
             } else {
                 const int start = pos;
@@ -70,6 +68,7 @@ namespace LangMgr {
                 note.lyric = input.mid(start, pos - start);
                 note.language = QStringLiteral("unknown");
                 note.category = QStringLiteral("unknown");
+                note.g2pId = QStringLiteral("unknown");
             }
             if (!note.lyric.isEmpty())
                 result.append(note);
@@ -89,8 +88,6 @@ namespace LangMgr {
         return *it;
     }
 
-    QString JyutpingAnalysis::randString() const {
-        return getRandomElementFromSet(jyutpingSet);
-    }
+    QString JyutpingAnalysis::randString() const { return getRandomElementFromSet(jyutpingSet); }
 
-} // LangMgr
+} // namespace LangMgr

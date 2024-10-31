@@ -2,18 +2,18 @@
 
 #include <QRandomGenerator>
 
-namespace LangMgr {
+namespace LangMgr
+{
     bool PinyinAnalysis::initialize(QString &errMsg) {
         loadDict();
         return true;
     }
 
     void PinyinAnalysis::loadDict() {
-        QStringList initials = {"b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j",
+        QStringList initials = {"b", "p", "m",  "f",  "d",  "t", "n", "l", "g", "k", "h", "j",
                                 "q", "x", "zh", "ch", "sh", "r", "z", "c", "s", "y", "w"};
-        QStringList finals = {"a", "o", "e", "i", "u", "v", "ai", "ei",
-                              "ui", "ao", "ou", "iu", "ie", "ve", "er", "an",
-                              "en", "in", "un", "vn", "ang", "eng", "ing", "ong"};
+        QStringList finals = {"a",  "o",  "e",  "i",  "u",  "v",  "ai", "ei", "ui",  "ao",  "ou",  "iu",
+                              "ie", "ve", "er", "an", "en", "in", "un", "vn", "ang", "eng", "ing", "ong"};
 
         for (const auto &initial : initials) {
             for (const auto &final : finals) {
@@ -30,15 +30,11 @@ namespace LangMgr {
         }
     }
 
-    static bool isLetter(QChar c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\'';
-    }
+    static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
-    bool PinyinAnalysis::contains(const QString &input) const {
-        return pinyinSet.contains(input);
-    }
+    bool PinyinAnalysis::contains(const QString &input) const { return pinyinSet.contains(input); }
 
-    QList<LangNote> PinyinAnalysis::split(const QString &input) const {
+    QList<LangNote> PinyinAnalysis::split(const QString &input, const QString &g2pId) const {
         QList<LangNote> result;
 
         int pos = 0;
@@ -55,9 +51,11 @@ namespace LangMgr {
                 if (contains(note.lyric)) {
                     note.language = id();
                     note.category = category();
+                    note.g2pId = g2pId;
                 } else {
                     note.language = QStringLiteral("en");
                     note.category = QStringLiteral("en");
+                    note.g2pId = QStringLiteral("en");
                 }
             } else {
                 const int start = pos;
@@ -67,6 +65,7 @@ namespace LangMgr {
                 note.lyric = input.mid(start, pos - start);
                 note.language = QStringLiteral("unknown");
                 note.category = QStringLiteral("unknown");
+                note.g2pId = QStringLiteral("unknown");
             }
             if (!note.lyric.isEmpty())
                 result.append(note);
@@ -86,8 +85,6 @@ namespace LangMgr {
         return *it;
     }
 
-    QString PinyinAnalysis::randString() const {
-        return getRandomElementFromSet(pinyinSet);
-    }
+    QString PinyinAnalysis::randString() const { return getRandomElementFromSet(pinyinSet); }
 
-} // LangMgr
+} // namespace LangMgr

@@ -6,14 +6,15 @@
 
 #include <language-manager/ILanguageFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class JyutpingAnalysis final : public ILanguageFactory {
         Q_OBJECT
 
     public:
-        explicit JyutpingAnalysis(const QString &id = "yue-jyutping", QObject *parent = nullptr)
-            : ILanguageFactory(id, parent) {
+        explicit JyutpingAnalysis(const QString &id = "yue-jyutping", QObject *parent = nullptr) :
+            ILanguageFactory(id, parent) {
             setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Jyutping"));
             setDescription(tr("Capture Jyutping words."));
@@ -27,7 +28,7 @@ namespace LangMgr {
 
         [[nodiscard]] bool contains(const QString &input) const override;
 
-        [[nodiscard]] QList<LangNote> split(const QString &input) const override;
+        [[nodiscard]] QList<LangNote> split(const QString &input, const QString &g2pId = "unknown") const override;
 
         [[nodiscard]] QString randString() const override;
 
@@ -35,6 +36,6 @@ namespace LangMgr {
         QSet<QString> jyutpingSet;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
-#endif //JYUTPINGANALYSIS_H
+#endif // JYUTPINGANALYSIS_H

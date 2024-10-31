@@ -1,6 +1,7 @@
 #include "Unknown.h"
 
-namespace LangMgr {
+namespace LangMgr
+{
     Unknown::Unknown(QObject *parent) : IG2pFactory("unknown", parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Unknown"));
@@ -9,9 +10,7 @@ namespace LangMgr {
 
     Unknown::~Unknown() = default;
 
-    QList<LangNote> Unknown::convert(const QStringList &input, const QJsonObject *config) const {
-        Q_UNUSED(config);
-
+    QList<LangNote> Unknown::convert(const QStringList &input) const {
         QList<LangNote> result;
         for (const auto &i : input) {
             LangNote langNote;
@@ -23,7 +22,5 @@ namespace LangMgr {
         return result;
     }
 
-    QJsonObject Unknown::config() {
-        return {};
-    }
-} // LangMgr
+    QJsonObject Unknown::config() { return {}; }
+} // namespace LangMgr

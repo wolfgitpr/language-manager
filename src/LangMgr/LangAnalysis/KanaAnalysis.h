@@ -3,7 +3,8 @@
 
 #include <language-manager/ILanguageFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class KanaAnalysis final : public ILanguageFactory {
         Q_OBJECT
@@ -17,11 +18,11 @@ namespace LangMgr {
         }
 
         [[nodiscard]] bool contains(const QString &input) const override;
-        [[nodiscard]] QList<LangNote> split(const QString &input) const override;
+        [[nodiscard]] QList<LangNote> split(const QString &input, const QString &g2pId = "unknown") const override;
 
         [[nodiscard]] QString randString() const override;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // KANAANALYSIS_H

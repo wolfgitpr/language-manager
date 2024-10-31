@@ -3,18 +3,17 @@
 
 #include <language-manager/ILanguageFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class MultiCharFactory : public ILanguageFactory {
         Q_OBJECT
     public:
-        explicit MultiCharFactory(const QString &id, QObject *parent = nullptr)
-            : ILanguageFactory(id, parent) {
-        }
+        explicit MultiCharFactory(const QString &id, QObject *parent = nullptr) : ILanguageFactory(id, parent) {}
 
-        [[nodiscard]] QList<LangNote> split(const QString &input) const override;
+        [[nodiscard]] QList<LangNote> split(const QString &input, const QString &g2pId) const override;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // MULTICHARFACTORY_H

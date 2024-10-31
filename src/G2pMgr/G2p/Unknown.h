@@ -3,7 +3,8 @@
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class Unknown final : public IG2pFactory {
         Q_OBJECT
@@ -11,11 +12,11 @@ namespace LangMgr {
         explicit Unknown(QObject *parent = nullptr);
         ~Unknown() override;
 
-        QList<LangNote> convert(const QStringList &input, const QJsonObject *config) const override;
+        QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject config() override;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // UNKNOWN_H

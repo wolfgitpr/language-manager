@@ -2,16 +2,16 @@
 
 #include <QRandomGenerator>
 
-namespace LangMgr {
+namespace LangMgr
+{
     bool RomajiAnalysis::initialize(QString &errMsg) {
         loadDict();
         return true;
     }
 
     void RomajiAnalysis::loadDict() {
-        QStringList initial = {"k", "g", "s", "z", "t", "d", "n", "h", "b",
-                               "p", "m", "y", "r", "w", "ky", "gy", "sh", "j",
-                               "ch", "ny", "hy", "by", "py", "my", "ry"};
+        QStringList initial = {"k", "g",  "s",  "z",  "t", "d",  "n",  "h",  "b",  "p",  "m",  "y", "r",
+                               "w", "ky", "gy", "sh", "j", "ch", "ny", "hy", "by", "py", "my", "ry"};
         QStringList final = {"a", "i", "u", "e", "o"};
         QStringList special = {"n", "nn", "m"};
 
@@ -34,15 +34,11 @@ namespace LangMgr {
         }
     }
 
-    static bool isLetter(QChar c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\'';
-    }
+    static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
-    bool RomajiAnalysis::contains(const QString &input) const {
-        return romajiSet.contains(input);
-    }
+    bool RomajiAnalysis::contains(const QString &input) const { return romajiSet.contains(input); }
 
-    QList<LangNote> RomajiAnalysis::split(const QString &input) const {
+    QList<LangNote> RomajiAnalysis::split(const QString &input, const QString &g2pId) const {
         QList<LangNote> result;
 
         int pos = 0;
@@ -59,9 +55,11 @@ namespace LangMgr {
                 if (contains(note.lyric)) {
                     note.language = id();
                     note.category = category();
+                    note.g2pId = g2pId;
                 } else {
                     note.language = QStringLiteral("en");
                     note.category = QStringLiteral("en");
+                    note.g2pId = QStringLiteral("en");
                 }
             } else {
                 const int start = pos;
@@ -71,6 +69,7 @@ namespace LangMgr {
                 note.lyric = input.mid(start, pos - start);
                 note.language = QStringLiteral("unknown");
                 note.category = QStringLiteral("unknown");
+                note.g2pId = QStringLiteral("unknown");
             }
             if (!note.lyric.isEmpty())
                 result.append(note);
@@ -90,8 +89,6 @@ namespace LangMgr {
         return *it;
     }
 
-    QString RomajiAnalysis::randString() const {
-        return getRandomElementFromSet(romajiSet);
-    }
+    QString RomajiAnalysis::randString() const { return getRandomElementFromSet(romajiSet); }
 
-} // LangMgr
+} // namespace LangMgr

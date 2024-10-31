@@ -3,10 +3,11 @@
 
 #include <QObject>
 
-#include <language-manager/LangGlobal.h>
 #include <language-manager/ILanguageFactory.h>
+#include <language-manager/LangGlobal.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class ILanguageManagerPrivate;
 
@@ -40,23 +41,18 @@ namespace LangMgr {
 
         [[nodiscard]] QList<LangNote> split(const QString &input) const;
 
-        void correct(const QList<LangNote *> &input, const QStringList &priorityList = {}) const;
+        void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
         void convert(const QList<LangNote *> &input) const;
 
-        [[nodiscard]] QString analysis(const QString &input,
-                                       const QStringList &priorityList = {}) const;
-        [[nodiscard]] QStringList analysis(const QStringList &input,
-                                           const QStringList &priorityList = {}) const;
+        [[nodiscard]] QString analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
+        [[nodiscard]] QStringList analysis(const QStringList &input, const QStringList &priorityG2pIds = {}) const;
 
     private:
-        [[nodiscard]] QList<ILanguageFactory *>
-            priorityLanguages(const QStringList &priorityList = {}) const;
-
         explicit ILanguageManager(ILanguageManagerPrivate &d, QObject *parent = nullptr);
 
         QScopedPointer<ILanguageManagerPrivate> d_ptr;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // ILANGUAGEMANAGER_H

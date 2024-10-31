@@ -1,21 +1,21 @@
 #ifndef DICTFACTORY_H
 #define DICTFACTORY_H
 
+#include <QDebug>
 #include <QMap>
 #include <QString>
-#include <QDebug>
 
 #include <language-manager/ILanguageFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class TrieNode {
     public:
         QMap<QChar, TrieNode *> children;
         bool isEnd;
 
-        TrieNode() : isEnd(false) {
-        }
+        TrieNode() : isEnd(false) {}
     };
 
     class Trie {
@@ -45,7 +45,7 @@ namespace LangMgr {
         [[nodiscard]] bool contains(const QChar &c) const override;
         [[nodiscard]] bool contains(const QString &input) const override;
 
-        QList<LangNote> split(const QString &input) const override;
+        [[nodiscard]] QList<LangNote> split(const QString &input, const QString &g2pId) const override;
 
         [[nodiscard]] QString randString() const override;
 
@@ -53,6 +53,6 @@ namespace LangMgr {
         Trie *m_trie;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // DICTFACTORY_H

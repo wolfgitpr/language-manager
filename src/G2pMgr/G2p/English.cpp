@@ -1,6 +1,7 @@
 #include "English.h"
 
-namespace LangMgr {
+namespace LangMgr
+{
     English::English(QObject *parent) : IG2pFactory("en", parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("English"));
@@ -9,14 +10,10 @@ namespace LangMgr {
 
     English::~English() = default;
 
-    QList<LangNote> English::convert(const QStringList &input, const QJsonObject *config) const {
-        const auto toLower = config && config->keys().contains("toLower")
-                                 ? config->value("toLower").toBool()
-                                 : this->m_toLower;
-
+    QList<LangNote> English::convert(const QStringList &input) const {
         QList<LangNote> result;
         for (auto &c : input) {
-            const auto syllable = toLower ? c.toLower() : c;
+            const auto syllable = m_toLower ? c.toLower() : c;
 
             LangNote langNote;
             langNote.lyric = c;
@@ -33,11 +30,12 @@ namespace LangMgr {
         return config;
     }
 
-    bool English::toLower() const {
-        return m_toLower;
+    void English::loadConfig(const QJsonObject &config) {
+        if (config.contains("toLower"))
+            m_toLower = config.value("toLower").toBool();
     }
 
-    void English::setToLower(const bool &toLower) {
-        m_toLower = toLower;
-    }
-} // LangMgr
+    bool English::toLower() const { return m_toLower; }
+
+    void English::setToLower(const bool &toLower) { m_toLower = toLower; }
+} // namespace LangMgr

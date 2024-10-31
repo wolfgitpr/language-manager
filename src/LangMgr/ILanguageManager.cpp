@@ -33,10 +33,10 @@ namespace LangMgr
 
     ILanguageFactory *ILanguageManager::language(const QString &id) const {
         Q_D(const ILanguageManager);
-        const auto it = d->languages.find(id);
+        const auto &it = d->languages.find(id);
         if (it == d->languages.end()) {
             qWarning() << "LangMgr::ILanguageManager::language(): factory does not exist:" << id;
-            return d->languages.find("unknown").value();
+            return nullptr;
         }
         return it.value();
     }
@@ -85,25 +85,37 @@ namespace LangMgr
         d->languages.clear();
     }
 
-    QList<ILanguageFactory *> ILanguageManager::priorityLanguages(const QStringList &priorityList) const {
-        Q_D(const ILanguageManager);
-        QStringList order = d->defaultOrder;
+    QList<Analysiser> ILanguageManagerPrivate::priorityLanguages(const QStringList &priorityG2pIds) const {
+        Q_Q(const ILanguageManager);
+        QStringList order = this->defaultOrder;
+        const auto &g2pMgr = LangMgr::IG2pManager::instance();
 
-        QList<ILanguageFactory *> result;
-        for (const auto &category : priorityList) {
+        QList<Analysiser> result;
+        // 遍历高优先级g2p绑定语种
+        for (const auto &g2pId : priorityG2pIds) {
+            const auto &g2p = g2pMgr->g2p(g2pId);
+            if (g2p == nullptr)
+                continue;
+            const auto category = g2p->category();
             for (const auto &lang : order) {
-                const auto factory = language(lang);
+                const auto &factory = q->language(lang);
                 if (factory->category() == category) {
-                    result.append(factory);
+                    result.append({factory, g2pId});
                 }
             }
         }
 
         for (const auto &id : order) {
-            const auto factory = language(id);
-            if (!result.contains(factory)) {
-                result.append(factory);
+            const auto &factory = q->language(id);
+            bool add = true;
+            for (const auto &[analysis, g2pId] : result) {
+                if (analysis == factory) {
+                    add = false;
+                    break;
+                }
             }
+            if (add)
+                result.append({factory, factory->selectedG2p()});
         }
         return result;
     }
@@ -119,27 +131,30 @@ namespace LangMgr
     }
 
     QList<LangNote> ILanguageManager::split(const QString &input) const {
-        const auto langFactorys = this->priorityLanguages();
+        Q_D(const ILanguageManager);
+        const auto &analysisers = d->priorityLanguages();
         QList<LangNote> result = {LangNote(input)};
-        for (const auto &factory : langFactorys) {
-            result = factory->split(result);
+        for (const auto &[analysis, g2pId] : analysisers) {
+            result = analysis->split(result, g2pId);
         }
         return result;
     }
 
-    void ILanguageManager::correct(const QList<LangNote *> &input, const QStringList &priorityList) const {
-        const auto langFactorys = this->priorityLanguages(priorityList);
-        for (const auto &factory : langFactorys) {
-            factory->correct(input);
+    void ILanguageManager::correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds) const {
+        Q_D(const ILanguageManager);
+        const auto &analysisers = d->priorityLanguages(priorityG2pIds);
+        for (const auto &[analysis, g2pId] : analysisers) {
+            analysis->correct(input, g2pId);
         }
     }
 
-    QString ILanguageManager::analysis(const QString &input, const QStringList &priorityList) const {
+    QString ILanguageManager::analysis(const QString &input, const QStringList &priorityG2pIds) const {
+        Q_D(const ILanguageManager);
         QString result = "unknown";
-        auto analysis = this->priorityLanguages(priorityList);
+        const auto &analysisers = d->priorityLanguages(priorityG2pIds);
 
-        for (const auto &factory : analysis) {
-            result = factory->analysis(input);
+        for (const auto &[analysis, g2pId] : analysisers) {
+            result = analysis->analysis(input);
             if (result != "unknown")
                 break;
         }
@@ -147,15 +162,16 @@ namespace LangMgr
         return result;
     }
 
-    QStringList ILanguageManager::analysis(const QStringList &input, const QStringList &priorityList) const {
-        auto analysis = this->priorityLanguages(priorityList);
+    QStringList ILanguageManager::analysis(const QStringList &input, const QStringList &priorityG2pIds) const {
+        Q_D(const ILanguageManager);
+        const auto &analysisers = d->priorityLanguages(priorityG2pIds);
         QList<LangNote *> inputNote;
         for (const auto &lyric : input) {
             inputNote.append(new LangNote(lyric));
         }
 
-        for (const auto &factory : analysis) {
-            factory->correct(inputNote);
+        for (const auto &[analysis, g2pId] : analysisers) {
+            analysis->correct(inputNote, g2pId);
         }
 
         QStringList result;
@@ -220,26 +236,27 @@ namespace LangMgr
     }
 
     void ILanguageManager::convert(const QList<LangNote *> &input) const {
-        const auto g2pMgr = LangMgr::IG2pManager::instance();
+        const auto &g2pMgr = LangMgr::IG2pManager::instance();
 
-        QMap<QString, QList<int>> languageIndexMap;
-        QMap<QString, QStringList> languageLyricMap;
+        QMap<QString, QList<int>> indexMap;
+        QMap<QString, QStringList> lyricMap;
 
         for (int i = 0; i < input.size(); ++i) {
             const LangNote *note = input.at(i);
-            languageIndexMap[note->language].append(i);
-            languageLyricMap[note->language].append(note->lyric);
+            indexMap[note->g2pId].append(i);
+            lyricMap[note->g2pId].append(note->lyric);
         }
 
-        const auto languages = languageIndexMap.keys();
-        for (const auto &language : languages) {
-            const auto rawLyrics = languageLyricMap[language];
-            const auto g2pFactory = g2pMgr->g2p(this->language(language)->selectedG2p());
-            const auto g2pConfig = this->language(language)->g2pConfig();
+        const auto &g2pIds = indexMap.keys();
+        for (const auto &g2pId : g2pIds) {
+            const auto &rawLyrics = lyricMap[g2pId];
+            auto g2pFactory = g2pMgr->g2p(g2pId);
+            if (g2pFactory == nullptr)
+                g2pFactory = g2pMgr->g2p("unknown");
 
-            const auto tempRes = g2pFactory->convert(rawLyrics, g2pConfig);
+            const auto &tempRes = g2pFactory->convert(rawLyrics);
             for (int i = 0; i < tempRes.size(); i++) {
-                const auto index = languageIndexMap[language][i];
+                const auto &index = indexMap[g2pId][i];
                 input[index]->syllable = tempRes[i].syllable;
                 input[index]->error = tempRes[i].error;
                 input[index]->candidates = tempRes[i].candidates;

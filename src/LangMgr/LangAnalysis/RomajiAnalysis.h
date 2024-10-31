@@ -5,14 +5,15 @@
 
 #include <language-manager/ILanguageFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class RomajiAnalysis final : public ILanguageFactory {
         Q_OBJECT
 
     public:
-        explicit RomajiAnalysis(const QString &id = "ja-romaji", QObject *parent = nullptr)
-            : ILanguageFactory(id, parent) {
+        explicit RomajiAnalysis(const QString &id = "ja-romaji", QObject *parent = nullptr) :
+            ILanguageFactory(id, parent) {
             setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Romaji"));
             setDescription(tr("Capture Romaji words."));
@@ -26,7 +27,7 @@ namespace LangMgr {
 
         [[nodiscard]] bool contains(const QString &input) const override;
 
-        [[nodiscard]] QList<LangNote> split(const QString &input) const override;
+        [[nodiscard]] QList<LangNote> split(const QString &input, const QString &g2pId = "unknown") const override;
 
         [[nodiscard]] QString randString() const override;
 
@@ -34,6 +35,6 @@ namespace LangMgr {
         QSet<QString> romajiSet;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // ROMAJIANALYSIS_H

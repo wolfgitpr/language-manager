@@ -34,9 +34,8 @@ namespace LangMgr
         return result;
     }
 
-    QList<LangNote> Mandarin::convert(const QStringList &input, const QJsonObject *config) const {
-        const auto tone = config && config->keys().contains("tone") ? config->value("tone").toBool() : this->m_tone;
-        const auto style = tone ? Pinyin::ManTone::Style::TONE3 : Pinyin::ManTone::Style::NORMAL;
+    QList<LangNote> Mandarin::convert(const QStringList &input) const {
+        const auto style = m_tone ? Pinyin::ManTone::Style::TONE3 : Pinyin::ManTone::Style::NORMAL;
 
         QList<LangNote> result;
         const auto g2pRes = m_mandarin->hanziToPinyin(toStdVector(input), style);
@@ -54,15 +53,15 @@ namespace LangMgr
     QJsonObject Mandarin::config() {
         QJsonObject config;
         config["tone"] = m_tone;
-        config["convertNum"] = m_convertNum;
         return config;
+    }
+
+    void Mandarin::loadConfig(const QJsonObject &config) {
+        if (config.contains("tone"))
+            m_tone = config.value("tone").toBool();
     }
 
     bool Mandarin::tone() const { return m_tone; }
 
     void Mandarin::setTone(const bool &tone) { m_tone = tone; }
-
-    bool Mandarin::convertNum() const { return m_convertNum; }
-
-    void Mandarin::setConvetNum(const bool &convertNum) { m_convertNum = convertNum; }
 } // namespace LangMgr

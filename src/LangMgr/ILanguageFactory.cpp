@@ -34,7 +34,6 @@ namespace LangMgr
         d.categroy = id;
 
         d.init();
-        d.m_g2pConfig = std::make_unique<QJsonObject>();
     }
 
     QString ILanguageFactory::id() const {
@@ -112,7 +111,7 @@ namespace LangMgr
         d->author = author;
     }
 
-    QString ILanguageFactory::randString() const { return QString(); }
+    QString ILanguageFactory::randString() const { return {}; }
 
     bool ILanguageFactory::contains(const QChar &c) const {
         Q_UNUSED(c);
@@ -124,12 +123,13 @@ namespace LangMgr
         return false;
     }
 
-    QList<LangNote> ILanguageFactory::split(const QString &input) const {
+    QList<LangNote> ILanguageFactory::split(const QString &input, const QString &g2pId) const {
         Q_UNUSED(input);
+        Q_UNUSED(g2pId)
         return {};
     }
 
-    QList<LangNote> ILanguageFactory::split(const QList<LangNote> &input) const {
+    QList<LangNote> ILanguageFactory::split(const QList<LangNote> &input, const QString &g2pId) const {
         Q_D(const ILanguageFactory);
         if (!d->enabled) {
             return input;
@@ -138,7 +138,7 @@ namespace LangMgr
         QList<LangNote> result;
         for (const auto &note : input) {
             if (note.language == "Unknown" || note.language == "unknown" || note.language == "") {
-                const auto splitRes = split(note.lyric);
+                const auto splitRes = split(note.lyric, g2pId);
                 for (const auto &res : splitRes) {
                     if (res.language == id() && d->discardResult) {
                         continue;
@@ -154,37 +154,27 @@ namespace LangMgr
 
     QString ILanguageFactory::analysis(const QString &input) const { return contains(input) ? id() : "unknown"; }
 
-    void ILanguageFactory::correct(const QList<LangNote *> &input) const {
+    void ILanguageFactory::correct(const QList<LangNote *> &input, const QString &g2pId) const {
         for (const auto &note : input) {
             if (note->language == "unknown") {
-                if (contains(note->lyric))
+                if (contains(note->lyric)) {
                     note->language = id();
+                    note->g2pId = g2pId;
+                }
             }
         }
     }
 
-    QJsonObject *ILanguageFactory::g2pConfig() {
-        Q_D(const ILanguageFactory);
-        return d->m_g2pConfig.get();
-    }
-
     void ILanguageFactory::loadConfig(const QJsonObject &config) {
         Q_D(ILanguageFactory);
-        if (config.contains("enabled")) {
+        if (config.contains("enabled"))
             d->enabled = config.value("enabled").toBool();
-        }
-        if (config.contains("discardResult")) {
+        if (config.contains("discardResult"))
             d->discardResult = config.value("discardResult").toBool();
-        }
-        if (config.contains("category")) {
+        if (config.contains("category"))
             d->categroy = config.value("category").toString();
-        }
-        if (config.contains("g2p")) {
-            d->m_selectedG2p = config.value("g2p").toString();
-        }
-        if (config.contains("g2pConfig")) {
-            d->m_g2pConfig = std::make_unique<QJsonObject>(config.value("g2pConfig").toObject());
-        }
+        if (config.contains("selectedG2p"))
+            d->m_selectedG2p = config.value("selectedG2p").toString();
     }
 
     QJsonObject ILanguageFactory::exportConfig() const {
@@ -193,8 +183,7 @@ namespace LangMgr
         config.insert("enabled", d->enabled);
         config.insert("discardResult", d->discardResult);
         config.insert("category", d->categroy);
-        config.insert("g2p", d->m_selectedG2p);
-        config.insert("g2pConfig", *d->m_g2pConfig);
+        config.insert("selectedG2p", d->m_selectedG2p);
         return config;
     }
 

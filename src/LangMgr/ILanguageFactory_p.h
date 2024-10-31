@@ -16,7 +16,7 @@ namespace LangMgr
         ILanguageFactoryPrivate();
         ~ILanguageFactoryPrivate() override;
 
-        void init();
+        static void init();
 
         ILanguageFactory *q_ptr;
 
@@ -33,7 +33,6 @@ namespace LangMgr
         QString displayCategory;
 
         QString m_selectedG2p;
-        std::unique_ptr<QJsonObject> m_g2pConfig;
     };
 
 } // namespace LangMgr

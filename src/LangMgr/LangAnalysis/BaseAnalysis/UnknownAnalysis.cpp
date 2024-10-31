@@ -2,12 +2,11 @@
 
 #include <qrandom.h>
 
-namespace LangMgr {
-    bool UnknownAnalysis::contains(const QString &input) const {
-        return true;
-    }
+namespace LangMgr
+{
+    bool UnknownAnalysis::contains(const QString &input) const { return true; }
 
-    QList<LangNote> UnknownAnalysis::split(const QString &input) const {
+    QList<LangNote> UnknownAnalysis::split(const QString &input, const QString &g2pId) const {
         return {LangNote(input)};
     }
 
@@ -16,4 +15,4 @@ namespace LangMgr {
         return {QChar(unicode)};
     }
 
-} // LangMgr
+} // namespace LangMgr

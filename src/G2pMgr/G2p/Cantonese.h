@@ -18,21 +18,18 @@ namespace LangMgr
 
         bool initialize(QString &errMsg) override;
 
-        QList<LangNote> convert(const QStringList &input, const QJsonObject *config) const override;
+        [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject config() override;
+        void loadConfig(const QJsonObject &config) override;
 
         [[nodiscard]] bool tone() const;
         void setTone(const bool &tone);
-
-        [[nodiscard]] bool convertNum() const;
-        void setConvetNum(const bool &convertNum);
 
     private:
         std::unique_ptr<Pinyin::Jyutping> m_cantonese;
 
         bool m_tone = false;
-        bool m_convertNum = false;
     };
 
 } // namespace LangMgr

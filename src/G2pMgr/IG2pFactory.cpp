@@ -19,6 +19,7 @@ namespace LangMgr
     IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
         d.id = id;
+        d.categroy = id;
 
         d.init();
     }
@@ -43,6 +44,16 @@ namespace LangMgr
         d->displayName = displayName;
     }
 
+    QString IG2pFactory::category() const {
+        Q_D(const IG2pFactory);
+        return d->categroy;
+    }
+
+    void IG2pFactory::setCategory(const QString &category) {
+        Q_D(IG2pFactory);
+        d->categroy = category;
+    }
+
     QString IG2pFactory::author() const {
         Q_D(const IG2pFactory);
         return d->author;
@@ -65,13 +76,12 @@ namespace LangMgr
 
     QJsonObject IG2pFactory::config() { return {}; }
 
-    LangNote IG2pFactory::convert(const QString &input, const QJsonObject *config) const {
-        return convert(QStringList() << input, config).at(0);
-    }
+    void IG2pFactory::loadConfig(const QJsonObject &config) { Q_UNUSED(config); }
 
-    QList<LangNote> IG2pFactory::convert(const QStringList &input, const QJsonObject *config) const {
+    LangNote IG2pFactory::convert(const QString &input) const { return convert(QStringList() << input).at(0); }
+
+    QList<LangNote> IG2pFactory::convert(const QStringList &input) const {
         Q_UNUSED(input);
-        Q_UNUSED(config);
         return {};
     }
 } // namespace LangMgr

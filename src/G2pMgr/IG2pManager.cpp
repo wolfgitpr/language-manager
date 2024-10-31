@@ -28,7 +28,7 @@ namespace LangMgr
         if (it == d->g2ps.end()) {
             if (!d->baseG2p.contains(id))
                 qWarning() << "LangMgr::IG2pManager::g2p(): factory does not exist:" << id;
-            return d->g2ps.find("unknown").value();
+            return nullptr;
         }
         return it.value();
     }

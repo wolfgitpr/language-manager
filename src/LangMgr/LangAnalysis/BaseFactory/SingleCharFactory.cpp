@@ -1,7 +1,8 @@
 #include "SingleCharFactory.h"
 #include <QDebug>
 
-namespace LangMgr {
+namespace LangMgr
+{
     bool SingleCharFactory::contains(const QChar &c) const {
         Q_UNUSED(c);
         return false;
@@ -13,7 +14,7 @@ namespace LangMgr {
         return false;
     }
 
-    QList<LangNote> SingleCharFactory::split(const QString &input) const {
+    QList<LangNote> SingleCharFactory::split(const QString &input, const QString &g2pId) const {
         QList<LangNote> result;
 
         int pos = 0;
@@ -25,6 +26,7 @@ namespace LangMgr {
                 note.lyric = input.mid(pos, 1);
                 note.language = id();
                 note.category = category();
+                note.g2pId = g2pId;
                 pos++;
             } else {
                 const int start = pos;
@@ -34,10 +36,11 @@ namespace LangMgr {
                 note.lyric = input.mid(start, pos - start);
                 note.language = "unknown";
                 note.category = "unknown";
+                note.g2pId = "unknown";
             }
             if (!note.lyric.isEmpty())
                 result.append(note);
         }
         return result;
     }
-} // LangMgr
+} // namespace LangMgr

@@ -20,6 +20,7 @@ namespace LangMgr {
 
         QString id;
         QString displayName;
+        QString categroy;
         QString author;
         QString description;
     };

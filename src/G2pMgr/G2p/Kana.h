@@ -5,7 +5,8 @@
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class KanaG2p final : public IG2pFactory {
         Q_OBJECT
@@ -14,11 +15,11 @@ namespace LangMgr {
         explicit KanaG2p(QObject *parent = nullptr);
         ~KanaG2p() override;
 
-        QList<LangNote> convert(const QStringList &input, const QJsonObject *config) const override;
+        [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject config() override;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // KANA_H

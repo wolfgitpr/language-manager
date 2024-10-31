@@ -3,7 +3,8 @@
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class English final : public IG2pFactory {
         Q_OBJECT
@@ -12,9 +13,10 @@ namespace LangMgr {
         explicit English(QObject *parent = nullptr);
         ~English() override;
 
-        QList<LangNote> convert(const QStringList &input, const QJsonObject *config) const override;
+        [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject config() override;
+        void loadConfig(const QJsonObject &config) override;
 
         [[nodiscard]] bool toLower() const;
         void setToLower(const bool &toLower);
@@ -23,6 +25,6 @@ namespace LangMgr {
         bool m_toLower = false;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // ENGLISH_H

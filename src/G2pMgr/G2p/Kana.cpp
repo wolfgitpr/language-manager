@@ -2,7 +2,8 @@
 
 #include <cpp-kana/Kana.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
     KanaG2p::KanaG2p(QObject *parent) : IG2pFactory("ja-kana", parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Kana"));
@@ -19,11 +20,9 @@ namespace LangMgr {
         return result;
     }
 
-    QList<LangNote> KanaG2p::convert(const QStringList &input, const QJsonObject *config) const {
-        Q_UNUSED(config);
-
+    QList<LangNote> KanaG2p::convert(const QStringList &input) const {
         QList<LangNote> result;
-        const auto g2pRes = Kana::kanaToRomaji(toStdVector(input),Kana::Error::Default, false);
+        const auto g2pRes = Kana::kanaToRomaji(toStdVector(input), Kana::Error::Default, false);
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
@@ -35,7 +34,5 @@ namespace LangMgr {
         return result;
     }
 
-    QJsonObject KanaG2p::config() {
-        return {};
-    }
-} // LangMgr
+    QJsonObject KanaG2p::config() { return {}; }
+} // namespace LangMgr

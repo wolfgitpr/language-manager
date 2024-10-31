@@ -4,15 +4,12 @@
 
 #include <QRandomGenerator>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
-    Trie::Trie() {
-        root = new TrieNode();
-    }
+    Trie::Trie() { root = new TrieNode(); }
 
-    Trie::~Trie() {
-        delete root;
-    }
+    Trie::~Trie() { delete root; }
 
     void Trie::insert(const QString &word) const {
         TrieNode *node = root;
@@ -36,26 +33,17 @@ namespace LangMgr {
         return node->isEnd;
     }
 
-    DictFactory::DictFactory(const QString &id, QObject *parent) : ILanguageFactory(id, parent) {
-        m_trie = new Trie();
-    }
+    DictFactory::DictFactory(const QString &id, QObject *parent) : ILanguageFactory(id, parent) { m_trie = new Trie(); }
 
-    DictFactory::~DictFactory() {
-        delete m_trie;
-    }
+    DictFactory::~DictFactory() { delete m_trie; }
 
-    void DictFactory::loadDict() {
-    }
+    void DictFactory::loadDict() {}
 
-    bool DictFactory::contains(const QChar &c) const {
-        return m_trie->search(c);
-    }
+    bool DictFactory::contains(const QChar &c) const { return m_trie->search(c); }
 
-    bool DictFactory::contains(const QString &input) const {
-        return m_trie->search(input);
-    }
+    bool DictFactory::contains(const QString &input) const { return m_trie->search(input); }
 
-    QList<LangNote> DictFactory::split(const QString &input) const {
+    QList<LangNote> DictFactory::split(const QString &input, const QString &g2pId) const {
         QList<LangNote> result;
 
         int pos = 0;
@@ -83,10 +71,12 @@ namespace LangMgr {
                     note.lyric = input.mid(start, pos - start);
                     note.language = id();
                     note.category = category();
+                    note.g2pId = g2pId;
                 } else {
                     note.lyric = currentChar;
                     note.language = QStringLiteral("unknown");
                     note.category = QStringLiteral("unknown");
+                    note.g2pId = QStringLiteral("unknown");
                     pos++;
                 }
             } else {
@@ -125,4 +115,4 @@ namespace LangMgr {
         }
     }
 
-} // LangMgr
+} // namespace LangMgr
