@@ -13,6 +13,12 @@ namespace LangMgr
         explicit EnglishG2p(const QString &id = "en", const QString &categroy = "en", QObject *parent = nullptr);
         ~EnglishG2p() override;
 
+        [[nodiscard]] IG2pFactory *clone(const QString &id, const QString &categroy, QObject *parent) const override {
+            const auto factory = new EnglishG2p(id, categroy, parent);
+            factory->setBase(false);
+            return factory;
+        }
+
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject config() override;

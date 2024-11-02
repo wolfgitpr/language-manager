@@ -18,11 +18,11 @@
 
 #include "G2p/CantoneseG2p.h"
 #include "G2p/EnglishG2p.h"
-#include "G2p/Jyutping.h"
+#include "G2p/JyutpingG2p.h"
 #include "G2p/KanaG2p.h"
 #include "G2p/MandarinG2p.h"
 #include "G2p/PinyinG2p.h"
-#include "G2p/Romaji.h"
+#include "G2p/RomajiG2p.h"
 
 namespace LangMgr
 {
@@ -115,9 +115,9 @@ namespace LangMgr
         addG2p(new MandarinG2p());
         addG2p(new PinyinG2p());
         addG2p(new CantoneseG2p());
-        addG2p(new Jyutping());
+        addG2p(new JyutpingG2p());
         addG2p(new KanaG2p());
-        addG2p(new Romaji());
+        addG2p(new RomajiG2p());
         addG2p(new EnglishG2p());
     }
 

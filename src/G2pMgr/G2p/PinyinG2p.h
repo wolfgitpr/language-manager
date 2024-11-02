@@ -11,6 +11,12 @@ namespace LangMgr
         explicit PinyinG2p(const QString &id = "cmn-pinyin", const QString &categroy = "cmn",
                            QObject *parent = nullptr);
         ~PinyinG2p() override = default;
+
+        [[nodiscard]] IG2pFactory *clone(const QString &id, const QString &categroy, QObject *parent) const override {
+            const auto factory = new PinyinG2p(id, categroy, parent);
+            factory->setBase(false);
+            return factory;
+        }
     };
 
 } // namespace LangMgr

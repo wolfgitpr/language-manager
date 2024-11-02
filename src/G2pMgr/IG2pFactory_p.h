@@ -5,7 +5,8 @@
 
 #include <language-manager/IG2pFactory.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class IG2pFactoryPrivate final : public QObject {
         Q_OBJECT
@@ -19,12 +20,13 @@ namespace LangMgr {
         IG2pFactory *q_ptr;
 
         QString id;
+        bool base = true;
         QString displayName;
         QString categroy;
         QString author;
         QString description;
     };
 
-}
+} // namespace LangMgr
 
 #endif // IG2PFACTORYPRIVATE_H
