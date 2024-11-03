@@ -51,26 +51,6 @@ namespace LangMgr
         d->displayName = name;
     }
 
-    QString ILanguageFactory::category() const {
-        Q_D(const ILanguageFactory);
-        return d->categroy;
-    }
-
-    void ILanguageFactory::setCategory(const QString &category) {
-        Q_D(ILanguageFactory);
-        d->categroy = category;
-    }
-
-    QString ILanguageFactory::selectedG2p() const {
-        Q_D(const ILanguageFactory);
-        return d->m_selectedG2p;
-    }
-
-    void ILanguageFactory::setG2p(const QString &g2pId) {
-        Q_D(ILanguageFactory);
-        d->m_selectedG2p = g2pId;
-    }
-
     bool ILanguageFactory::enabled() const {
         Q_D(const ILanguageFactory);
         return d->enabled;
@@ -89,26 +69,6 @@ namespace LangMgr
     void ILanguageFactory::setDiscardResult(const bool &discard) {
         Q_D(ILanguageFactory);
         d->discardResult = discard;
-    }
-
-    QString ILanguageFactory::description() const {
-        Q_D(const ILanguageFactory);
-        return d->description;
-    }
-
-    void ILanguageFactory::setDescription(const QString &description) {
-        Q_D(ILanguageFactory);
-        d->description = description;
-    }
-
-    QString ILanguageFactory::author() const {
-        Q_D(const ILanguageFactory);
-        return d->author;
-    }
-
-    void ILanguageFactory::setAuthor(const QString &author) {
-        Q_D(ILanguageFactory);
-        d->author = author;
     }
 
     QString ILanguageFactory::randString() const { return {}; }

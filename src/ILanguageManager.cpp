@@ -99,9 +99,9 @@ namespace LangMgr
             const auto category = g2p->category();
             for (const auto &lang : order) {
                 const auto &factory = q->language(lang);
-                if (factory->category() == category) {
-                    result.append({factory, g2pId});
-                }
+                // if (factory->category() == category) {
+                //     result.append({factory, g2pId});
+                // }
             }
         }
 
@@ -114,8 +114,8 @@ namespace LangMgr
                     break;
                 }
             }
-            if (add)
-                result.append({factory, factory->selectedG2p()});
+            // if (add)
+            //     result.append({factory, factory->selectedG2p()});
         }
         return result;
     }

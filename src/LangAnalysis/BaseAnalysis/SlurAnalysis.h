@@ -11,10 +11,7 @@ namespace LangMgr {
     public:
         explicit SlurAnalysis(const QString &id = "slur", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Slur"));
-            setDescription(tr("Capture slurs."));
-            setG2p("slur");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

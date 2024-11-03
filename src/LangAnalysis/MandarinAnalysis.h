@@ -10,9 +10,7 @@ namespace LangMgr {
     public:
         explicit MandarinAnalysis(const QString &id = "cmn", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Mandarin"));
-            setDescription(tr("Capture Mandarin characters."));
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

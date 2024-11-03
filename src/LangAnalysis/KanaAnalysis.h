@@ -11,10 +11,7 @@ namespace LangMgr
 
     public:
         explicit KanaAnalysis(QObject *parent = nullptr) : ILanguageFactory("ja-kana", parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Kana"));
-            setCategory("ja");
-            setDescription(tr("Capture Kana characters."));
         }
 
         [[nodiscard]] bool contains(const QString &input) const override;

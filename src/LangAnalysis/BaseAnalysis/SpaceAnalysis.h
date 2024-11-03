@@ -11,11 +11,8 @@ namespace LangMgr {
     public:
         explicit SpaceAnalysis(const QString &id = "space", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Space"));
-            setDescription(tr("Capture spaces."));
             setDiscardResult(true);
-            setG2p("space");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

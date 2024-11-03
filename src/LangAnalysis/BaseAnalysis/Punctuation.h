@@ -11,11 +11,8 @@ namespace LangMgr {
     public:
         explicit Punctuation(const QString &id = "punctuation", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Punctuation"));
-            setDescription(tr("Capture punctuations."));
             setDiscardResult(true);
-            setG2p("punctuation");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

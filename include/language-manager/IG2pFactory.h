@@ -7,6 +7,8 @@
 #include <language-manager/LangCommon.h>
 #include <language-manager/LangGlobal.h>
 
+#include <language-manager/ILanguageFactory.h>
+
 namespace LangMgr
 {
 
@@ -21,8 +23,6 @@ namespace LangMgr
 
         virtual bool initialize(QString &errMsg);
 
-        virtual IG2pFactory *clone(const QString &id, const QString &categroy, QObject *parent) const = 0;
-
         [[nodiscard]] LangNote convert(const QString &input) const;
         [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input) const;
 
@@ -31,9 +31,6 @@ namespace LangMgr
 
     public:
         [[nodiscard]] QString id() const;
-
-        [[nodiscard]] bool base() const;
-        void setBase(const bool &base);
 
         [[nodiscard]] QString displayName() const;
         void setDisplayName(const QString &displayName);
@@ -53,6 +50,9 @@ namespace LangMgr
         QScopedPointer<IG2pFactoryPrivate> d_ptr;
 
         friend class IG2pManager;
+
+    private:
+        QMap<QString, ILanguageFactory *> m_langFactory;
     };
 
 } // namespace LangMgr

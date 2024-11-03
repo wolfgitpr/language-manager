@@ -14,11 +14,7 @@ namespace LangMgr
     public:
         explicit RomajiAnalysis(const QString &id = "ja-romaji", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Romaji"));
-            setDescription(tr("Capture Romaji words."));
-            setCategory("ja");
-            setG2p("ja-romaji");
         }
 
         bool initialize(QString &errMsg) override;

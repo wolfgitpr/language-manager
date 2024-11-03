@@ -11,12 +11,6 @@ namespace LangMgr
         explicit LinebreakG2p(const QString &id = "linebreak", const QString &categroy = "linebreak",
                               QObject *parent = nullptr);
         ~LinebreakG2p() override = default;
-
-        [[nodiscard]] IG2pFactory *clone(const QString &id, const QString &categroy, QObject *parent) const override {
-            const auto factory = new LinebreakG2p(id, categroy, parent);
-            factory->setBase(false);
-            return factory;
-        }
     };
 
 } // namespace LangMgr

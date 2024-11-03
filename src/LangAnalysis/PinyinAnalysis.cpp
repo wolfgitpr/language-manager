@@ -50,11 +50,9 @@ namespace LangMgr
                 note.lyric = input.mid(start, pos - start);
                 if (contains(note.lyric)) {
                     note.language = id();
-                    note.category = category();
                     note.g2pId = g2pId;
                 } else {
                     note.language = QStringLiteral("en");
-                    note.category = QStringLiteral("en");
                     note.g2pId = QStringLiteral("en");
                 }
             } else {
@@ -64,7 +62,6 @@ namespace LangMgr
                 }
                 note.lyric = input.mid(start, pos - start);
                 note.language = QStringLiteral("unknown");
-                note.category = QStringLiteral("unknown");
                 note.g2pId = QStringLiteral("unknown");
             }
             if (!note.lyric.isEmpty())

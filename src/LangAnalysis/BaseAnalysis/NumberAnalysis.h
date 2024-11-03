@@ -10,11 +10,8 @@ namespace LangMgr {
 
     public:
         explicit NumberAnalysis(QObject *parent = nullptr) : MultiCharFactory("number", parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Number"));
-            setDescription(tr("Capture numbers."));
             setDiscardResult(true);
-            setG2p("number");
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

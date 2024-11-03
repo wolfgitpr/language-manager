@@ -11,12 +11,6 @@ namespace LangMgr
         explicit JyutpingG2p(const QString &id = "yue-jyutping", const QString &categroy = "yue",
                              QObject *parent = nullptr);
         ~JyutpingG2p() override = default;
-
-        [[nodiscard]] IG2pFactory *clone(const QString &id, const QString &categroy, QObject *parent) const override {
-            const auto factory = new JyutpingG2p(id, categroy, parent);
-            factory->setBase(false);
-            return factory;
-        }
     };
 
 } // namespace LangMgr

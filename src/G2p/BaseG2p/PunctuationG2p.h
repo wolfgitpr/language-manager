@@ -11,12 +11,6 @@ namespace LangMgr
         explicit PunctuationG2p(const QString &id = "punctuation", const QString &categroy = "punctuation",
                                 QObject *parent = nullptr);
         ~PunctuationG2p() override = default;
-
-        [[nodiscard]] IG2pFactory *clone(const QString &id, const QString &categroy, QObject *parent) const override {
-            const auto factory = new PunctuationG2p(id, categroy, parent);
-            factory->setBase(false);
-            return factory;
-        }
     };
 
 } // namespace LangMgr

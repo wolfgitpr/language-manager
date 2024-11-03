@@ -15,11 +15,7 @@ namespace LangMgr
     public:
         explicit JyutpingAnalysis(const QString &id = "yue-jyutping", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Jyutping"));
-            setDescription(tr("Capture Jyutping words."));
-            setCategory("yue");
-            setG2p("yue-jyutping");
         }
 
         bool initialize(QString &errMsg) override;

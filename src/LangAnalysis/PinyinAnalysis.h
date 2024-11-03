@@ -14,11 +14,7 @@ namespace LangMgr
     public:
         explicit PinyinAnalysis(const QString &id = "cmn-pinyin", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Pinyin"));
-            setDescription(tr("Capture Pinyin words."));
-            setCategory("cmn");
-            setG2p("cmn-pinyin");
         }
 
         bool initialize(QString &errMsg) override;

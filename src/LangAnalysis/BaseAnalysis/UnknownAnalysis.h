@@ -11,9 +11,7 @@ namespace LangMgr
 
     public:
         explicit UnknownAnalysis(QObject *parent = nullptr) : ILanguageFactory("unknown", parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("Unknown"));
-            setDescription(tr("Capture unknown characters."));
         }
 
         [[nodiscard]] bool contains(const QString &input) const override;

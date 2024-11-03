@@ -70,12 +70,10 @@ namespace LangMgr
                 if (pos > start) {
                     note.lyric = input.mid(start, pos - start);
                     note.language = id();
-                    note.category = category();
                     note.g2pId = g2pId;
                 } else {
                     note.lyric = currentChar;
                     note.language = QStringLiteral("unknown");
-                    note.category = QStringLiteral("unknown");
                     note.g2pId = QStringLiteral("unknown");
                     pos++;
                 }
@@ -86,7 +84,6 @@ namespace LangMgr
                 }
                 note.lyric = input.mid(start, pos - start);
                 note.language = QStringLiteral("unknown");
-                note.category = QStringLiteral("unknown");
             }
 
             if (!note.lyric.isEmpty()) {

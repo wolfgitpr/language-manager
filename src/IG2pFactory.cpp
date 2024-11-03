@@ -36,16 +36,6 @@ namespace LangMgr
         return d->id;
     }
 
-    bool IG2pFactory::base() const {
-        Q_D(const IG2pFactory);
-        return d->base;
-    }
-
-    void IG2pFactory::setBase(const bool &base) {
-        Q_D(IG2pFactory);
-        d->base = base;
-    }
-
     QString IG2pFactory::displayName() const {
         Q_D(const IG2pFactory);
         return d->displayName;

@@ -10,9 +10,7 @@ namespace LangMgr {
 
     public:
         explicit EnglishAnalysis(QObject *parent = nullptr) : MultiCharFactory("en", parent) {
-            setAuthor(tr("Xiao Lang"));
             setDisplayName(tr("English"));
-            setDescription(tr("Capture English words."));
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

@@ -11,7 +11,6 @@ struct LANG_MANAGER_EXPORT LangNote {
     QString syllableRevised = QString();
     QStringList candidates = QStringList();
     QString language = "unknown";
-    QString category = "unknown";
     QString standard = "unknown";
     QString g2pId = "unknown";
     bool revised = false;
@@ -22,8 +21,5 @@ struct LANG_MANAGER_EXPORT LangNote {
     explicit LangNote(QString lyric) : lyric(std::move(lyric)){};
 
     LangNote(QString lyric, QString language) : lyric(std::move(lyric)), language(std::move(language)){};
-
-    LangNote(QString lyric, QString language, QString categrory) :
-        lyric(std::move(lyric)), language(std::move(language)), category(std::move(categrory)){};
 };
 #endif // LANGCOMMON_H

@@ -39,23 +39,11 @@ namespace LangMgr
         [[nodiscard]] QString displayName() const;
         void setDisplayName(const QString &name);
 
-        [[nodiscard]] QString category() const;
-        void setCategory(const QString &category);
-
-        [[nodiscard]] QString selectedG2p() const;
-        void setG2p(const QString &g2pId);
-
         [[nodiscard]] bool enabled() const;
         void setEnabled(const bool &enable);
 
         [[nodiscard]] bool discardResult() const;
         void setDiscardResult(const bool &discard);
-
-        [[nodiscard]] QString author() const;
-        void setAuthor(const QString &author);
-
-        [[nodiscard]] QString description() const;
-        void setDescription(const QString &description);
 
     protected:
         ILanguageFactory(ILanguageFactoryPrivate &d, const QString &id, QObject *parent = nullptr);
