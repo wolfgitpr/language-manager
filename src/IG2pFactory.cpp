@@ -154,10 +154,14 @@ namespace LangMgr
 
     void IG2pFactory::loadLanguageConfig(const QJsonObject &config, const QString &configId) {
         Q_D(const IG2pFactory);
-        const auto g2pConfig = config.value(configId).toObject();
+        QJsonObject configObj = m_config->value(configId).toObject();
+
         for (const auto &langfactory : m_langFactory) {
-            langfactory->loadConfig(g2pConfig.value(langfactory->id()).toObject());
+            langfactory->loadConfig(config.value(langfactory->id()).toObject());
         }
+
+        configObj.insert("languageConfig", languageConfig(configId));
+        (*m_config)[configId] = configObj;
     }
 
     QString IG2pFactory::analysis(const QString &input) const {

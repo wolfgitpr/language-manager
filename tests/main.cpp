@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     qDebug() << "LangMgr: errorMsg" << errorMsg << "initialized:" << langMgr->initialized();
 
     const QStringList testId = {"cmn", "number", "space", "linebreak", "slur"};
-    langMgr->setDefaultOrder(testId);
+    // langMgr->setDefaultOrder(testId);
 
     QList<LangNote *> langNotes;
 
@@ -52,6 +52,9 @@ int main(int argc, char *argv[]) {
     const auto res = langMgr->split("xa112好eng");
     for (const auto &note : res)
         qDebug() << note.lyric << note.g2pId;
+
+    for (const auto &g2p : langMgr->g2ps())
+        qDebug() << g2p->id() << g2p->allConfig().value("0").toObject();
 
     return 0;
 }
