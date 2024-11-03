@@ -5,10 +5,8 @@
 
 namespace LangMgr
 {
-
-    class EnglishG2p : public IG2pFactory {
+    class EnglishG2p final : public IG2pFactory {
         Q_OBJECT
-
     public:
         explicit EnglishG2p(const QString &id = "eng", const QString &categroy = "eng", QObject *parent = nullptr);
         ~EnglishG2p() override;

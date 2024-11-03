@@ -8,6 +8,7 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Space"));
         setDescription(tr("Space, no conversion required."));
+        m_langFactory.clear();
         m_langFactory.insert("space", new SpaceAnalysis());
     }
 } // namespace LangMgr

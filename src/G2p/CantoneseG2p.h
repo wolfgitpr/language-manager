@@ -9,7 +9,6 @@
 
 namespace LangMgr
 {
-
     class CantoneseG2p final : public IG2pFactory {
         Q_OBJECT
     public:

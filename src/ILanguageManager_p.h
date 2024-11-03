@@ -34,8 +34,6 @@ namespace LangMgr
         QMap<QString, IG2pFactory *> g2ps;
 
         QString m_pinyinDictPath;
-
-        QStringList baseG2p = {"slur", "linebreak", "number", "space", "punctuation"};
     };
 
 } // namespace LangMgr

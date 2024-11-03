@@ -9,6 +9,7 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Linebreak"));
         setDescription(tr("Linebreak, no conversion required."));
+        m_langFactory.clear();
         m_langFactory.insert("linebreak", new LinebreakAnalysis());
     }
 } // namespace LangMgr

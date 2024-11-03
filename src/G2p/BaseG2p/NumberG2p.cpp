@@ -9,6 +9,7 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Number"));
         setDescription(tr("Number, no conversion required."));
+        m_langFactory.clear();
         m_langFactory.insert("number", new NumberAnalysis());
     }
 } // namespace LangMgr

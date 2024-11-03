@@ -7,7 +7,6 @@
 
 namespace LangMgr
 {
-
     class JapaneseG2p final : public IG2pFactory {
         Q_OBJECT
 

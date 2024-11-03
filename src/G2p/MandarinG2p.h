@@ -9,7 +9,6 @@
 
 namespace LangMgr
 {
-
     class MandarinG2p final : public IG2pFactory {
         Q_OBJECT
     public:

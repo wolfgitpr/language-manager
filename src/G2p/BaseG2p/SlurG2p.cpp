@@ -8,6 +8,7 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Slur"));
         setDescription(tr("Slur, no conversion required."));
+        m_langFactory.clear();
         m_langFactory.insert("slur", new SlurAnalysis());
     }
 } // namespace LangMgr
