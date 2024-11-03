@@ -23,13 +23,12 @@ namespace LangMgr
 
         virtual bool initialize(QString &errMsg);
 
-        [[nodiscard]] virtual QList<LangNote> split(const QString &input, const QString &configId);
-        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &configId);
-        [[nodiscard]] QString analysis(const QString &input, const QString &configId);
-        void correct(const QList<LangNote *> &input, const QString &configId);
+        [[nodiscard]] virtual QList<LangNote> split(const QString &input) const;
+        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input) const;
+        [[nodiscard]] QString analysis(const QString &input) const;
+        void correct(const QList<LangNote *> &input) const;
 
-        [[nodiscard]] LangNote convert(const QString &input, const QString &configId);
-        [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input, const QString &configKey);
+        [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input) const;
 
         [[nodiscard]] virtual QString randString() const;
 
@@ -39,11 +38,10 @@ namespace LangMgr
         virtual QJsonObject config(const QString &configId);
         QJsonObject allConfig();
 
-        virtual void loadG2pConfig(const QJsonObject &config, const QString &configId);
-        void loadAllConfig(const QJsonObject &config);
+        virtual void loadG2pConfig(const QJsonObject &config);
 
-        [[nodiscard]] QJsonObject languageConfig(const QString &configId) const;
-        void loadLanguageConfig(const QJsonObject &config, const QString &configId);
+        [[nodiscard]] QJsonObject languageConfig() const;
+        void loadLanguageConfig(const QJsonObject &config);
 
     public:
         [[nodiscard]] QString id() const;
@@ -69,14 +67,6 @@ namespace LangMgr
         QMap<QString, ILanguageFactory *> m_langFactory;
 
         friend class ILanguageManager;
-
-    private:
-        [[nodiscard]] virtual QList<LangNote> split(const QString &input) const;
-        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input) const;
-        [[nodiscard]] QString analysis(const QString &input) const;
-        void correct(const QList<LangNote *> &input) const;
-
-        [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input) const;
     };
 
 } // namespace LangMgr

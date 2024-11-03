@@ -35,16 +35,9 @@ namespace LangMgr
         return config;
     }
 
-    void EnglishG2p::loadG2pConfig(const QJsonObject &config, const QString &configId) {
+    void EnglishG2p::loadG2pConfig(const QJsonObject &config) {
         if (config.contains("toLower"))
             m_toLower = config.value("toLower").toBool();
-
-        if (m_config && m_config->contains(configId)) {
-            QJsonObject langConfigItem = m_config->value(configId).toObject();
-
-            langConfigItem["toLower"] = m_toLower;
-            (*m_config)[configId] = langConfigItem;
-        }
     }
 
     bool EnglishG2p::toLower() const { return m_toLower; }

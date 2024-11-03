@@ -49,16 +49,9 @@ namespace LangMgr
 
     IG2pFactory *ILanguageManager::g2p(const QString &id) const {
         Q_D(const ILanguageManager);
-        const auto [g2pId, configId] = extractConfig(id);
-        const auto it = d->g2ps.find(g2pId);
+        const auto it = d->g2ps.find(id);
         if (it == d->g2ps.end()) {
-            qWarning() << "LangMgr::ILanguageManager::g2p(): factory does not exist:" << g2pId;
-            return nullptr;
-        }
-
-        const auto &config = it.value()->allConfig().value(configId).toObject();
-        if (config.empty()) {
-            qWarning() << "LangMgr::ILanguageManager::g2p(): config does not exist:" << g2pId << configId;
+            qWarning() << "LangMgr::ILanguageManager::g2p(): factory does not exist:" << id;
             return nullptr;
         }
         return it.value();
@@ -109,32 +102,32 @@ namespace LangMgr
         d->g2ps.clear();
     }
 
-    QList<G2p> ILanguageManagerPrivate::priorityG2ps(const QStringList &priorityG2pIds) const {
+    QList<IG2pFactory *> ILanguageManagerPrivate::priorityG2ps(const QStringList &priorityG2pIds) const {
         Q_Q(const ILanguageManager);
         QStringList order = this->defaultOrder;
         const auto &g2pMgr = LangMgr::ILanguageManager::instance();
 
-        QList<G2p> result;
+        QList<IG2pFactory *> result;
         // 遍历高优先级g2p绑定语种
         for (const auto &g2pId : priorityG2pIds) {
             const auto &g2p = g2pMgr->g2p(g2pId);
             if (g2p == nullptr)
                 continue;
-            const auto [g2pType, configId] = extractConfig(g2pId);
-            result.append({g2p, configId});
+            result.append(g2p);
         }
 
         for (const auto &id : order) {
             const auto &factory = q->g2p(id);
             bool add = true;
-            for (const auto &[g2p, confgId] : result) {
-                if (g2p == factory) {
+            for (const auto &g2p : result) {
+                const auto [g2pType, configId] = extractConfig(g2p->id());
+                if (g2pType == factory->id()) {
                     add = false;
                     break;
                 }
             }
             if (add)
-                result.append({factory, "0"});
+                result.append(factory);
         }
         return result;
     }
@@ -151,29 +144,27 @@ namespace LangMgr
 
     QList<LangNote> ILanguageManager::split(const QString &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
-        const auto &analysisers = d->priorityG2ps(priorityG2pIds);
+        const auto &g2ps = d->priorityG2ps(priorityG2pIds);
         QList<LangNote> result = {LangNote(input)};
-        for (const auto &[analysis, g2pConfig] : analysisers) {
-            result = analysis->split(result, g2pConfig);
-        }
+        for (const auto &g2p : g2ps)
+            result = g2p->split(result);
         return result;
     }
 
     void ILanguageManager::correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
-        const auto &analysisers = d->priorityG2ps(priorityG2pIds);
-        for (const auto &[analysis, g2pConfig] : analysisers) {
-            analysis->correct(input, g2pConfig);
-        }
+        const auto &g2ps = d->priorityG2ps(priorityG2pIds);
+        for (const auto &g2p : g2ps)
+            g2p->correct(input);
     }
 
     QString ILanguageManager::analysis(const QString &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
         QString result = "unknown";
-        const auto &analysisers = d->priorityG2ps(priorityG2pIds);
+        const auto &g2ps = d->priorityG2ps(priorityG2pIds);
 
-        for (const auto &[analysis, g2pConfig] : analysisers) {
-            result = analysis->analysis(input, g2pConfig);
+        for (const auto &g2p : g2ps) {
+            result = g2p->analysis(input);
             if (result != "unknown")
                 break;
         }
@@ -183,15 +174,14 @@ namespace LangMgr
 
     QStringList ILanguageManager::analysis(const QStringList &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
-        const auto &analysisers = d->priorityG2ps(priorityG2pIds);
+        const auto &g2ps = d->priorityG2ps(priorityG2pIds);
         QList<LangNote *> inputNote;
         for (const auto &lyric : input) {
             inputNote.append(new LangNote(lyric));
         }
 
-        for (const auto &[analysis, g2pConfig] : analysisers) {
-            analysis->correct(inputNote, g2pConfig);
-        }
+        for (const auto &g2p : g2ps)
+            g2p->correct(inputNote);
 
         QStringList result;
         for (const auto &note : inputNote)
@@ -273,10 +263,9 @@ namespace LangMgr
             auto g2pFactory = this->g2p(g2pId);
             if (g2pFactory == nullptr) {
                 g2pFactory = this->g2p("unknown");
-                configId = "0";
             }
 
-            const auto &tempRes = g2pFactory->convert(rawLyrics, configId);
+            const auto &tempRes = g2pFactory->convert(rawLyrics);
             for (int i = 0; i < tempRes.size(); i++) {
                 const auto &index = indexMap[g2pId][i];
                 input[index]->error = tempRes[i].error;

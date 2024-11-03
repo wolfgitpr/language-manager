@@ -9,11 +9,6 @@
 
 namespace LangMgr
 {
-    struct G2p {
-        IG2pFactory *g2p;
-        QString config = "0";
-    };
-
     class ILanguageManagerPrivate final : public QObject {
         Q_OBJECT
         Q_DECLARE_PUBLIC(ILanguageManager)
@@ -22,7 +17,7 @@ namespace LangMgr
         ILanguageManagerPrivate();
         ~ILanguageManagerPrivate() override;
 
-        [[nodiscard]] QList<G2p> priorityG2ps(const QStringList &priorityG2pIds = {}) const;
+        [[nodiscard]] QList<IG2pFactory *> priorityG2ps(const QStringList &priorityG2pIds = {}) const;
 
         bool initialized = false;
 

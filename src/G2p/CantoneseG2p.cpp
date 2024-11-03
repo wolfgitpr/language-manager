@@ -64,16 +64,9 @@ namespace LangMgr
         return config;
     }
 
-    void CantoneseG2p::loadG2pConfig(const QJsonObject &config, const QString &configId) {
+    void CantoneseG2p::loadG2pConfig(const QJsonObject &config) {
         if (config.contains("tone"))
             m_tone = config.value("tone").toBool();
-
-        if (m_config && m_config->contains(configId)) {
-            QJsonObject langConfigItem = m_config->value(configId).toObject();
-
-            langConfigItem["tone"] = m_tone;
-            (*m_config)[configId] = langConfigItem;
-        }
     }
 
     bool CantoneseG2p::tone() const { return m_tone; }

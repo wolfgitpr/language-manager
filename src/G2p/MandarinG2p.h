@@ -18,7 +18,7 @@ namespace LangMgr
         bool initialize(QString &errMsg) override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
-        void loadG2pConfig(const QJsonObject &config, const QString &configId) override;
+        void loadG2pConfig(const QJsonObject &config) override;
 
         QJsonObject defaultConfig() override;
 

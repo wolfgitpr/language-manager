@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
         qDebug() << json.value("cmn").toObject() << json.value("cmn").toObject().value("enabled").toBool();
 
         // 调用 g2pFactory->loadLanguageConfig()
-        g2pFactory->loadLanguageConfig(json, configId);
-        qDebug() << "update" << g2pFactory->languageConfig(configId);
+        g2pFactory->loadLanguageConfig(json);
+        qDebug() << "update" << g2pFactory->languageConfig();
     } else {
         qDebug() << "JSON parse error:" << parseError.errorString();
     }

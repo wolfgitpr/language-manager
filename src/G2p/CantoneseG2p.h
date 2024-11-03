@@ -20,7 +20,7 @@ namespace LangMgr
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject defaultConfig() override;
-        void loadG2pConfig(const QJsonObject &config, const QString &configId) override;
+        void loadG2pConfig(const QJsonObject &config) override;
 
         [[nodiscard]] bool tone() const;
         void setTone(const bool &tone);
