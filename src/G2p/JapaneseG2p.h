@@ -15,8 +15,6 @@ namespace LangMgr
         ~JapaneseG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
-
-        QJsonObject defaultConfig() override;
     };
 
 } // namespace LangMgr

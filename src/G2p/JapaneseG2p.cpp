@@ -39,6 +39,4 @@ namespace LangMgr
         }
         return result;
     }
-
-    QJsonObject JapaneseG2p::defaultConfig() { return {}; }
 } // namespace LangMgr
