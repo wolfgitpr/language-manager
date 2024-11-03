@@ -1,7 +1,7 @@
 #ifndef ILANGUAGEMANAGER_H
 #define ILANGUAGEMANAGER_H
 
-#include <language-manager/ILanguageFactory.h>
+#include <language-manager/IG2pFactory.h>
 #include <language-manager/LangGlobal.h>
 
 namespace LangMgr
@@ -22,17 +22,17 @@ namespace LangMgr
 
         static ILanguageManager *instance();
 
-        bool initialize(QString &errMsg);
+        bool initialize(const QJsonObject &args, QString &errMsg);
         bool initialized();
 
     public:
-        [[nodiscard]] ILanguageFactory *language(const QString &id) const;
-        [[nodiscard]] QList<ILanguageFactory *> languages() const;
+        [[nodiscard]] IG2pFactory *g2p(const QString &id) const;
+        [[nodiscard]] QList<IG2pFactory *> g2ps() const;
 
-        bool addLanguage(ILanguageFactory *factory);
-        bool removeLanguage(const ILanguageFactory *factory);
-        bool removeLanguage(const QString &id);
-        void clearLanguages();
+        bool addG2p(IG2pFactory *factory);
+        bool removeG2p(const IG2pFactory *factory);
+        bool removeG2p(const QString &id);
+        void clearG2ps();
 
         [[nodiscard]] QStringList defaultOrder() const;
         void setDefaultOrder(const QStringList &order);
@@ -40,7 +40,7 @@ namespace LangMgr
         [[nodiscard]] QList<LangNote> split(const QString &input) const;
 
         void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
-        static void convert(const QList<LangNote *> &input);
+        void convert(const QList<LangNote *> &input) const;
 
         [[nodiscard]] QString analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
         [[nodiscard]] QStringList analysis(const QStringList &input, const QStringList &priorityG2pIds = {}) const;

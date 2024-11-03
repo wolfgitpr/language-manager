@@ -1,5 +1,8 @@
 #include "CantoneseG2p.h"
 
+#include "LangAnalysis/CantoneseAnalysis.h"
+#include "LangAnalysis/JyutpingAnalysis.h"
+
 namespace LangMgr
 {
     CantoneseG2p::CantoneseG2p(const QString &id, const QString &categroy, QObject *parent) :
@@ -7,6 +10,8 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Cantonese"));
         setDescription(tr("Using Cantonese Pinyin as the phonetic notation method."));
+        m_langFactory.insert("yue", new CantoneseAnalysis());
+        m_langFactory.insert("yue-jyutping", new JyutpingAnalysis());
     }
 
     CantoneseG2p::~CantoneseG2p() = default;
@@ -17,6 +22,7 @@ namespace LangMgr
             errMsg = tr("Failed to initialize Cantonese G2P");
             return false;
         }
+        m_langConfig->insert("0", defaultConfig());
         return true;
     }
 
@@ -51,7 +57,7 @@ namespace LangMgr
         return result;
     }
 
-    QJsonObject CantoneseG2p::config() {
+    QJsonObject CantoneseG2p::defaultConfig() {
         QJsonObject config;
         config["tone"] = m_tone;
         return config;

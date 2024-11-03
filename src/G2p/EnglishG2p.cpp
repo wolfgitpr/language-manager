@@ -1,11 +1,15 @@
 #include "EnglishG2p.h"
 
+#include "LangAnalysis/EnglishAnalysis.h"
+
 namespace LangMgr
 {
-    EnglishG2p::EnglishG2p(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
+    EnglishG2p::EnglishG2p(const QString &id, const QString &categroy, QObject *parent) :
+        IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("English"));
         setDescription(tr("Greedy matching of consecutive English letters."));
+        m_langFactory.insert("eng", new EnglishAnalysis());
     }
 
     EnglishG2p::~EnglishG2p() = default;
@@ -24,7 +28,7 @@ namespace LangMgr
         return result;
     }
 
-    QJsonObject EnglishG2p::config() {
+    QJsonObject EnglishG2p::defaultConfig() {
         QJsonObject config;
         config["toLower"] = m_toLower;
         return config;

@@ -8,16 +8,16 @@
 namespace LangMgr
 {
 
-    class KanaG2p final : public IG2pFactory {
+    class JapaneseG2p final : public IG2pFactory {
         Q_OBJECT
 
     public:
-        explicit KanaG2p(const QString &id = "ja-kana", const QString &categroy = "jp-kana", QObject *parent = nullptr);
-        ~KanaG2p() override;
+        explicit JapaneseG2p(const QString &id = "jpn", const QString &categroy = "jpn", QObject *parent = nullptr);
+        ~JapaneseG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
-        QJsonObject config() override;
+        QJsonObject defaultConfig() override;
     };
 
 } // namespace LangMgr

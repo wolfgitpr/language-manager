@@ -1,11 +1,15 @@
 #include "UnknownG2p.h"
 
+#include "LangAnalysis/BaseAnalysis/UnknownAnalysis.h"
+
 namespace LangMgr
 {
-    UnknownG2p::UnknownG2p(const QString &id, const QString &categroy, QObject *parent) : IG2pFactory(id, categroy, parent) {
+    UnknownG2p::UnknownG2p(const QString &id, const QString &categroy, QObject *parent) :
+        IG2pFactory(id, categroy, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Unknown"));
         setDescription(tr("Unknown language, no conversion required."));
+        m_langFactory.insert("unknown", new UnknownAnalysis());
     }
 
     UnknownG2p::~UnknownG2p() = default;
@@ -21,6 +25,4 @@ namespace LangMgr
         }
         return result;
     }
-
-    QJsonObject UnknownG2p::config() { return {}; }
 } // namespace LangMgr

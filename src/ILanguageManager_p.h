@@ -9,9 +9,9 @@
 
 namespace LangMgr
 {
-    struct Analysiser {
-        ILanguageFactory *analysis;
-        QString g2pId = "unknown";
+    struct G2p {
+        IG2pFactory *g2p;
+        QString config = "0";
     };
 
     class ILanguageManagerPrivate final : public QObject {
@@ -22,17 +22,20 @@ namespace LangMgr
         ILanguageManagerPrivate();
         ~ILanguageManagerPrivate() override;
 
-        [[nodiscard]] QList<Analysiser> priorityLanguages(const QStringList &priorityG2pIds = {}) const;
+        [[nodiscard]] QList<G2p> priorityG2ps(const QStringList &priorityG2pIds = {}) const;
 
         bool initialized = false;
 
         ILanguageManager *q_ptr;
 
-        QStringList defaultOrder = {"cmn",       "cmn-pinyin", "yue",    "yue-jyutping", "ja-kana",
-                                    "ja-romaji", "en",         "space",  "slur",         "punctuation",
-                                    "number",    "linebreak",  "unknown"};
+        QStringList defaultOrder = {"cmn",  "yue",         "yue-jyutping", "jpn",       "eng",    "space",
+                                    "slur", "punctuation", "number",       "linebreak", "unknown"};
 
-        QMap<QString, ILanguageFactory *> languages;
+        QMap<QString, IG2pFactory *> g2ps;
+
+        QString m_pinyinDictPath;
+
+        QStringList baseG2p = {"slur", "linebreak", "number", "space", "punctuation"};
     };
 
 } // namespace LangMgr

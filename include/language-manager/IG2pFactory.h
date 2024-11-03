@@ -23,11 +23,23 @@ namespace LangMgr
 
         virtual bool initialize(QString &errMsg);
 
-        [[nodiscard]] LangNote convert(const QString &input) const;
-        [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input) const;
+        [[nodiscard]] virtual QList<LangNote> split(const QString &input, const QString &configKey);
+        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &configKey);
+        [[nodiscard]] QString analysis(const QString &input, const QString &configKey);
+        void correct(const QList<LangNote *> &input, const QString &configKey);
+
+        [[nodiscard]] LangNote convert(const QString &input, const QString &configKey);
+        [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input, const QString &configKey);
+
+        [[nodiscard]] virtual QString randString() const;
+
+        virtual QJsonObject defaultConfig();
 
         virtual QJsonObject config();
+        QJsonObject allConfig();
+
         virtual void loadConfig(const QJsonObject &config);
+        void loadAllConfig(const QJsonObject &config);
 
     public:
         [[nodiscard]] QString id() const;
@@ -49,10 +61,20 @@ namespace LangMgr
 
         QScopedPointer<IG2pFactoryPrivate> d_ptr;
 
-        friend class IG2pManager;
+        QJsonObject *m_langConfig = new QJsonObject();
+        QMap<QString, ILanguageFactory *> m_langFactory;
+
+        friend class ILanguageManager;
 
     private:
-        QMap<QString, ILanguageFactory *> m_langFactory;
+        virtual void setG2pConfig(const QString &configKey);
+        void setLanguageConfig(const QString &configId);
+        [[nodiscard]] virtual QList<LangNote> split(const QString &input) const;
+        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input) const;
+        [[nodiscard]] QString analysis(const QString &input) const;
+        void correct(const QList<LangNote *> &input) const;
+
+        [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input) const;
     };
 
 } // namespace LangMgr

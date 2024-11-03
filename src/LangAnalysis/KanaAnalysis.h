@@ -10,7 +10,7 @@ namespace LangMgr
         Q_OBJECT
 
     public:
-        explicit KanaAnalysis(QObject *parent = nullptr) : ILanguageFactory("ja-kana", parent) {
+        explicit KanaAnalysis(QObject *parent = nullptr) : ILanguageFactory("jpn-kana", parent) {
             setDisplayName(tr("Kana"));
         }
 

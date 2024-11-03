@@ -1,11 +1,8 @@
 #include <language-manager/ILanguageFactory.h>
 #include "ILanguageFactory_p.h"
 
-#include <QDebug>
 #include <QtConcurrent/QtConcurrent>
 #include <memory>
-
-#include <language-manager/IG2pManager.h>
 
 namespace LangMgr
 {
@@ -97,10 +94,10 @@ namespace LangMgr
 
         QList<LangNote> result;
         for (const auto &note : input) {
-            if (note.language == "Unknown" || note.language == "unknown" || note.language == "") {
+            if (note.g2pId == "unknown" || note.g2pId == "") {
                 const auto splitRes = split(note.lyric, g2pId);
                 for (const auto &res : splitRes) {
-                    if (res.language == id() && d->discardResult) {
+                    if (res.g2pId == id() && d->discardResult) {
                         continue;
                     }
                     result.append(res);
@@ -116,9 +113,8 @@ namespace LangMgr
 
     void ILanguageFactory::correct(const QList<LangNote *> &input, const QString &g2pId) const {
         for (const auto &note : input) {
-            if (note->language == "unknown") {
+            if (note->g2pId == "unknown") {
                 if (contains(note->lyric)) {
-                    note->language = id();
                     note->g2pId = g2pId;
                 }
             }

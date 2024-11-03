@@ -53,11 +53,9 @@ namespace LangMgr
 
                 note.lyric = input.mid(start, pos - start);
                 if (contains(note.lyric)) {
-                    note.language = id();
                     note.g2pId = g2pId;
                 } else {
-                    note.language = QStringLiteral("en");
-                    note.g2pId = QStringLiteral("en");
+                    note.g2pId = QStringLiteral("eng");
                 }
             } else {
                 const int start = pos;
@@ -65,7 +63,6 @@ namespace LangMgr
                     pos++;
                 }
                 note.lyric = input.mid(start, pos - start);
-                note.language = QStringLiteral("unknown");
                 note.g2pId = QStringLiteral("unknown");
             }
             if (!note.lyric.isEmpty())

@@ -1,5 +1,8 @@
 #include "MandarinG2p.h"
 
+#include "LangAnalysis/MandarinAnalysis.h"
+#include "LangAnalysis/PinyinAnalysis.h"
+
 namespace LangMgr
 {
     MandarinG2p::MandarinG2p(const QString &id, const QString &categroy, QObject *parent) :
@@ -7,6 +10,8 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Mandarin"));
         setDescription(tr("Using Pinyin as the phonetic notation method."));
+        m_langFactory.insert("cmn", new MandarinAnalysis());
+        m_langFactory.insert("cmn-pinyin", new PinyinAnalysis());
     }
 
     MandarinG2p::~MandarinG2p() = default;
@@ -17,6 +22,7 @@ namespace LangMgr
             errMsg = tr("Failed to initialize Mandarin G2P");
             return false;
         }
+        m_langConfig->insert("0", defaultConfig());
         return true;
     }
 
@@ -51,7 +57,7 @@ namespace LangMgr
         return result;
     }
 
-    QJsonObject MandarinG2p::config() {
+    QJsonObject MandarinG2p::defaultConfig() {
         QJsonObject config;
         config["tone"] = m_tone;
         return config;

@@ -10,12 +10,12 @@ namespace LangMgr
         Q_OBJECT
 
     public:
-        explicit EnglishG2p(const QString &id = "en", const QString &categroy = "en", QObject *parent = nullptr);
+        explicit EnglishG2p(const QString &id = "eng", const QString &categroy = "eng", QObject *parent = nullptr);
         ~EnglishG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
-        QJsonObject config() override;
+        QJsonObject defaultConfig() override;
         void loadConfig(const QJsonObject &config) override;
 
         [[nodiscard]] bool toLower() const;

@@ -15,7 +15,6 @@ namespace LangMgr
                     pos++;
                 }
                 note.lyric = input.mid(start, pos - start);
-                note.language = id();
                 note.g2pId = g2pId;
             } else {
                 const int start = pos;
@@ -23,7 +22,6 @@ namespace LangMgr
                     pos++;
                 }
                 note.lyric = input.mid(start, pos - start);
-                note.language = "unknown";
                 note.g2pId = "unknown";
             }
             if (!note.lyric.isEmpty())

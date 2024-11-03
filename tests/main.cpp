@@ -3,36 +3,34 @@
 #include <algorithm>
 #include <qrandom.h>
 
-#include <language-manager/IG2pManager.h>
 #include <language-manager/ILanguageManager.h>
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
 
-    const auto g2pMgr = LangMgr::IG2pManager::instance();
     const auto langMgr = LangMgr::ILanguageManager::instance();
 
     QString errorMsg;
-    g2pMgr->initialize(qApp->applicationDirPath() + "/dict", errorMsg);
 
-    qDebug() << "LangMgr: errorMsg" << errorMsg << "initialized:" << g2pMgr->initialized();
+    auto args = QJsonObject();
+    args.insert("pinyinDictPath", qApp->applicationDirPath() + "/dict");
 
-    langMgr->initialize(errorMsg);
+    langMgr->initialize(args, errorMsg);
     qDebug() << "LangMgr: errorMsg" << errorMsg << "initialized:" << langMgr->initialized();
 
-    const QStringList testId = {"cmn", "cmn-pinyin", "number", "space", "linebreak", "slur"};
+    const QStringList testId = {"cmn", "number", "space", "linebreak", "slur"};
     langMgr->setDefaultOrder(testId);
 
     QList<LangNote *> langNotes;
 
-    for (const auto &langId : testId) {
-        const int lenth = QRandomGenerator::global()->bounded(100, 200);
-        const auto factory = langMgr->language(langId);
+    for (const auto &g2pId : testId) {
+        const int lenth = QRandomGenerator::global()->bounded(1, 3);
+        const auto factory = langMgr->g2p(g2pId);
 
         for (int i = 0; i < lenth; i++) {
             const auto note = new LangNote();
             note->lyric = factory->randString();
-            note->standard = langId;
+            note->standard = g2pId;
             langNotes.append(note);
         }
     }
@@ -43,8 +41,8 @@ int main(int argc, char *argv[]) {
     langMgr->correct(langNotes);
 
     for (const auto &note : langNotes) {
-        if (note->language != note->standard) {
-            qDebug() << "lyric: " << note->lyric << " standard: " << note->standard << " res: " << note->language;
+        if (note->g2pId != note->standard) {
+            qDebug() << "lyric: " << note->lyric << " standard: " << note->standard << " res: " << note->g2pId;
         }
         delete note;
     }

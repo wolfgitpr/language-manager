@@ -1,4 +1,4 @@
-#include <language-manager/ILanguageFactory.h>
+#include <language-manager/IG2pFactory.h>
 #include "IG2pFactory_p.h"
 
 #include <QJsonObject>
@@ -28,6 +28,7 @@ namespace LangMgr
 
     bool IG2pFactory::initialize(QString &errMsg) {
         Q_UNUSED(errMsg);
+        m_langConfig->insert("0", defaultConfig());
         return true;
     }
 
@@ -76,11 +77,107 @@ namespace LangMgr
         d->description = description;
     }
 
-    QJsonObject IG2pFactory::config() { return {}; }
+    QString IG2pFactory::randString() const {
+        // TODO
+        return m_langFactory.first()->randString();
+    }
+
+    QJsonObject IG2pFactory::defaultConfig() {
+        Q_D(IG2pFactory);
+        QJsonObject config;
+        config.insert("id", id());
+        return config;
+    }
+
+    QJsonObject IG2pFactory::config() {
+        Q_D(IG2pFactory);
+        return m_langConfig->value(d->configId).toObject();
+    }
+
+    QJsonObject IG2pFactory::allConfig() {
+        Q_D(IG2pFactory);
+        return *m_langConfig;
+    }
 
     void IG2pFactory::loadConfig(const QJsonObject &config) { Q_UNUSED(config); }
 
-    LangNote IG2pFactory::convert(const QString &input) const { return convert(QStringList() << input).at(0); }
+    void IG2pFactory::loadAllConfig(const QJsonObject &config) {
+        Q_D(IG2pFactory);
+        m_langConfig = new QJsonObject(config);
+    }
+
+    QList<LangNote> IG2pFactory::split(const QList<LangNote> &input, const QString &configKey) {
+        setLanguageConfig(configKey);
+        return split(input);
+    }
+
+    QList<LangNote> IG2pFactory::split(const QString &input, const QString &configKey) {
+        setLanguageConfig(configKey);
+        return split(input);
+    }
+
+    QString IG2pFactory::analysis(const QString &input, const QString &configKey) {
+        setLanguageConfig(configKey);
+        return analysis(input);
+    }
+
+    void IG2pFactory::correct(const QList<LangNote *> &input, const QString &configKey) {
+        setLanguageConfig(configKey);
+        return correct(input);
+    }
+
+    LangNote IG2pFactory::convert(const QString &input, const QString &configKey) {
+        setG2pConfig(configKey);
+        setLanguageConfig(configKey);
+        return convert(QStringList() << input).at(0);
+    }
+
+    QList<LangNote> IG2pFactory::convert(const QStringList &input, const QString &configKey) {
+        setG2pConfig(configKey);
+        setLanguageConfig(configKey);
+        return convert(QStringList() << input);
+    }
+
+    void IG2pFactory::setG2pConfig(const QString &configKey) {}
+
+    void IG2pFactory::setLanguageConfig(const QString &configId) {
+        Q_D(const IG2pFactory);
+        const auto g2pConfig = m_langConfig->value(configId).toObject();
+        for (const auto &langfactory : m_langFactory) {
+            langfactory->loadConfig(g2pConfig.value(langfactory->id()).toObject());
+        }
+    }
+
+    QString IG2pFactory::analysis(const QString &input) const {
+        for (const auto &factory : m_langFactory) {
+            const auto result = factory->analysis(input);
+            if (result != "unknown")
+                return result;
+        }
+        return "unknown";
+    }
+
+    QList<LangNote> IG2pFactory::split(const QString &input) const {
+        Q_D(const IG2pFactory);
+        return split({LangNote(input)});
+    }
+
+    QList<LangNote> IG2pFactory::split(const QList<LangNote> &input) const {
+        Q_D(const IG2pFactory);
+
+        QList<LangNote> result = input;
+        for (const auto &factory : m_langFactory) {
+            result = factory->split(result);
+        }
+        return result;
+    }
+
+    void IG2pFactory::correct(const QList<LangNote *> &input) const {
+        Q_D(const IG2pFactory);
+        for (const auto &factory : m_langFactory) {
+            factory->correct(input, d->id);
+        }
+    }
 
     QList<LangNote> IG2pFactory::convert(const QStringList &input) const {
         Q_UNUSED(input);

@@ -13,8 +13,6 @@ namespace LangMgr
         ~UnknownG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
-
-        QJsonObject config() override;
     };
 
 } // namespace LangMgr

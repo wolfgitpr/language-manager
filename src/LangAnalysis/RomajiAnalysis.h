@@ -12,7 +12,7 @@ namespace LangMgr
         Q_OBJECT
 
     public:
-        explicit RomajiAnalysis(const QString &id = "ja-romaji", QObject *parent = nullptr) :
+        explicit RomajiAnalysis(const QString &id = "jpn-romaji", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
             setDisplayName(tr("Romaji"));
         }
