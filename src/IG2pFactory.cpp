@@ -149,7 +149,11 @@ namespace LangMgr
     }
 
     QJsonObject IG2pFactory::languageConfig(const QString &configId) const {
-        return m_config->value(configId).toObject().value("languageConfig").toObject();
+        QJsonObject config;
+        for (const auto &langfactory : m_langFactory) {
+            config.insert(langfactory->id(), langfactory->exportConfig());
+        }
+        return config;
     }
 
     void IG2pFactory::loadLanguageConfig(const QJsonObject &config, const QString &configId) {

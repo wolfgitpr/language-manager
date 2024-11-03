@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <algorithm>
+#include <qjsondocument.h>
 #include <qrandom.h>
 
 #include <language-manager/ILanguageManager.h>
