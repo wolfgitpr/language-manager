@@ -49,5 +49,9 @@ int main(int argc, char *argv[]) {
 
     qDebug() << "LangMgrTest: success";
 
+    const auto res = langMgr->split("xa112好eng");
+    for (const auto &note : res)
+        qDebug() << note.lyric << note.g2pId;
+
     return 0;
 }

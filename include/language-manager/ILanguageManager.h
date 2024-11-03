@@ -37,7 +37,7 @@ namespace LangMgr
         [[nodiscard]] QStringList defaultOrder() const;
         void setDefaultOrder(const QStringList &order);
 
-        [[nodiscard]] QList<LangNote> split(const QString &input) const;
+        [[nodiscard]] QList<LangNote> split(const QString &input, const QStringList &priorityG2pIds = {}) const;
 
         void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
         void convert(const QList<LangNote *> &input) const;

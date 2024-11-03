@@ -26,7 +26,7 @@ namespace LangMgr
         [[nodiscard]] virtual QString randString() const;
 
         [[nodiscard]] virtual QList<LangNote> split(const QString &input, const QString &g2pId) const;
-        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &g2pId = "unknown") const;
+        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &g2pId) const;
         [[nodiscard]] QString analysis(const QString &input) const;
         void correct(const QList<LangNote *> &input, const QString &g2pId) const;
 

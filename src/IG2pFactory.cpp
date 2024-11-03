@@ -167,7 +167,7 @@ namespace LangMgr
 
         QList<LangNote> result = input;
         for (const auto &factory : m_langFactory) {
-            result = factory->split(result);
+            result = factory->split(result, d->id);
         }
         return result;
     }

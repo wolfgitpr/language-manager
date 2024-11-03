@@ -149,9 +149,9 @@ namespace LangMgr
         d->defaultOrder = order;
     }
 
-    QList<LangNote> ILanguageManager::split(const QString &input) const {
+    QList<LangNote> ILanguageManager::split(const QString &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
-        const auto &analysisers = d->priorityG2ps();
+        const auto &analysisers = d->priorityG2ps(priorityG2pIds);
         QList<LangNote> result = {LangNote(input)};
         for (const auto &[analysis, g2pConfig] : analysisers) {
             result = analysis->split(result, g2pConfig);
