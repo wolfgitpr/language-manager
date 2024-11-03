@@ -44,6 +44,8 @@ namespace LangMgr
     bool DictFactory::contains(const QString &input) const { return m_trie->search(input); }
 
     QList<LangNote> DictFactory::split(const QString &input, const QString &g2pId) const {
+        if (!enabled())
+            return {LangNote(input)};
         QList<LangNote> result;
 
         int pos = 0;
@@ -70,6 +72,8 @@ namespace LangMgr
                 if (pos > start) {
                     note.lyric = input.mid(start, pos - start);
                     note.g2pId = g2pId;
+                    if (discardResult())
+                        continue;
                 } else {
                     note.lyric = currentChar;
                     note.g2pId = QStringLiteral("unknown");
@@ -84,11 +88,9 @@ namespace LangMgr
                 note.g2pId = QStringLiteral("unknown");
             }
 
-            if (!note.lyric.isEmpty()) {
+            if (!note.lyric.isEmpty())
                 result.append(note);
-            }
         }
-
         return result;
     }
 

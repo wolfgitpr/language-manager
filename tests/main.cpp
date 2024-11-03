@@ -80,5 +80,7 @@ int main(int argc, char *argv[]) {
     const auto &g2p = langMgr->g2p("cmn");
     qDebug() << g2p->config();
 
+    qDebug() << langMgr->split("ka好的121")[0].g2pId;
+
     return 0;
 }

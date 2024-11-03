@@ -22,6 +22,8 @@ namespace LangMgr
     }
 
     QList<LangNote> KanaAnalysis::split(const QString &input, const QString &g2pId) const {
+        if (!enabled())
+            return {LangNote(input)};
         QList<LangNote> results;
 
         int pos = 0;
@@ -33,6 +35,8 @@ namespace LangMgr
                 note.lyric = input.mid(pos, length);
                 note.g2pId = g2pId;
                 pos += length;
+                if (discardResult())
+                    continue;
             } else {
                 const int start = pos;
                 while (pos < input.length() && !contains(input[pos])) {

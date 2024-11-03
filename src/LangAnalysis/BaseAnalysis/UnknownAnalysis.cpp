@@ -7,6 +7,8 @@ namespace LangMgr
     bool UnknownAnalysis::contains(const QString &input) const { return true; }
 
     QList<LangNote> UnknownAnalysis::split(const QString &input, const QString &g2pId) const {
+        if (discardResult())
+            return {};
         return {LangNote(input)};
     }
 

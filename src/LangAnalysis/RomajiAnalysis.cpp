@@ -39,6 +39,8 @@ namespace LangMgr
     bool RomajiAnalysis::contains(const QString &input) const { return romajiSet.contains(input); }
 
     QList<LangNote> RomajiAnalysis::split(const QString &input, const QString &g2pId) const {
+        if (!enabled())
+            return {LangNote(input)};
         QList<LangNote> result;
 
         int pos = 0;
@@ -54,6 +56,8 @@ namespace LangMgr
                 note.lyric = input.mid(start, pos - start);
                 if (contains(note.lyric)) {
                     note.g2pId = g2pId;
+                    if (discardResult())
+                        continue;
                 } else {
                     note.g2pId = QStringLiteral("eng");
                 }

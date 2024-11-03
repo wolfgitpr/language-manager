@@ -86,18 +86,14 @@ namespace LangMgr
 
     QList<LangNote> ILanguageFactory::split(const QList<LangNote> &input, const QString &g2pId) const {
         Q_D(const ILanguageFactory);
-        if (!d->enabled) {
+        if (!d->enabled)
             return input;
-        }
 
         QList<LangNote> result;
         for (const auto &note : input) {
             if (note.g2pId == "unknown" || note.g2pId == "") {
                 const auto splitRes = split(note.lyric, g2pId);
                 for (const auto &res : splitRes) {
-                    if (res.g2pId == id() && d->discardResult) {
-                        continue;
-                    }
                     result.append(res);
                 }
             } else {
@@ -107,9 +103,18 @@ namespace LangMgr
         return result;
     }
 
-    QString ILanguageFactory::analysis(const QString &input) const { return contains(input) ? id() : "unknown"; }
+    QString ILanguageFactory::analysis(const QString &input) const {
+        Q_D(const ILanguageFactory);
+        if (!d->enabled)
+            return "unknown";
+        return contains(input) ? id() : "unknown";
+    }
 
     void ILanguageFactory::correct(const QList<LangNote *> &input, const QString &g2pId) const {
+        Q_D(const ILanguageFactory);
+        if (!d->enabled)
+            return;
+
         for (const auto &note : input) {
             if (note->g2pId == "unknown") {
                 if (contains(note->lyric)) {
