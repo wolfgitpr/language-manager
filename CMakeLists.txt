@@ -48,7 +48,7 @@ endif ()
 # ----------------------------------
 # Main Project
 # ----------------------------------
-file(GLOB_RECURSE _src include/*.h src/*/*.h src/*/*.cpp)
+file(GLOB_RECURSE _src include/*.h src/*.h src/*.cpp)
 
 if (LANG_MANAGER_BUILD_STATIC)
     add_library(${PROJECT_NAME} STATIC)
