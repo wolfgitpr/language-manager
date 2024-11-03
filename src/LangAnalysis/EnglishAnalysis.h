@@ -9,7 +9,7 @@ namespace LangMgr {
         Q_OBJECT
 
     public:
-        explicit EnglishAnalysis(QObject *parent = nullptr) : MultiCharFactory("en", parent) {
+        explicit EnglishAnalysis(QObject *parent = nullptr) : MultiCharFactory("eng", parent) {
             setDisplayName(tr("English"));
         }
 

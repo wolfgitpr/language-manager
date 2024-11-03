@@ -67,6 +67,7 @@ namespace LangMgr
         if (config.contains("tone")) {
             m_tone = config.value("tone").toBool();
         }
+        m_config->insert("tone", m_tone);
     }
 
     bool MandarinG2p::tone() const { return m_tone; }

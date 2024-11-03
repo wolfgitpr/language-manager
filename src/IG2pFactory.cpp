@@ -100,8 +100,6 @@ namespace LangMgr
 
     QJsonObject IG2pFactory::config() {
         Q_D(IG2pFactory);
-        if (m_config->empty())
-            return defaultConfig();
         return *m_config;
     }
 

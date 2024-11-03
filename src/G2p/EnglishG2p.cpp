@@ -38,6 +38,7 @@ namespace LangMgr
     void EnglishG2p::loadG2pConfig(const QJsonObject &config) {
         if (config.contains("toLower"))
             m_toLower = config.value("toLower").toBool();
+        m_config->insert("toLower", m_toLower);
     }
 
     bool EnglishG2p::toLower() const { return m_toLower; }

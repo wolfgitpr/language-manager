@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     QJsonObject rjson;
     rjson.insert("0",
                  "{\"cmn\":{\"discardResult\":true,\"enabled\":true},\"cmn-pinyin\":{\"discardResult\":"
-                 "true,\"enabled\":true}}");
+                 "true,\"enabled\":true},\"tone\":true}");
     QJsonParseError parseError;
     QJsonDocument jsonDoc = QJsonDocument::fromJson(rjson.value("0").toString().toUtf8(), &parseError);
     if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
         qDebug() << json.value("cmn").toObject() << json.value("cmn").toObject().value("enabled").toBool();
 
         // 调用 g2pFactory->loadLanguageConfig()
+        g2pFactory->loadG2pConfig(json);
         g2pFactory->loadLanguageConfig(json);
         qDebug() << "update" << g2pFactory->languageConfig();
     } else {

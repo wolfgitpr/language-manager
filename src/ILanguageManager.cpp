@@ -205,6 +205,7 @@ namespace LangMgr
         const auto g2ps = d->g2ps.values();
         for (const auto g2p : g2ps) {
             g2p->initialize(errMsg);
+            *g2p->m_config = g2p->defaultConfig();
             if (!errMsg.isEmpty()) {
                 return false;
             }
