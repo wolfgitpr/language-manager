@@ -35,8 +35,7 @@ namespace LangMgr
         virtual QJsonObject defaultConfig();
         virtual QJsonObject languageDefaultConfig();
 
-        virtual QJsonObject config(const QString &configId);
-        QJsonObject allConfig();
+        virtual QJsonObject config();
 
         virtual void loadG2pConfig(const QJsonObject &config);
 

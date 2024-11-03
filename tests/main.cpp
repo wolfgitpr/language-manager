@@ -23,8 +23,7 @@ int main(int argc, char *argv[]) {
     // langMgr->setDefaultOrder(testId);
 
     const auto g2pFactory = langMgr->g2p("cmn");
-    const auto configId = "0";
-
+    qDebug() << "g2pFactory config:" << g2pFactory->config();
     QJsonObject rjson;
     rjson.insert("0",
                  "{\"cmn\":{\"discardResult\":true,\"enabled\":true},\"cmn-pinyin\":{\"discardResult\":"
@@ -78,7 +77,7 @@ int main(int argc, char *argv[]) {
 
 
     const auto &g2p = langMgr->g2p("cmn");
-    qDebug() << g2p->allConfig();
+    qDebug() << g2p->config();
 
     return 0;
 }

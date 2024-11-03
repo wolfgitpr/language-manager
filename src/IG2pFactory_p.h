@@ -24,8 +24,6 @@ namespace LangMgr
         QString categroy;
         QString author;
         QString description;
-
-        QString configId = "0";
     };
 
 } // namespace LangMgr

@@ -28,7 +28,6 @@ namespace LangMgr
 
     bool IG2pFactory::initialize(QString &errMsg) {
         Q_UNUSED(errMsg);
-        m_config->insert("0", defaultConfig());
         return true;
     }
 
@@ -99,13 +98,10 @@ namespace LangMgr
         return config;
     }
 
-    QJsonObject IG2pFactory::config(const QString &configId) {
+    QJsonObject IG2pFactory::config() {
         Q_D(IG2pFactory);
-        return m_config->value(configId).toObject();
-    }
-
-    QJsonObject IG2pFactory::allConfig() {
-        Q_D(IG2pFactory);
+        if (m_config->empty())
+            return defaultConfig();
         return *m_config;
     }
 
@@ -121,7 +117,7 @@ namespace LangMgr
 
     void IG2pFactory::loadLanguageConfig(const QJsonObject &config) {
         Q_D(const IG2pFactory);
-        QJsonObject configObj = *m_config;
+        QJsonObject configObj = this->config();
 
         for (const auto &langfactory : m_langFactory) {
             langfactory->loadConfig(config.value(langfactory->id()).toObject());

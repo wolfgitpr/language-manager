@@ -22,7 +22,6 @@ namespace LangMgr
             errMsg = tr("Failed to initialize Mandarin G2P");
             return false;
         }
-        m_config->insert("0", defaultConfig());
         return true;
     }
 
