@@ -22,7 +22,7 @@ namespace LangMgr
             errMsg = tr("Failed to initialize Cantonese G2P");
             return false;
         }
-        m_langConfig->insert("0", defaultConfig());
+        m_config->insert("0", defaultConfig());
         return true;
     }
 
@@ -60,12 +60,20 @@ namespace LangMgr
     QJsonObject CantoneseG2p::defaultConfig() {
         QJsonObject config;
         config["tone"] = m_tone;
+        config.insert("languageConfig", languageDefaultConfig());
         return config;
     }
 
-    void CantoneseG2p::loadConfig(const QJsonObject &config) {
+    void CantoneseG2p::loadG2pConfig(const QJsonObject &config, const QString &configId) {
         if (config.contains("tone"))
             m_tone = config.value("tone").toBool();
+
+        if (m_config && m_config->contains(configId)) {
+            QJsonObject langConfigItem = m_config->value(configId).toObject();
+
+            langConfigItem["tone"] = m_tone;
+            (*m_config)[configId] = langConfigItem;
+        }
     }
 
     bool CantoneseG2p::tone() const { return m_tone; }

@@ -28,7 +28,7 @@ namespace LangMgr
 
     bool IG2pFactory::initialize(QString &errMsg) {
         Q_UNUSED(errMsg);
-        m_langConfig->insert("0", defaultConfig());
+        m_config->insert("0", defaultConfig());
         return true;
     }
 
@@ -86,63 +86,75 @@ namespace LangMgr
         Q_D(IG2pFactory);
         QJsonObject config;
         config.insert("id", id());
+        config.insert("languageConfig", languageDefaultConfig());
         return config;
     }
 
-    QJsonObject IG2pFactory::config() {
+    QJsonObject IG2pFactory::languageDefaultConfig() {
         Q_D(IG2pFactory);
-        return m_langConfig->value(d->configId).toObject();
+        QJsonObject config;
+        for (const auto &langfactory : m_langFactory) {
+            config.insert(langfactory->id(), langfactory->exportConfig());
+        }
+        return config;
+    }
+
+    QJsonObject IG2pFactory::config(const QString &configId) {
+        Q_D(IG2pFactory);
+        return m_config->value(configId).toObject();
     }
 
     QJsonObject IG2pFactory::allConfig() {
         Q_D(IG2pFactory);
-        return *m_langConfig;
+        return *m_config;
     }
 
-    void IG2pFactory::loadConfig(const QJsonObject &config) { Q_UNUSED(config); }
+    void IG2pFactory::loadG2pConfig(const QJsonObject &config, const QString &configId) { Q_UNUSED(config); }
 
     void IG2pFactory::loadAllConfig(const QJsonObject &config) {
         Q_D(IG2pFactory);
-        m_langConfig = new QJsonObject(config);
+        m_config = new QJsonObject(config);
     }
 
-    QList<LangNote> IG2pFactory::split(const QList<LangNote> &input, const QString &configKey) {
-        setLanguageConfig(configKey);
+    QList<LangNote> IG2pFactory::split(const QList<LangNote> &input, const QString &configId) {
+        loadLanguageConfig(*m_config, configId);
         return split(input);
     }
 
-    QList<LangNote> IG2pFactory::split(const QString &input, const QString &configKey) {
-        setLanguageConfig(configKey);
+    QList<LangNote> IG2pFactory::split(const QString &input, const QString &configId) {
+        loadLanguageConfig(*m_config, configId);
         return split(input);
     }
 
-    QString IG2pFactory::analysis(const QString &input, const QString &configKey) {
-        setLanguageConfig(configKey);
+    QString IG2pFactory::analysis(const QString &input, const QString &configId) {
+        loadLanguageConfig(*m_config, configId);
         return analysis(input);
     }
 
-    void IG2pFactory::correct(const QList<LangNote *> &input, const QString &configKey) {
-        setLanguageConfig(configKey);
+    void IG2pFactory::correct(const QList<LangNote *> &input, const QString &configId) {
+        loadLanguageConfig(*m_config, configId);
         return correct(input);
     }
 
-    LangNote IG2pFactory::convert(const QString &input, const QString &configKey) {
-        setG2pConfig(configKey);
-        setLanguageConfig(configKey);
+    LangNote IG2pFactory::convert(const QString &input, const QString &configId) {
+        loadG2pConfig(*m_config, configId);
+        loadLanguageConfig(*m_config, configId);
         return convert(QStringList() << input).at(0);
     }
 
     QList<LangNote> IG2pFactory::convert(const QStringList &input, const QString &configKey) {
-        setG2pConfig(configKey);
-        setLanguageConfig(configKey);
+        loadG2pConfig(*m_config, configKey);
+        loadLanguageConfig(*m_config, configKey);
         return convert(QStringList() << input);
     }
 
-    void IG2pFactory::setG2pConfig(const QString &configKey) {}
+    QJsonObject IG2pFactory::languageConfig(const QString &configId) const {
+        return m_config->value(configId).toObject().value("languageConfig").toObject();
+    }
 
-    void IG2pFactory::setLanguageConfig(const QString &configId) {
+    void IG2pFactory::loadLanguageConfig(const QJsonObject &config, const QString &configId) {
         Q_D(const IG2pFactory);
-        const auto g2pConfig = m_langConfig->value(configId).toObject();
+        const auto g2pConfig = config.value(configId).toObject();
         for (const auto &langfactory : m_langFactory) {
             langfactory->loadConfig(g2pConfig.value(langfactory->id()).toObject());
         }

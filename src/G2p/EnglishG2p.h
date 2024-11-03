@@ -14,7 +14,7 @@ namespace LangMgr
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;
 
         QJsonObject defaultConfig() override;
-        void loadConfig(const QJsonObject &config) override;
+        void loadG2pConfig(const QJsonObject &config, const QString &configId) override;
 
         [[nodiscard]] bool toLower() const;
         void setToLower(const bool &toLower);

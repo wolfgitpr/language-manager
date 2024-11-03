@@ -23,23 +23,27 @@ namespace LangMgr
 
         virtual bool initialize(QString &errMsg);
 
-        [[nodiscard]] virtual QList<LangNote> split(const QString &input, const QString &configKey);
-        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &configKey);
-        [[nodiscard]] QString analysis(const QString &input, const QString &configKey);
-        void correct(const QList<LangNote *> &input, const QString &configKey);
+        [[nodiscard]] virtual QList<LangNote> split(const QString &input, const QString &configId);
+        [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input, const QString &configId);
+        [[nodiscard]] QString analysis(const QString &input, const QString &configId);
+        void correct(const QList<LangNote *> &input, const QString &configId);
 
-        [[nodiscard]] LangNote convert(const QString &input, const QString &configKey);
+        [[nodiscard]] LangNote convert(const QString &input, const QString &configId);
         [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input, const QString &configKey);
 
         [[nodiscard]] virtual QString randString() const;
 
         virtual QJsonObject defaultConfig();
+        virtual QJsonObject languageDefaultConfig();
 
-        virtual QJsonObject config();
+        virtual QJsonObject config(const QString &configId);
         QJsonObject allConfig();
 
-        virtual void loadConfig(const QJsonObject &config);
+        virtual void loadG2pConfig(const QJsonObject &config, const QString &configId);
         void loadAllConfig(const QJsonObject &config);
+
+        [[nodiscard]] QJsonObject languageConfig(const QString &configId) const;
+        void loadLanguageConfig(const QJsonObject &config, const QString &configId);
 
     public:
         [[nodiscard]] QString id() const;
@@ -61,14 +65,12 @@ namespace LangMgr
 
         QScopedPointer<IG2pFactoryPrivate> d_ptr;
 
-        QJsonObject *m_langConfig = new QJsonObject();
+        QJsonObject *m_config = new QJsonObject();
         QMap<QString, ILanguageFactory *> m_langFactory;
 
         friend class ILanguageManager;
 
     private:
-        virtual void setG2pConfig(const QString &configKey);
-        void setLanguageConfig(const QString &configId);
         [[nodiscard]] virtual QList<LangNote> split(const QString &input) const;
         [[nodiscard]] QList<LangNote> split(const QList<LangNote> &input) const;
         [[nodiscard]] QString analysis(const QString &input) const;

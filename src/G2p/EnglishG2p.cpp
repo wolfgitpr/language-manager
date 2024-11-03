@@ -31,12 +31,20 @@ namespace LangMgr
     QJsonObject EnglishG2p::defaultConfig() {
         QJsonObject config;
         config["toLower"] = m_toLower;
+        config.insert("languageConfig", languageDefaultConfig());
         return config;
     }
 
-    void EnglishG2p::loadConfig(const QJsonObject &config) {
+    void EnglishG2p::loadG2pConfig(const QJsonObject &config, const QString &configId) {
         if (config.contains("toLower"))
             m_toLower = config.value("toLower").toBool();
+
+        if (m_config && m_config->contains(configId)) {
+            QJsonObject langConfigItem = m_config->value(configId).toObject();
+
+            langConfigItem["toLower"] = m_toLower;
+            (*m_config)[configId] = langConfigItem;
+        }
     }
 
     bool EnglishG2p::toLower() const { return m_toLower; }

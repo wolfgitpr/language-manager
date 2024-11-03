@@ -27,8 +27,6 @@ namespace LangMgr
         QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
         d.id = id;
-        d.m_selectedG2p = id;
-        d.categroy = id;
 
         d.init();
     }
@@ -127,10 +125,6 @@ namespace LangMgr
             d->enabled = config.value("enabled").toBool();
         if (config.contains("discardResult"))
             d->discardResult = config.value("discardResult").toBool();
-        if (config.contains("category"))
-            d->categroy = config.value("category").toString();
-        if (config.contains("selectedG2p"))
-            d->m_selectedG2p = config.value("selectedG2p").toString();
     }
 
     QJsonObject ILanguageFactory::exportConfig() const {
@@ -138,8 +132,6 @@ namespace LangMgr
         QJsonObject config;
         config.insert("enabled", d->enabled);
         config.insert("discardResult", d->discardResult);
-        config.insert("category", d->categroy);
-        config.insert("selectedG2p", d->m_selectedG2p);
         return config;
     }
 

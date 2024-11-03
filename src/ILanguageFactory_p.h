@@ -21,18 +21,10 @@ namespace LangMgr
         ILanguageFactory *q_ptr;
 
         QString id;
+        QString displayName;
 
         bool enabled = true;
-
         bool discardResult = false;
-
-        QString categroy;
-        QString description;
-        QString displayName;
-        QString author;
-        QString displayCategory;
-
-        QString m_selectedG2p;
     };
 
 } // namespace LangMgr

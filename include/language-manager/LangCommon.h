@@ -2,7 +2,7 @@
 #define LANGCOMMON_H
 
 #include <QString>
-
+#include <QStringList>
 #include <language-manager/LangGlobal.h>
 
 struct LANG_MANAGER_EXPORT LangNote {

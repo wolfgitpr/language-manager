@@ -7,7 +7,6 @@
 
 namespace LangMgr
 {
-
     class IG2pFactoryPrivate final : public QObject {
         Q_OBJECT
         Q_DECLARE_PUBLIC(IG2pFactory)
@@ -15,7 +14,7 @@ namespace LangMgr
         IG2pFactoryPrivate();
         ~IG2pFactoryPrivate() override;
 
-        void init();
+        static void init();
 
         IG2pFactory *q_ptr;
 
