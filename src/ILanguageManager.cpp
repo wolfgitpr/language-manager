@@ -61,7 +61,6 @@ namespace LangMgr
             qWarning() << "LangMgr::ILanguageManager::g2p(): config does not exist:" << g2pId << configId;
             return nullptr;
         }
-        it.value()->loadG2pConfig(config, configId);
         return it.value();
     }
 
