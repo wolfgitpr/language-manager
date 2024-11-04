@@ -12,7 +12,7 @@ namespace LangMgr
     class MandarinG2p final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit MandarinG2p(const QString &id = "cmn", const QString &categroy = "cmn", QObject *parent = nullptr);
+        explicit MandarinG2p(const QString &id = "cmn-pinyin", QObject *parent = nullptr);
         ~MandarinG2p() override;
 
         bool initialize(QString &errMsg) override;
@@ -21,9 +21,6 @@ namespace LangMgr
         void loadG2pConfig(const QJsonObject &config) override;
 
         QJsonObject defaultConfig() override;
-
-        [[nodiscard]] bool tone() const;
-        void setTone(const bool &tone);
 
     private:
         std::unique_ptr<Pinyin::Pinyin> m_mandarin;

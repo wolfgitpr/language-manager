@@ -5,8 +5,7 @@
 
 namespace LangMgr
 {
-    MandarinG2p::MandarinG2p(const QString &id, const QString &categroy, QObject *parent) :
-        IG2pFactory(id, categroy, parent) {
+    MandarinG2p::MandarinG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Mandarin"));
         setDescription(tr("Using Pinyin as the phonetic notation method."));
@@ -69,8 +68,4 @@ namespace LangMgr
         }
         m_config->insert("tone", m_tone);
     }
-
-    bool MandarinG2p::tone() const { return m_tone; }
-
-    void MandarinG2p::setTone(const bool &tone) { m_tone = tone; }
 } // namespace LangMgr

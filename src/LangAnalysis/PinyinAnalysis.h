@@ -15,7 +15,6 @@ namespace LangMgr
         explicit PinyinAnalysis(const QString &id = "cmn-pinyin", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
             setDisplayName(tr("Pinyin"));
-            setEnabled(false);
         }
 
         bool initialize(QString &errMsg) override;

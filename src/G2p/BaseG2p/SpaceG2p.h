@@ -8,7 +8,7 @@ namespace LangMgr
     class SpaceG2p final : public UnknownG2p {
         Q_OBJECT
     public:
-        explicit SpaceG2p(const QString &id = "space", const QString &categroy = "space", QObject *parent = nullptr);
+        explicit SpaceG2p(const QString &id = "space", QObject *parent = nullptr);
         ~SpaceG2p() override = default;
     };
 

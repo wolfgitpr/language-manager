@@ -23,8 +23,8 @@ namespace LangMgr
 
         ILanguageManager *q_ptr;
 
-        QStringList defaultOrder = {"cmn",  "yue",         "jpn",    "eng",       "space",
-                                    "slur", "punctuation", "number", "linebreak", "unknown"};
+        QStringList defaultG2pOrder = {"cmn-pinyin", "yue-jyutping", "jpn-romaji", "eng",       "space",
+                                       "slur",       "punctuation",  "number",     "linebreak", "unknown"};
 
         QMap<QString, IG2pFactory *> g2ps;
 

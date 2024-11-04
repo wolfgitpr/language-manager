@@ -5,8 +5,7 @@
 
 namespace LangMgr
 {
-    CantoneseG2p::CantoneseG2p(const QString &id, const QString &categroy, QObject *parent) :
-        IG2pFactory(id, categroy, parent) {
+    CantoneseG2p::CantoneseG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Cantonese"));
         setDescription(tr("Using Cantonese Pinyin as the phonetic notation method."));
@@ -68,8 +67,4 @@ namespace LangMgr
             m_tone = config.value("tone").toBool();
         m_config->insert("tone", m_tone);
     }
-
-    bool CantoneseG2p::tone() const { return m_tone; }
-
-    void CantoneseG2p::setTone(const bool &tone) { m_tone = tone; }
 } // namespace LangMgr

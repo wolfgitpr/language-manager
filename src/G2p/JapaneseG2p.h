@@ -11,7 +11,7 @@ namespace LangMgr
         Q_OBJECT
 
     public:
-        explicit JapaneseG2p(const QString &id = "jpn", const QString &categroy = "jpn", QObject *parent = nullptr);
+        explicit JapaneseG2p(const QString &id = "jpn-romaji", QObject *parent = nullptr);
         ~JapaneseG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;

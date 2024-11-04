@@ -8,8 +8,7 @@ namespace LangMgr
     class UnknownG2p : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit UnknownG2p(const QString &id = "unknown", const QString &categroy = "unknown",
-                            QObject *parent = nullptr);
+        explicit UnknownG2p(const QString &id = "unknown", QObject *parent = nullptr);
         ~UnknownG2p() override;
 
         [[nodiscard]] QList<LangNote> convert(const QStringList &input) const override;

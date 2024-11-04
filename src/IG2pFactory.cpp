@@ -12,16 +12,13 @@ namespace LangMgr
 
     void IG2pFactoryPrivate::init() {}
 
-    IG2pFactory::IG2pFactory(const QString &id, const QString &categroy, QObject *parent) :
-        IG2pFactory(*new IG2pFactoryPrivate(), id, categroy, parent) {}
+    IG2pFactory::IG2pFactory(const QString &id, QObject *parent) : IG2pFactory(*new IG2pFactoryPrivate(), id, parent) {}
 
     IG2pFactory::~IG2pFactory() = default;
 
-    IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, const QString &categroy, QObject *parent) :
-        QObject(parent), d_ptr(&d) {
+    IG2pFactory::IG2pFactory(IG2pFactoryPrivate &d, const QString &id, QObject *parent) : QObject(parent), d_ptr(&d) {
         d.q_ptr = this;
         d.id = id;
-        d.categroy = categroy.isEmpty() ? id : categroy;
 
         d.init();
     }
@@ -44,16 +41,6 @@ namespace LangMgr
     void IG2pFactory::setDisplayName(const QString &displayName) {
         Q_D(IG2pFactory);
         d->displayName = displayName;
-    }
-
-    QString IG2pFactory::category() const {
-        Q_D(const IG2pFactory);
-        return d->categroy;
-    }
-
-    void IG2pFactory::setCategory(const QString &category) {
-        Q_D(IG2pFactory);
-        d->categroy = category;
     }
 
     QString IG2pFactory::author() const {

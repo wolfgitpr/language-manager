@@ -4,8 +4,7 @@
 
 namespace LangMgr
 {
-    UnknownG2p::UnknownG2p(const QString &id, const QString &categroy, QObject *parent) :
-        IG2pFactory(id, categroy, parent) {
+    UnknownG2p::UnknownG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Unknown"));
         setDescription(tr("Unknown language, no conversion required."));

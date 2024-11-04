@@ -4,8 +4,7 @@
 
 namespace LangMgr
 {
-    EnglishG2p::EnglishG2p(const QString &id, const QString &categroy, QObject *parent) :
-        IG2pFactory(id, categroy, parent) {
+    EnglishG2p::EnglishG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("English"));
         setDescription(tr("Greedy matching of consecutive English letters."));
@@ -40,8 +39,4 @@ namespace LangMgr
             m_toLower = config.value("toLower").toBool();
         m_config->insert("toLower", m_toLower);
     }
-
-    bool EnglishG2p::toLower() const { return m_toLower; }
-
-    void EnglishG2p::setToLower(const bool &toLower) { m_toLower = toLower; }
 } // namespace LangMgr

@@ -11,7 +11,6 @@ namespace LangMgr
     public:
         explicit EnglishAnalysis(QObject *parent = nullptr) : MultiCharFactory("eng", parent) {
             setDisplayName(tr("English"));
-            setEnabled(false);
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;

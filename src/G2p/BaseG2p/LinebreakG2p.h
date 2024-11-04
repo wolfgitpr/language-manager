@@ -8,8 +8,7 @@ namespace LangMgr
     class LinebreakG2p final : public UnknownG2p {
         Q_OBJECT
     public:
-        explicit LinebreakG2p(const QString &id = "linebreak", const QString &categroy = "linebreak",
-                              QObject *parent = nullptr);
+        explicit LinebreakG2p(const QString &id = "linebreak", QObject *parent = nullptr);
         ~LinebreakG2p() override = default;
     };
 

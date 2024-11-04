@@ -7,8 +7,7 @@
 
 namespace LangMgr
 {
-    JapaneseG2p::JapaneseG2p(const QString &id, const QString &categroy, QObject *parent) :
-        IG2pFactory(id, categroy, parent) {
+    JapaneseG2p::JapaneseG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Japanese"));
         setDescription(tr("Kana to Romaji converter."));

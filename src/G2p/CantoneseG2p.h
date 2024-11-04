@@ -12,7 +12,7 @@ namespace LangMgr
     class CantoneseG2p final : public IG2pFactory {
         Q_OBJECT
     public:
-        explicit CantoneseG2p(const QString &id = "yue", const QString &categroy = "yue", QObject *parent = nullptr);
+        explicit CantoneseG2p(const QString &id = "yue-jyutping", QObject *parent = nullptr);
         ~CantoneseG2p() override;
 
         bool initialize(QString &errMsg) override;
@@ -21,9 +21,6 @@ namespace LangMgr
 
         QJsonObject defaultConfig() override;
         void loadG2pConfig(const QJsonObject &config) override;
-
-        [[nodiscard]] bool tone() const;
-        void setTone(const bool &tone);
 
     private:
         std::unique_ptr<Pinyin::Jyutping> m_cantonese;

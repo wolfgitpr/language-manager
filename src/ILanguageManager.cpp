@@ -104,7 +104,7 @@ namespace LangMgr
 
     QList<IG2pFactory *> ILanguageManagerPrivate::priorityG2ps(const QStringList &priorityG2pIds) const {
         Q_Q(const ILanguageManager);
-        QStringList order = this->defaultOrder;
+        QStringList order = this->defaultG2pOrder;
         const auto &g2pMgr = LangMgr::ILanguageManager::instance();
 
         QList<IG2pFactory *> result;
@@ -134,12 +134,12 @@ namespace LangMgr
 
     QStringList ILanguageManager::defaultOrder() const {
         Q_D(const ILanguageManager);
-        return d->defaultOrder;
+        return d->defaultG2pOrder;
     }
 
     void ILanguageManager::setDefaultOrder(const QStringList &order) {
         Q_D(ILanguageManager);
-        d->defaultOrder = order;
+        d->defaultG2pOrder = order;
     }
 
     QList<LangNote> ILanguageManager::split(const QString &input, const QStringList &priorityG2pIds) const {
