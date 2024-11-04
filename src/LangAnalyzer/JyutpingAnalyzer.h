@@ -1,5 +1,6 @@
-#ifndef PINYINANALYSIS_H
-#define PINYINANALYSIS_H
+#ifndef JYUTPINGANALYSIS_H
+#define JYUTPINGANALYSIS_H
+
 
 #include <QSet>
 
@@ -8,13 +9,13 @@
 namespace LangMgr
 {
 
-    class PinyinAnalysis final : public ILanguageFactory {
+    class JyutpingAnalyzer final : public ILanguageFactory {
         Q_OBJECT
 
     public:
-        explicit PinyinAnalysis(const QString &id = "cmn-pinyin", QObject *parent = nullptr) :
+        explicit JyutpingAnalyzer(const QString &id = "yue-jyutping", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
-            setDisplayName(tr("Pinyin"));
+            setDisplayName(tr("Jyutping"));
         }
 
         bool initialize(QString &errMsg) override;
@@ -28,9 +29,9 @@ namespace LangMgr
         [[nodiscard]] QString randString() const override;
 
     private:
-        QSet<QString> pinyinSet;
+        QSet<QString> jyutpingSet;
     };
 
 } // namespace LangMgr
 
-#endif // PINYINANALYSIS_H
+#endif // JYUTPINGANALYSIS_H

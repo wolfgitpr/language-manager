@@ -1,6 +1,6 @@
 #include "LinebreakG2p.h"
 
-#include "LangAnalysis/BaseAnalysis/LinebreakAnalysis.h"
+#include "LangAnalyzer/BaseAnalyzer/LinebreakAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,6 +9,6 @@ namespace LangMgr
         setDisplayName(tr("Linebreak"));
         setDescription(tr("Linebreak, no conversion required."));
         m_langFactory.clear();
-        m_langFactory.insert("linebreak", new LinebreakAnalysis());
+        m_langFactory.insert("linebreak", new LinebreakAnalyzer());
     }
 } // namespace LangMgr

@@ -1,6 +1,6 @@
 #include "UnknownG2p.h"
 
-#include "LangAnalysis/BaseAnalysis/UnknownAnalysis.h"
+#include "LangAnalyzer/BaseAnalyzer/UnknownAnalyzer.h"
 
 namespace LangMgr
 {
@@ -8,7 +8,7 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Unknown"));
         setDescription(tr("Unknown language, no conversion required."));
-        m_langFactory.insert("unknown", new UnknownAnalysis());
+        m_langFactory.insert("unknown", new UnknownAnalyzer());
     }
 
     UnknownG2p::~UnknownG2p() = default;

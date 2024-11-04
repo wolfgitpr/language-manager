@@ -1,7 +1,7 @@
 #include "MandarinG2p.h"
 
-#include "LangAnalysis/MandarinAnalysis.h"
-#include "LangAnalysis/PinyinAnalysis.h"
+#include "LangAnalyzer/MandarinAnalyzer.h"
+#include "LangAnalyzer/PinyinAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,8 +9,8 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Mandarin"));
         setDescription(tr("Using Pinyin as the phonetic notation method."));
-        m_langFactory.insert("cmn", new MandarinAnalysis());
-        m_langFactory.insert("cmn-pinyin", new PinyinAnalysis());
+        m_langFactory.insert("cmn", new MandarinAnalyzer());
+        m_langFactory.insert("cmn-pinyin", new PinyinAnalyzer());
     }
 
     MandarinG2p::~MandarinG2p() = default;

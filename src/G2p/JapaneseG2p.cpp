@@ -2,8 +2,8 @@
 
 #include <cpp-kana/Kana.h>
 
-#include "LangAnalysis/KanaAnalysis.h"
-#include "LangAnalysis/RomajiAnalysis.h"
+#include "LangAnalyzer/KanaAnalyzer.h"
+#include "LangAnalyzer/RomajiAnalyzer.h"
 
 namespace LangMgr
 {
@@ -11,8 +11,8 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Japanese"));
         setDescription(tr("Kana to Romaji converter."));
-        m_langFactory.insert("jpn-kana", new KanaAnalysis());
-        m_langFactory.insert("jpn-romaji", new RomajiAnalysis());
+        m_langFactory.insert("jpn-kana", new KanaAnalyzer());
+        m_langFactory.insert("jpn-romaji", new RomajiAnalyzer());
     }
 
     JapaneseG2p::~JapaneseG2p() = default;

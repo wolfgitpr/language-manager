@@ -6,11 +6,11 @@
 namespace LangMgr
 {
 
-    class UnknownAnalysis final : public ILanguageFactory {
+    class UnknownAnalyzer final : public ILanguageFactory {
         Q_OBJECT
 
     public:
-        explicit UnknownAnalysis(QObject *parent = nullptr) : ILanguageFactory("unknown", parent) {
+        explicit UnknownAnalyzer(QObject *parent = nullptr) : ILanguageFactory("unknown", parent) {
             setDisplayName(tr("Unknown"));
         }
 

@@ -5,11 +5,11 @@
 
 namespace LangMgr {
 
-    class SlurAnalysis final : public SingleCharFactory {
+    class SlurAnalyzer final : public SingleCharFactory {
         Q_OBJECT
 
     public:
-        explicit SlurAnalysis(const QString &id = "slur", QObject *parent = nullptr)
+        explicit SlurAnalyzer(const QString &id = "slur", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
             setDisplayName(tr("Slur"));
         }

@@ -1,6 +1,6 @@
 #include "NumberG2p.h"
 
-#include "LangAnalysis/BaseAnalysis/NumberAnalysis.h"
+#include "LangAnalyzer/BaseAnalyzer/NumberAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,6 +9,6 @@ namespace LangMgr
         setDisplayName(tr("Number"));
         setDescription(tr("Number, no conversion required."));
         m_langFactory.clear();
-        m_langFactory.insert("number", new NumberAnalysis());
+        m_langFactory.insert("number", new NumberAnalyzer());
     }
 } // namespace LangMgr

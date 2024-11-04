@@ -5,11 +5,11 @@
 
 namespace LangMgr {
 
-    class SpaceAnalysis final : public SingleCharFactory {
+    class SpaceAnalyzer final : public SingleCharFactory {
         Q_OBJECT
 
     public:
-        explicit SpaceAnalysis(const QString &id = "space", QObject *parent = nullptr)
+        explicit SpaceAnalyzer(const QString &id = "space", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
             setDisplayName(tr("Space"));
             setDiscardResult(true);

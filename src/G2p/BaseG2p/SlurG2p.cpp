@@ -1,6 +1,6 @@
 #include "SlurG2p.h"
 
-#include "LangAnalysis/BaseAnalysis/SlurAnalysis.h"
+#include "LangAnalyzer/BaseAnalyzer/SlurAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,6 +9,6 @@ namespace LangMgr
         setDisplayName(tr("Slur"));
         setDescription(tr("Slur, no conversion required."));
         m_langFactory.clear();
-        m_langFactory.insert("slur", new SlurAnalysis());
+        m_langFactory.insert("slur", new SlurAnalyzer());
     }
 } // namespace LangMgr

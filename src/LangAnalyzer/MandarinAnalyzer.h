@@ -5,10 +5,10 @@
 
 namespace LangMgr {
 
-    class MandarinAnalysis : public SingleCharFactory {
+    class MandarinAnalyzer : public SingleCharFactory {
         Q_OBJECT
     public:
-        explicit MandarinAnalysis(const QString &id = "cmn", QObject *parent = nullptr)
+        explicit MandarinAnalyzer(const QString &id = "cmn", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
             setDisplayName(tr("Mandarin"));
         }

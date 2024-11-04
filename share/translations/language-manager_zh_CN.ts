@@ -4,7 +4,7 @@
 <context>
     <name>LangMgr::CantoneseAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/CantoneseAnalysis.h" line="14"/>
+        <location filename="../../src/LangAnalyzer/CantoneseAnalysis.h" line="14"/>
         <source>Cantonese</source>
         <translation>粤语</translation>
     </message>
@@ -35,7 +35,7 @@
 <context>
     <name>LangMgr::EnglishAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/EnglishAnalysis.h" line="13"/>
+        <location filename="../../src/LangAnalyzer/EnglishAnalysis.h" line="13"/>
         <source>English</source>
         <translation>英语</translation>
     </message>
@@ -79,7 +79,7 @@
 <context>
     <name>LangMgr::JyutpingAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/JyutpingAnalysis.h" line="18"/>
+        <location filename="../../src/LangAnalyzer/JyutpingAnalysis.h" line="18"/>
         <source>Jyutping</source>
         <translation>粤拼</translation>
     </message>
@@ -87,7 +87,7 @@
 <context>
     <name>LangMgr::KanaAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/KanaAnalysis.h" line="14"/>
+        <location filename="../../src/LangAnalyzer/KanaAnalysis.h" line="14"/>
         <source>Kana</source>
         <translation>假名</translation>
     </message>
@@ -95,7 +95,7 @@
 <context>
     <name>LangMgr::LinebreakAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/BaseAnalysis/LinebreakAnalysis.h" line="13"/>
+        <location filename="../../src/LangAnalyzer/BaseAnalyzer/LinebreakAnalysis.h" line="13"/>
         <source>Linebreak</source>
         <translation>换行符</translation>
     </message>
@@ -121,7 +121,7 @@
 <context>
     <name>LangMgr::MandarinAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/MandarinAnalysis.h" line="13"/>
+        <location filename="../../src/LangAnalyzer/MandarinAnalysis.h" line="13"/>
         <source>Mandarin</source>
         <translation>普通话</translation>
     </message>
@@ -152,7 +152,7 @@
 <context>
     <name>LangMgr::NumberAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/BaseAnalysis/NumberAnalysis.h" line="13"/>
+        <location filename="../../src/LangAnalyzer/BaseAnalyzer/NumberAnalysis.h" line="13"/>
         <source>Number</source>
         <translation>数字</translation>
     </message>
@@ -178,7 +178,7 @@
 <context>
     <name>LangMgr::PinyinAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/PinyinAnalysis.h" line="17"/>
+        <location filename="../../src/LangAnalyzer/PinyinAnalysis.h" line="17"/>
         <source>Pinyin</source>
         <translation>拼音</translation>
     </message>
@@ -186,7 +186,7 @@
 <context>
     <name>LangMgr::PunctuationAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/BaseAnalysis/PunctuationAnalysis.h" line="14"/>
+        <location filename="../../src/LangAnalyzer/BaseAnalyzer/PunctuationAnalysis.h" line="14"/>
         <source>Punctuation</source>
         <translation>标点</translation>
     </message>
@@ -212,7 +212,7 @@
 <context>
     <name>LangMgr::RomajiAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/RomajiAnalysis.h" line="17"/>
+        <location filename="../../src/LangAnalyzer/RomajiAnalysis.h" line="17"/>
         <source>Romaji</source>
         <translation>罗马音</translation>
     </message>
@@ -220,7 +220,7 @@
 <context>
     <name>LangMgr::SlurAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/BaseAnalysis/SlurAnalysis.h" line="14"/>
+        <location filename="../../src/LangAnalyzer/BaseAnalyzer/SlurAnalysis.h" line="14"/>
         <source>Slur</source>
         <translation>延音符</translation>
     </message>
@@ -246,7 +246,7 @@
 <context>
     <name>LangMgr::SpaceAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/BaseAnalysis/SpaceAnalysis.h" line="14"/>
+        <location filename="../../src/LangAnalyzer/BaseAnalyzer/SpaceAnalysis.h" line="14"/>
         <source>Space</source>
         <translation>空格</translation>
     </message>
@@ -272,7 +272,7 @@
 <context>
     <name>LangMgr::UnknownAnalysis</name>
     <message>
-        <location filename="../../src/LangAnalysis/BaseAnalysis/UnknownAnalysis.h" line="14"/>
+        <location filename="../../src/LangAnalyzer/BaseAnalyzer/UnknownAnalysis.h" line="14"/>
         <source>Unknown</source>
         <translation>未知</translation>
     </message>

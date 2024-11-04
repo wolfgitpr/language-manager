@@ -1,16 +1,16 @@
 #ifndef CANTONESEANALYSIS_H
 #define CANTONESEANALYSIS_H
 
-#include "MandarinAnalysis.h"
+#include "MandarinAnalyzer.h"
 
 namespace LangMgr {
 
-    class CantoneseAnalysis final : public MandarinAnalysis {
+    class CantoneseAnalyzer final : public MandarinAnalyzer {
         Q_OBJECT
 
     public:
-        explicit CantoneseAnalysis(const QString &id = "yue", QObject *parent = nullptr)
-            : MandarinAnalysis(id, parent) {
+        explicit CantoneseAnalyzer(const QString &id = "yue", QObject *parent = nullptr)
+            : MandarinAnalyzer(id, parent) {
             setDisplayName(tr("Cantonese"));
         }
 

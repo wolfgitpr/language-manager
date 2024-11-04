@@ -1,6 +1,6 @@
 #include "PunctuationG2p.h"
 
-#include "LangAnalysis/BaseAnalysis/PunctuationAnalysis.h"
+#include "LangAnalyzer/BaseAnalyzer/PunctuationAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,6 +9,6 @@ namespace LangMgr
         setDisplayName(tr("Punctuation"));
         setDescription(tr("Punctuation, no conversion required."));
         m_langFactory.clear();
-        m_langFactory.insert("punctuation", new PunctuationAnalysis());
+        m_langFactory.insert("punctuation", new PunctuationAnalyzer());
     }
 } // namespace LangMgr

@@ -5,11 +5,11 @@
 
 namespace LangMgr
 {
-    class EnglishAnalysis final : public MultiCharFactory {
+    class EnglishAnalyzer final : public MultiCharFactory {
         Q_OBJECT
 
     public:
-        explicit EnglishAnalysis(QObject *parent = nullptr) : MultiCharFactory("eng", parent) {
+        explicit EnglishAnalyzer(QObject *parent = nullptr) : MultiCharFactory("eng", parent) {
             setDisplayName(tr("English"));
         }
 

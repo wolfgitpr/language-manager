@@ -1,6 +1,5 @@
-#ifndef JYUTPINGANALYSIS_H
-#define JYUTPINGANALYSIS_H
-
+#ifndef ROMAJIANALYSIS_H
+#define ROMAJIANALYSIS_H
 
 #include <QSet>
 
@@ -9,13 +8,13 @@
 namespace LangMgr
 {
 
-    class JyutpingAnalysis final : public ILanguageFactory {
+    class RomajiAnalyzer final : public ILanguageFactory {
         Q_OBJECT
 
     public:
-        explicit JyutpingAnalysis(const QString &id = "yue-jyutping", QObject *parent = nullptr) :
+        explicit RomajiAnalyzer(const QString &id = "jpn-romaji", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
-            setDisplayName(tr("Jyutping"));
+            setDisplayName(tr("Romaji"));
         }
 
         bool initialize(QString &errMsg) override;
@@ -29,9 +28,9 @@ namespace LangMgr
         [[nodiscard]] QString randString() const override;
 
     private:
-        QSet<QString> jyutpingSet;
+        QSet<QString> romajiSet;
     };
 
 } // namespace LangMgr
 
-#endif // JYUTPINGANALYSIS_H
+#endif // ROMAJIANALYSIS_H

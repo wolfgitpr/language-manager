@@ -1,4 +1,4 @@
-#include "KanaAnalysis.h"
+#include "KanaAnalyzer.h"
 
 #include <qrandom.h>
 
@@ -12,7 +12,7 @@ namespace LangMgr
 
     bool isSpecialKana(const QChar &c) { return specialKana.contains(c); }
 
-    bool KanaAnalysis::contains(const QString &input) const {
+    bool KanaAnalyzer::contains(const QString &input) const {
         for (const QChar &ch : input) {
             if (!(isKana(ch) && !isSpecialKana(ch))) {
                 return false;
@@ -21,7 +21,7 @@ namespace LangMgr
         return true;
     }
 
-    QList<LangNote> KanaAnalysis::split(const QString &input, const QString &g2pId) const {
+    QList<LangNote> KanaAnalyzer::split(const QString &input, const QString &g2pId) const {
         if (!enabled())
             return {LangNote(input)};
         QList<LangNote> results;
@@ -52,7 +52,7 @@ namespace LangMgr
         return results;
     }
 
-    QString KanaAnalysis::randString() const {
+    QString KanaAnalyzer::randString() const {
         const int unicode = QRandomGenerator::global()->bounded(0x3040, 0x309F + 1);
         const int unicode2 = QRandomGenerator::global()->bounded(0x30A0, 0x30FF + 1);
 

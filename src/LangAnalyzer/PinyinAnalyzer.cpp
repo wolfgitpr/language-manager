@@ -1,15 +1,15 @@
-#include "PinyinAnalysis.h"
+#include "PinyinAnalyzer.h"
 
 #include <QRandomGenerator>
 
 namespace LangMgr
 {
-    bool PinyinAnalysis::initialize(QString &errMsg) {
+    bool PinyinAnalyzer::initialize(QString &errMsg) {
         loadDict();
         return true;
     }
 
-    void PinyinAnalysis::loadDict() {
+    void PinyinAnalyzer::loadDict() {
         QStringList initials = {"b", "p", "m",  "f",  "d",  "t", "n", "l", "g", "k", "h", "j",
                                 "q", "x", "zh", "ch", "sh", "r", "z", "c", "s", "y", "w"};
         QStringList finals = {"a",  "o",  "e",  "i",  "u",  "v",  "ai", "ei", "ui",  "ao",  "ou",  "iu",
@@ -32,9 +32,9 @@ namespace LangMgr
 
     static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
-    bool PinyinAnalysis::contains(const QString &input) const { return pinyinSet.contains(input); }
+    bool PinyinAnalyzer::contains(const QString &input) const { return pinyinSet.contains(input); }
 
-    QList<LangNote> PinyinAnalysis::split(const QString &input, const QString &g2pId) const {
+    QList<LangNote> PinyinAnalyzer::split(const QString &input, const QString &g2pId) const {
         if (!enabled())
             return {LangNote(input)};
         QList<LangNote> result;
@@ -83,6 +83,6 @@ namespace LangMgr
         return *it;
     }
 
-    QString PinyinAnalysis::randString() const { return getRandomElementFromSet(pinyinSet); }
+    QString PinyinAnalyzer::randString() const { return getRandomElementFromSet(pinyinSet); }
 
 } // namespace LangMgr

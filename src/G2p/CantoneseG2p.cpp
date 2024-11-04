@@ -1,7 +1,7 @@
 #include "CantoneseG2p.h"
 
-#include "LangAnalysis/CantoneseAnalysis.h"
-#include "LangAnalysis/JyutpingAnalysis.h"
+#include "LangAnalyzer/CantoneseAnalyzer.h"
+#include "LangAnalyzer/JyutpingAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,8 +9,8 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Cantonese"));
         setDescription(tr("Using Cantonese Pinyin as the phonetic notation method."));
-        m_langFactory.insert("yue", new CantoneseAnalysis());
-        m_langFactory.insert("yue-jyutping", new JyutpingAnalysis());
+        m_langFactory.insert("yue", new CantoneseAnalyzer());
+        m_langFactory.insert("yue-jyutping", new JyutpingAnalyzer());
     }
 
     CantoneseG2p::~CantoneseG2p() = default;

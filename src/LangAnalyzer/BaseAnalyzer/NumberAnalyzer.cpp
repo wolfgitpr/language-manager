@@ -1,4 +1,4 @@
-#include "NumberAnalysis.h"
+#include "NumberAnalyzer.h"
 
 #include <qrandom.h>
 
@@ -7,11 +7,11 @@ namespace LangMgr {
         return c.isDigit();
     }
 
-    bool NumberAnalysis::contains(const QChar &c) const {
+    bool NumberAnalyzer::contains(const QChar &c) const {
         return isNumber(c);
     }
 
-    bool NumberAnalysis::contains(const QString &input) const {
+    bool NumberAnalyzer::contains(const QString &input) const {
         for (const QChar &ch : input) {
             if (!isNumber(ch)) {
                 return false;
@@ -20,7 +20,7 @@ namespace LangMgr {
         return true;
     }
 
-    QString NumberAnalysis::randString() const {
+    QString NumberAnalyzer::randString() const {
         QString word;
         const QString alphabet = "0123456789";
         const int length = QRandomGenerator::global()->bounded(1, 5);

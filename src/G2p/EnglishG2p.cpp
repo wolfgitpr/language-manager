@@ -1,6 +1,6 @@
 #include "EnglishG2p.h"
 
-#include "LangAnalysis/EnglishAnalysis.h"
+#include "LangAnalyzer/EnglishAnalyzer.h"
 
 namespace LangMgr
 {
@@ -8,7 +8,7 @@ namespace LangMgr
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("English"));
         setDescription(tr("Greedy matching of consecutive English letters."));
-        m_langFactory.insert("eng", new EnglishAnalysis());
+        m_langFactory.insert("eng", new EnglishAnalyzer());
     }
 
     EnglishG2p::~EnglishG2p() = default;

@@ -5,10 +5,10 @@
 
 namespace LangMgr
 {
-    class LinebreakAnalysis final : public SingleCharFactory {
+    class LinebreakAnalyzer final : public SingleCharFactory {
         Q_OBJECT
     public:
-        explicit LinebreakAnalysis(const QString &id = "linebreak", QObject *parent = nullptr) :
+        explicit LinebreakAnalyzer(const QString &id = "linebreak", QObject *parent = nullptr) :
             SingleCharFactory(id, parent) {
             setDisplayName(tr("Linebreak"));
         }

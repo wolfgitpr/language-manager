@@ -5,11 +5,11 @@
 
 namespace LangMgr {
 
-    class NumberAnalysis final : public MultiCharFactory {
+    class NumberAnalyzer final : public MultiCharFactory {
         Q_OBJECT
 
     public:
-        explicit NumberAnalysis(QObject *parent = nullptr) : MultiCharFactory("number", parent) {
+        explicit NumberAnalyzer(QObject *parent = nullptr) : MultiCharFactory("number", parent) {
             setDisplayName(tr("Number"));
             setDiscardResult(true);
         }

@@ -1,5 +1,5 @@
-#ifndef ROMAJIANALYSIS_H
-#define ROMAJIANALYSIS_H
+#ifndef PINYINANALYSIS_H
+#define PINYINANALYSIS_H
 
 #include <QSet>
 
@@ -8,13 +8,13 @@
 namespace LangMgr
 {
 
-    class RomajiAnalysis final : public ILanguageFactory {
+    class PinyinAnalyzer final : public ILanguageFactory {
         Q_OBJECT
 
     public:
-        explicit RomajiAnalysis(const QString &id = "jpn-romaji", QObject *parent = nullptr) :
+        explicit PinyinAnalyzer(const QString &id = "cmn-pinyin", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
-            setDisplayName(tr("Romaji"));
+            setDisplayName(tr("Pinyin"));
         }
 
         bool initialize(QString &errMsg) override;
@@ -28,9 +28,9 @@ namespace LangMgr
         [[nodiscard]] QString randString() const override;
 
     private:
-        QSet<QString> romajiSet;
+        QSet<QString> pinyinSet;
     };
 
 } // namespace LangMgr
 
-#endif // ROMAJIANALYSIS_H
+#endif // PINYINANALYSIS_H

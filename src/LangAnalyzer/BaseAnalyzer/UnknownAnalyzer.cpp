@@ -1,18 +1,18 @@
-#include "UnknownAnalysis.h"
+#include "UnknownAnalyzer.h"
 
 #include <qrandom.h>
 
 namespace LangMgr
 {
-    bool UnknownAnalysis::contains(const QString &input) const { return true; }
+    bool UnknownAnalyzer::contains(const QString &input) const { return true; }
 
-    QList<LangNote> UnknownAnalysis::split(const QString &input, const QString &g2pId) const {
+    QList<LangNote> UnknownAnalyzer::split(const QString &input, const QString &g2pId) const {
         if (discardResult())
             return {};
         return {LangNote(input)};
     }
 
-    QString UnknownAnalysis::randString() const {
+    QString UnknownAnalyzer::randString() const {
         const int unicode = QRandomGenerator::global()->bounded(0x2200, 0x22ff + 1);
         return {QChar(unicode)};
     }

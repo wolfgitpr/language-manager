@@ -1,4 +1,4 @@
-#include "MandarinAnalysis.h"
+#include "MandarinAnalyzer.h"
 
 #include <qrandom.h>
 
@@ -7,11 +7,11 @@ namespace LangMgr {
         return c >= QChar(0x4e00) && c <= QChar(0x9fa5);
     }
 
-    bool MandarinAnalysis::contains(const QChar &c) const {
+    bool MandarinAnalyzer::contains(const QChar &c) const {
         return isHanzi(c);
     }
 
-    QString MandarinAnalysis::randString() const {
+    QString MandarinAnalyzer::randString() const {
         const int unicode = QRandomGenerator::global()->bounded(0x4e00, 0x9fa5 + 1);
         return {QChar(unicode)};
     }

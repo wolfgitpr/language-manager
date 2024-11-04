@@ -1,15 +1,15 @@
-#include "RomajiAnalysis.h"
+#include "RomajiAnalyzer.h"
 
 #include <QRandomGenerator>
 
 namespace LangMgr
 {
-    bool RomajiAnalysis::initialize(QString &errMsg) {
+    bool RomajiAnalyzer::initialize(QString &errMsg) {
         loadDict();
         return true;
     }
 
-    void RomajiAnalysis::loadDict() {
+    void RomajiAnalyzer::loadDict() {
         QStringList initial = {"k", "g",  "s",  "z",  "t", "d",  "n",  "h",  "b",  "p",  "m",  "y", "r",
                                "w", "ky", "gy", "sh", "j", "ch", "ny", "hy", "by", "py", "my", "ry"};
         QStringList final = {"a", "i", "u", "e", "o"};
@@ -36,9 +36,9 @@ namespace LangMgr
 
     static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
-    bool RomajiAnalysis::contains(const QString &input) const { return romajiSet.contains(input); }
+    bool RomajiAnalyzer::contains(const QString &input) const { return romajiSet.contains(input); }
 
-    QList<LangNote> RomajiAnalysis::split(const QString &input, const QString &g2pId) const {
+    QList<LangNote> RomajiAnalyzer::split(const QString &input, const QString &g2pId) const {
         if (!enabled())
             return {LangNote(input)};
         QList<LangNote> result;
@@ -87,6 +87,6 @@ namespace LangMgr
         return *it;
     }
 
-    QString RomajiAnalysis::randString() const { return getRandomElementFromSet(romajiSet); }
+    QString RomajiAnalyzer::randString() const { return getRandomElementFromSet(romajiSet); }
 
 } // namespace LangMgr

@@ -5,11 +5,11 @@
 
 namespace LangMgr {
 
-    class PunctuationAnalysis final : public SingleCharFactory {
+    class PunctuationAnalyzer final : public SingleCharFactory {
         Q_OBJECT
 
     public:
-        explicit PunctuationAnalysis(const QString &id = "punctuation", QObject *parent = nullptr)
+        explicit PunctuationAnalyzer(const QString &id = "punctuation", QObject *parent = nullptr)
             : SingleCharFactory(id, parent) {
             setDisplayName(tr("Punctuation"));
             setDiscardResult(true);

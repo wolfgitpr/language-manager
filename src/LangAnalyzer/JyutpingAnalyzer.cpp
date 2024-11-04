@@ -1,15 +1,15 @@
-#include "JyutpingAnalysis.h"
+#include "JyutpingAnalyzer.h"
 
 #include <QRandomGenerator>
 
 namespace LangMgr
 {
-    bool JyutpingAnalysis::initialize(QString &errMsg) {
+    bool JyutpingAnalyzer::initialize(QString &errMsg) {
         loadDict();
         return true;
     }
 
-    void JyutpingAnalysis::loadDict() {
+    void JyutpingAnalyzer::loadDict() {
         QStringList initials = {"b", "p",  "m", "f", "d", "t", "n",  "l",  "g", "k",
                                 "h", "ng", "z", "c", "s", "j", "gw", "kw", "w"};
         QStringList finals = {"aa",  "aai", "aau", "aam", "aan", "aang", "aap", "aat", "aak", "a",  "ai",  "au",
@@ -35,9 +35,9 @@ namespace LangMgr
 
     static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
-    bool JyutpingAnalysis::contains(const QString &input) const { return jyutpingSet.contains(input); }
+    bool JyutpingAnalyzer::contains(const QString &input) const { return jyutpingSet.contains(input); }
 
-    QList<LangNote> JyutpingAnalysis::split(const QString &input, const QString &g2pId) const {
+    QList<LangNote> JyutpingAnalyzer::split(const QString &input, const QString &g2pId) const {
         if (!enabled())
             return {LangNote(input)};
         QList<LangNote> result;
@@ -86,6 +86,6 @@ namespace LangMgr
         return *it;
     }
 
-    QString JyutpingAnalysis::randString() const { return getRandomElementFromSet(jyutpingSet); }
+    QString JyutpingAnalyzer::randString() const { return getRandomElementFromSet(jyutpingSet); }
 
 } // namespace LangMgr

@@ -1,6 +1,6 @@
 #include "SpaceG2p.h"
 
-#include "LangAnalysis/BaseAnalysis/SpaceAnalysis.h"
+#include "LangAnalyzer/BaseAnalyzer/SpaceAnalyzer.h"
 
 namespace LangMgr
 {
@@ -9,6 +9,6 @@ namespace LangMgr
         setDisplayName(tr("Space"));
         setDescription(tr("Space, no conversion required."));
         m_langFactory.clear();
-        m_langFactory.insert("space", new SpaceAnalysis());
+        m_langFactory.insert("space", new SpaceAnalyzer());
     }
 } // namespace LangMgr
