@@ -66,5 +66,5 @@ phonetic notation system, such as "eng", "cmn-pinyin", "jpn-romaji".
 
 Name the new G2p according to the standard and add it to the above table.
 
-Refer to [LanguageAnalyzer](./docs/LanguageAnalyzer) and [G2pFactory](./docs/G2pFactory) to develop two modules, and add
+Refer to [LanguageAnalyzer](./docs/LanguageAnalyzer.md) and [G2pFactory](./docs/G2pFactory.md) to develop two modules, and add
 them to Language Manager.

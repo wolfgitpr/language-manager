@@ -48,7 +48,7 @@ QJsonObject defaultConfig() override;
 
 样例
 
-每个G2p至少有一个语言分析器，见[LanguageFactory](./LanguageAnalyzer)
+每个G2p至少有一个语言分析器，见[LanguageAnalyzer](./LanguageAnalyzer.md)
 
 ```c++
 class Mandarin final : public IG2pFactory {
