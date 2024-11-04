@@ -206,6 +206,12 @@ namespace LangMgr
         for (const auto g2p : g2ps) {
             g2p->initialize(errMsg);
             *g2p->m_config = g2p->defaultConfig();
+            for (const auto &lang : g2p->m_langFactory) {
+                lang->initialize(errMsg);
+                if (!errMsg.isEmpty())
+                    return false;
+            }
+
             if (!errMsg.isEmpty()) {
                 return false;
             }
