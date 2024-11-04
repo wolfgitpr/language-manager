@@ -3,14 +3,15 @@
 
 #include "BaseFactory/MultiCharFactory.h"
 
-namespace LangMgr {
-
+namespace LangMgr
+{
     class EnglishAnalysis final : public MultiCharFactory {
         Q_OBJECT
 
     public:
         explicit EnglishAnalysis(QObject *parent = nullptr) : MultiCharFactory("eng", parent) {
             setDisplayName(tr("English"));
+            setEnabled(false);
         }
 
         [[nodiscard]] bool contains(const QChar &c) const override;
@@ -19,6 +20,6 @@ namespace LangMgr {
         [[nodiscard]] QString randString() const override;
     };
 
-} // LangMgr
+} // namespace LangMgr
 
 #endif // ENGLISHANALYSIS_H

@@ -15,6 +15,7 @@ namespace LangMgr
         explicit RomajiAnalysis(const QString &id = "jpn-romaji", QObject *parent = nullptr) :
             ILanguageFactory(id, parent) {
             setDisplayName(tr("Romaji"));
+            setEnabled(false);
         }
 
         bool initialize(QString &errMsg) override;
