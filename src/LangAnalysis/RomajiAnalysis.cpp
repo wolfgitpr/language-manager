@@ -59,7 +59,7 @@ namespace LangMgr
                     if (discardResult())
                         continue;
                 } else {
-                    note.g2pId = QStringLiteral("eng");
+                    note.g2pId = QStringLiteral("unknown");
                 }
             } else {
                 const int start = pos;
