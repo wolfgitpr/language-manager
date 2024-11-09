@@ -44,12 +44,13 @@ namespace LangMgr
 
         QList<LangNote> result;
         const auto g2pRes = m_mandarin->hanziToPinyin(toStdVector(input), style);
+        const auto &langAnalyzer = m_langFactory["cmn-pinyin"];
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
             langNote.syllable = QString::fromUtf8(g2pRes[i].pinyin.c_str());
             langNote.candidates = fromStdVector(g2pRes[i].candidates);
-            langNote.error = g2pRes[i].error;
+            langNote.error = g2pRes[i].error && !langAnalyzer->contains(langNote.lyric);
             result.append(langNote);
         }
         return result;

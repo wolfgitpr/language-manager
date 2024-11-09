@@ -27,13 +27,14 @@ namespace LangMgr
 
     QList<LangNote> JapaneseG2p::convert(const QStringList &input) const {
         QList<LangNote> result;
-        const auto g2pRes = Kana::kanaToRomaji(toStdVector(input), Kana::Error::Default, false);
+        const auto &g2pRes = Kana::kanaToRomaji(toStdVector(input), Kana::Error::Default, false);
+        const auto &langAnalyzer = m_langFactory["jpn-romaji"];
         for (int i = 0; i < g2pRes.size(); i++) {
             LangNote langNote;
             langNote.lyric = input[i];
             langNote.syllable = QString::fromUtf8(g2pRes[i].romaji.c_str());
             langNote.candidates = QStringList() << langNote.syllable;
-            langNote.error = g2pRes[i].error;
+            langNote.error = g2pRes[i].error && !langAnalyzer->contains(langNote.lyric);
             result.append(langNote);
         }
         return result;
