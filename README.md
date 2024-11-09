@@ -36,7 +36,7 @@ langMgr->convert(langNotes);    // 按分析结果、调用相应G2p转换
 
 // 将混合语言的文本拆分为QList<LangNote>并标记语种、分类，priorityG2pIds为强制优先的g2pId（下属languageAnalyzer的分析）
 QList<LangNote> split(const QString &input, const QStringList &priorityG2pIds = {});
-// 为g2pId为unknown的结构体标注
+// 为g2pId=unknown的结构体标注
 void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
 // 按分析结果、调用相应G2p转换
 void convert(const QList<LangNote *> &input) const;
