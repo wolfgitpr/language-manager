@@ -4,37 +4,21 @@
 
 namespace LangMgr
 {
-    bool RomajiAnalyzer::initialize(QString &errMsg) {
-        loadDict();
-        return true;
-    }
+    QSet<QString> romajiSet = {
+        "cl",  "a",   "i",   "u",   "e",   "o",   "n",   "ka",  "ki",  "ku",  "ke",  "ko",  "kwa", "kwi", "kwu",
+        "kwe", "kwo", "sa",  "si",  "su",  "se",  "so",  "sha", "shi", "shu", "she", "sho", "cha", "chi", "chu",
+        "che", "cho", "tsa", "tsi", "tsu", "tse", "tso", "ta",  "ti",  "tu",  "te",  "to",  "na",  "ni",  "nu",
+        "ne",  "no",  "ha",  "hi",  "hu",  "he",  "ho",  "fa",  "fi",  "fu",  "fe",  "fo",  "ma",  "mi",  "mu",
+        "me",  "mo",  "ya",  "yi",  "yu",  "ye",  "yo",  "ra",  "ri",  "ru",  "re",  "ro",  "la",  "li",  "lu",
+        "le",  "lo",  "wa",  "wi",  "wu",  "we",  "wo",  "ga",  "gi",  "gu",  "ge",  "go",  "gwa", "gwi", "gwu",
+        "gwe", "gwo", "ja",  "ji",  "ju",  "je",  "jo",  "jya", "jyi", "jyu", "jye", "jyo", "za",  "zi",  "zu",
+        "ze",  "zo",  "da",  "di",  "du",  "de",  "do",  "ba",  "bi",  "bu",  "be",  "bo",  "va",  "vi",  "vu",
+        "ve",  "vo",  "pa",  "pi",  "pu",  "pe",  "po",  "kya", "kyi", "kyu", "kye", "kyo", "tya", "tyi", "tyu",
+        "tye", "tyo", "dya", "dyi", "dyu", "dye", "dyo", "nya", "nyi", "nyu", "nye", "nyo", "hya", "hyi", "hyu",
+        "hye", "hyo", "mya", "myi", "myu", "mye", "myo", "rya", "ryi", "ryu", "rye", "ryo", "gya", "gyi", "gyu",
+        "gye", "gyo", "bya", "byi", "byu", "bye", "byo", "pya", "pyi", "pyu", "pye", "pyo"};
 
-    void RomajiAnalyzer::loadDict() {
-        QStringList initial = {"k", "g",  "s",  "z",  "t", "d",  "n",  "h",  "b",  "p",  "m",  "y", "r",
-                               "w", "ky", "gy", "sh", "j", "ch", "ny", "hy", "by", "py", "my", "ry"};
-        QStringList final = {"a", "i", "u", "e", "o"};
-        QStringList special = {"n", "nn", "m"};
-
-        for (const auto &i : initial) {
-            for (const auto &f : final) {
-                romajiSet.insert(i + f);
-            }
-        }
-
-        for (const auto &s : special) {
-            romajiSet.insert(s);
-        }
-
-        for (const auto &i : initial) {
-            romajiSet.insert(i);
-        }
-
-        for (const auto &f : final) {
-            romajiSet.insert(f);
-        }
-    }
-
-    static bool isLetter(QChar c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
+    static bool isLetter(const QChar &c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '\''; }
 
     bool RomajiAnalyzer::contains(const QString &input) const { return romajiSet.contains(input); }
 

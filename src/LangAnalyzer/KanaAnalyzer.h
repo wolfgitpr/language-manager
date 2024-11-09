@@ -8,7 +8,6 @@ namespace LangMgr
 
     class KanaAnalyzer final : public ILanguageFactory {
         Q_OBJECT
-
     public:
         explicit KanaAnalyzer(QObject *parent = nullptr) : ILanguageFactory("jpn-kana", parent) {
             setDisplayName(tr("Kana"));
