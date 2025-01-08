@@ -119,6 +119,7 @@ namespace LangMgr
             if (note->g2pId == "unknown") {
                 if (contains(note->lyric)) {
                     note->g2pId = g2pId;
+                    note->language = d->id;
                 }
             }
         }

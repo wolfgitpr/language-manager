@@ -10,8 +10,9 @@ struct LANG_MANAGER_EXPORT LangNote {
     QString syllable = QString();
     QString syllableRevised = QString();
     QStringList candidates = QStringList();
-    QString standard = "unknown";
+    QString standardG2pId = "unknown";
     QString g2pId = "unknown";
+    QString language = "unknown";
     bool revised = false;
     bool error = false;
 

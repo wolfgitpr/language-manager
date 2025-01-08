@@ -3,6 +3,10 @@
 
 #include <QJsonObject>
 
+#include <cstdlib>
+#include <ctime>
+#include <xutility>
+
 namespace LangMgr
 {
 
@@ -63,9 +67,14 @@ namespace LangMgr
         d->description = description;
     }
 
-    QString IG2pFactory::randString() const {
-        // TODO
-        return m_langFactory.first()->randString();
+    QPair<QString, QString> IG2pFactory::randString() const {
+        std::srand(std::time(nullptr));
+
+        const int randomIndex = std::rand() % m_langFactory.size();
+        auto it = m_langFactory.begin();
+        std::advance(it, randomIndex);
+
+        return {it.value()->randString(), it.value()->id()};
     }
 
     QJsonObject IG2pFactory::defaultConfig() {
@@ -113,6 +122,7 @@ namespace LangMgr
     }
 
     QString IG2pFactory::analysis(const QString &input) const {
+        Q_D(const IG2pFactory);
         for (const auto &factory : m_langFactory) {
             const auto result = factory->analysis(input);
             if (result != "unknown")

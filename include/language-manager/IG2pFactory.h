@@ -30,7 +30,7 @@ namespace LangMgr
 
         [[nodiscard]] virtual QList<LangNote> convert(const QStringList &input) const;
 
-        [[nodiscard]] virtual QString randString() const;
+        [[nodiscard]] virtual QPair<QString, QString> randString() const;
 
         virtual QJsonObject defaultConfig();
         virtual QJsonObject languageDefaultConfig();

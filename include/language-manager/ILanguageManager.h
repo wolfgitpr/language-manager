@@ -6,6 +6,9 @@
 
 namespace LangMgr
 {
+    struct AnalysisRes {
+        QString language, g2pId = "unknown";
+    };
 
     class ILanguageManagerPrivate;
 
@@ -42,8 +45,9 @@ namespace LangMgr
         void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
         void convert(const QList<LangNote *> &input) const;
 
-        [[nodiscard]] QString analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
-        [[nodiscard]] QStringList analysis(const QStringList &input, const QStringList &priorityG2pIds = {}) const;
+        [[nodiscard]] AnalysisRes analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
+        [[nodiscard]] QList<AnalysisRes> analysis(const QStringList &input,
+                                                  const QStringList &priorityG2pIds = {}) const;
 
     private:
         explicit ILanguageManager(ILanguageManagerPrivate &d, QObject *parent = nullptr);

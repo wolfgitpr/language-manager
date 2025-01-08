@@ -30,8 +30,9 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i < lenth; i++) {
             const auto note = new LangNote();
-            note->lyric = factory->randString();
-            note->standard = g2pId;
+            const auto [fst, snd] = factory->randString();
+            note->lyric = fst;
+            note->standardG2pId = factory->id();
             langNotes.append(note);
         }
     }
@@ -43,8 +44,9 @@ int main(int argc, char *argv[]) {
     langMgr->convert(langNotes);
 
     for (const auto &note : langNotes) {
-        if (note->g2pId != note->standard) {
-            qDebug() << "lyric: " << note->lyric << " standard: " << note->standard << " res: " << note->g2pId;
+        if (note->g2pId != note->standardG2pId) {
+            qDebug() << "lyric: " << note->lyric << " standardG2pId: " << note->standardG2pId
+                     << " res: " << note->g2pId;
         }
         delete note;
     }
@@ -54,7 +56,6 @@ int main(int argc, char *argv[]) {
     const auto res = langMgr->split("xa112好eng");
     for (const auto &note : res)
         qDebug() << note.lyric << note.g2pId;
-
 
     const auto &g2p = langMgr->g2p("cmn-pinyin");
     qDebug() << g2p->config();

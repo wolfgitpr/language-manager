@@ -158,21 +158,24 @@ namespace LangMgr
             g2p->correct(input);
     }
 
-    QString ILanguageManager::analysis(const QString &input, const QStringList &priorityG2pIds) const {
+    AnalysisRes ILanguageManager::analysis(const QString &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
-        QString result = "unknown";
+        AnalysisRes result;
         const auto &g2ps = d->priorityG2ps(priorityG2pIds);
 
         for (const auto &g2p : g2ps) {
-            result = g2p->analysis(input);
-            if (result != "unknown")
+            const auto language = g2p->analysis(input);
+            if (language != "unknown") {
+                result.language = language;
+                result.g2pId = g2p->id();
                 break;
+            }
         }
 
         return result;
     }
 
-    QStringList ILanguageManager::analysis(const QStringList &input, const QStringList &priorityG2pIds) const {
+    QList<AnalysisRes> ILanguageManager::analysis(const QStringList &input, const QStringList &priorityG2pIds) const {
         Q_D(const ILanguageManager);
         const auto &g2ps = d->priorityG2ps(priorityG2pIds);
         QList<LangNote *> inputNote;
@@ -183,9 +186,9 @@ namespace LangMgr
         for (const auto &g2p : g2ps)
             g2p->correct(inputNote);
 
-        QStringList result;
+        QList<AnalysisRes> result;
         for (const auto &note : inputNote)
-            result.append(note->g2pId);
+            result.append({note->language, note->g2pId});
         return result;
     }
 
