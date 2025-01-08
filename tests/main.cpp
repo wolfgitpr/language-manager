@@ -63,7 +63,8 @@ int main(int argc, char *argv[]) {
     for (const auto &note : langMgr->split("ka好的hello121"))
         qDebug() << note.lyric << note.g2pId;
 
-    qDebug() << "cmn-pinyin" << g2p->analysis("好点");
+    qDebug() << "好点"
+             << "cmn-pinyin" << g2p->analysis("好点");
 
     return 0;
 }

@@ -20,6 +20,7 @@ namespace LangMgr
             langNote.lyric = i;
             langNote.syllable = i;
             langNote.candidates = QStringList() << i;
+            langNote.error = true;
             result.append(langNote);
         }
         return result;
