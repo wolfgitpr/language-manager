@@ -4,7 +4,7 @@
 
 namespace LangMgr
 {
-    PunctuationG2p::PunctuationG2p(const QString &id, QObject *parent) : UnknownG2p(id, parent) {
+    PunctuationG2p::PunctuationG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Punctuation"));
         setDescription(tr("Punctuation, no conversion required."));

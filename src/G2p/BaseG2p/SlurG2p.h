@@ -1,11 +1,11 @@
 #ifndef SLUR_H
 #define SLUR_H
 
-#include "UnknownG2p.h"
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr
 {
-    class SlurG2p final : public UnknownG2p {
+    class SlurG2p final : public IG2pFactory {
         Q_OBJECT
     public:
         explicit SlurG2p(const QString &id = "slur", QObject *parent = nullptr);

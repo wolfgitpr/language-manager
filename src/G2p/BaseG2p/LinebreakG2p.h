@@ -1,11 +1,11 @@
 #ifndef LINEBREAK_H
 #define LINEBREAK_H
 
-#include "UnknownG2p.h"
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr
 {
-    class LinebreakG2p final : public UnknownG2p {
+    class LinebreakG2p final : public IG2pFactory {
         Q_OBJECT
     public:
         explicit LinebreakG2p(const QString &id = "linebreak", QObject *parent = nullptr);

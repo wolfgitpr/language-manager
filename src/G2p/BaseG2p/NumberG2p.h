@@ -1,11 +1,11 @@
 #ifndef NUMBER_H
 #define NUMBER_H
 
-#include "UnknownG2p.h"
+#include <language-manager/IG2pFactory.h>
 
 namespace LangMgr
 {
-    class NumberG2p final : public UnknownG2p {
+    class NumberG2p final : public IG2pFactory {
         Q_OBJECT
     public:
         explicit NumberG2p(const QString &id = "number", QObject *parent = nullptr);

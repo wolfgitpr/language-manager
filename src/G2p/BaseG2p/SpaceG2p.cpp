@@ -4,7 +4,7 @@
 
 namespace LangMgr
 {
-    SpaceG2p::SpaceG2p(const QString &id, QObject *parent) : UnknownG2p(id, parent) {
+    SpaceG2p::SpaceG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Space"));
         setDescription(tr("Space, no conversion required."));

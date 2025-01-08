@@ -4,7 +4,7 @@
 
 namespace LangMgr
 {
-    NumberG2p::NumberG2p(const QString &id, QObject *parent) : UnknownG2p(id, parent) {
+    NumberG2p::NumberG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Number"));
         setDescription(tr("Number, no conversion required."));

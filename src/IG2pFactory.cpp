@@ -154,7 +154,14 @@ namespace LangMgr
     }
 
     QList<LangNote> IG2pFactory::convert(const QStringList &input) const {
-        Q_UNUSED(input);
-        return {};
+        QList<LangNote> result;
+        for (const auto &i : input) {
+            LangNote langNote;
+            langNote.lyric = i;
+            langNote.syllable = i;
+            langNote.candidates = QStringList() << i;
+            result.append(langNote);
+        }
+        return result;
     }
 } // namespace LangMgr

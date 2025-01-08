@@ -4,7 +4,7 @@
 
 namespace LangMgr
 {
-    SlurG2p::SlurG2p(const QString &id, QObject *parent) : UnknownG2p(id, parent) {
+    SlurG2p::SlurG2p(const QString &id, QObject *parent) : IG2pFactory(id, parent) {
         setAuthor(tr("Xiao Lang"));
         setDisplayName(tr("Slur"));
         setDescription(tr("Slur, no conversion required."));
