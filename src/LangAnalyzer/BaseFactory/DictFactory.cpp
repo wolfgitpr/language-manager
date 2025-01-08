@@ -72,11 +72,11 @@ namespace LangMgr
                 if (pos > start) {
                     note.lyric = input.mid(start, pos - start);
                     note.g2pId = g2pId;
+                    note.language = id();
                     if (discardResult())
                         continue;
                 } else {
                     note.lyric = currentChar;
-                    note.g2pId = QStringLiteral("unknown");
                     pos++;
                 }
             } else {
@@ -85,7 +85,6 @@ namespace LangMgr
                     pos++;
                 }
                 note.lyric = input.mid(start, pos - start);
-                note.g2pId = QStringLiteral("unknown");
             }
 
             if (!note.lyric.isEmpty())

@@ -34,6 +34,7 @@ namespace LangMgr
                 const int length = pos + 1 < input.length() && isSpecialKana(input[pos + 1]) ? 2 : 1;
                 note.lyric = input.mid(pos, length);
                 note.g2pId = g2pId;
+                note.language = id();
                 pos += length;
                 if (discardResult())
                     continue;
@@ -43,7 +44,6 @@ namespace LangMgr
                     pos++;
                 }
                 note.lyric = input.mid(start, pos - start);
-                note.g2pId = "unknown";
             }
             if (!note.lyric.isEmpty())
                 results.append(note);

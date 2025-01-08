@@ -27,6 +27,7 @@ namespace LangMgr
             if (contains(currentChar)) {
                 note.lyric = input.mid(pos, 1);
                 note.g2pId = g2pId;
+                note.language = id();
                 pos++;
                 if (discardResult())
                     continue;
@@ -36,7 +37,6 @@ namespace LangMgr
                     pos++;
                 }
                 note.lyric = input.mid(start, pos - start);
-                note.g2pId = "unknown";
             }
             if (!note.lyric.isEmpty())
                 result.append(note);
