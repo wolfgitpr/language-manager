@@ -42,12 +42,14 @@ namespace LangMgr
 
         [[nodiscard]] QList<LangNote> split(const QString &input, const QStringList &priorityG2pIds = {}) const;
 
-        void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
+        void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {},
+                     const QStringList &reservedTokens = {}) const;
         void convert(const QList<LangNote *> &input) const;
 
-        [[nodiscard]] AnalysisRes analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
-        [[nodiscard]] QList<AnalysisRes> analysis(const QStringList &input,
-                                                  const QStringList &priorityG2pIds = {}) const;
+        [[nodiscard]] AnalysisRes analysis(const QString &input, const QStringList &priorityG2pIds = {},
+                                           const QStringList &reservedTokens = {}) const;
+        [[nodiscard]] QList<AnalysisRes> analysis(const QStringList &input, const QStringList &priorityG2pIds = {},
+                                                  const QStringList &reservedTokens = {}) const;
 
     private:
         explicit ILanguageManager(ILanguageManagerPrivate &d, QObject *parent = nullptr);

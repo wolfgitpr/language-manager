@@ -152,15 +152,29 @@ namespace LangMgr
         return result;
     }
 
-    void ILanguageManager::correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds) const {
+    void ILanguageManager::correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds,
+                                   const QStringList &reservedTokens) const {
         Q_D(const ILanguageManager);
+        static QStringList keywords = {"AP", "SP"};
+        for (const auto &note : input) {
+            if (keywords.contains(note->lyric) || reservedTokens.contains(note->lyric)) {
+                note->language = "reserved-token";
+                note->g2pId = "reserved-token";
+            }
+        }
+
         const auto &g2ps = d->priorityG2ps(priorityG2pIds);
         for (const auto &g2p : g2ps)
             g2p->correct(input);
     }
 
-    AnalysisRes ILanguageManager::analysis(const QString &input, const QStringList &priorityG2pIds) const {
+    AnalysisRes ILanguageManager::analysis(const QString &input, const QStringList &priorityG2pIds,
+                                           const QStringList &reservedTokens) const {
         Q_D(const ILanguageManager);
+        static QStringList keywords = {"AP", "SP"};
+        if (keywords.contains(input) || reservedTokens.contains(input))
+            return {"reserved-token", "reserved-token"};
+
         AnalysisRes result;
         const auto &g2ps = d->priorityG2ps(priorityG2pIds);
 
@@ -176,12 +190,21 @@ namespace LangMgr
         return result;
     }
 
-    QList<AnalysisRes> ILanguageManager::analysis(const QStringList &input, const QStringList &priorityG2pIds) const {
+    QList<AnalysisRes> ILanguageManager::analysis(const QStringList &input, const QStringList &priorityG2pIds,
+                                                  const QStringList &reservedTokens) const {
         Q_D(const ILanguageManager);
         const auto &g2ps = d->priorityG2ps(priorityG2pIds);
         QList<LangNote *> inputNote;
         for (const auto &lyric : input) {
             inputNote.append(new LangNote(lyric));
+        }
+
+        static QStringList keywords = {"AP", "SP"};
+        for (const auto &note : inputNote) {
+            if (keywords.contains(note->lyric) || reservedTokens.contains(note->lyric)) {
+                note->language = "reserved-token";
+                note->g2pId = "reserved-token";
+            }
         }
 
         for (const auto &g2p : g2ps)
