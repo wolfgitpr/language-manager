@@ -5,7 +5,6 @@
 
 #include <cstdlib>
 #include <ctime>
-#include <xutility>
 
 namespace LangMgr
 {
