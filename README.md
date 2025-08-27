@@ -16,7 +16,7 @@ library for [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
 |  cmn-pinyin  |    Mandarin Pinyin    | cmn cmn-pinyin   |
 | yue-jyutping |       Jyutping        | yue yue-jyutping |
 |  jpn-romaji  | Japanese Romanization | kana jpn-romaji  |
-|     eng      |        English        | eng              |
+|   eng-cmu    |        English        | eng              |
 |   unknown    |        Unknown        | unknown          |
 
 ## Call Flow
@@ -62,7 +62,7 @@ Temporarily using the vcpkg environment of [ds-editor-lite](https://github.com/f
 ## Add New G2p
 
 Referring to the 3-digit code in [iso-639-3.tab](./docs/iso-639-3.tab), add a suffix of '-' to the commonly used
-phonetic notation system, such as "eng", "cmn-pinyin", "jpn-romaji".
+phonetic notation system, such as "eng-cmu", "cmn-pinyin", "jpn-romaji".
 
 Name the new G2p according to the standard and add it to the above table.
 
