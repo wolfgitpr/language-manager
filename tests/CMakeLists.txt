@@ -6,11 +6,9 @@ set(CMAKE_AUTOUIC ON)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Widgets REQUIRED)
-
+find_package(Qt6 COMPONENTS Core REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        Qt${QT_VERSION_MAJOR}::Core
+        Qt6::Core
         language-manager::language-manager
 )
 

@@ -13,6 +13,7 @@ set(CMAKE_AUTOUIC ON)
 option(LANG_MANAGER_BUILD_STATIC "Build static library" OFF)
 option(LANG_MANAGER_BUILD_TESTS "Build test cases" ON)
 option(LANG_MANAGER_INSTALL "Install library" ON)
+option(LANG_MANAGER_ONNX_G2P "Onnx G2p Support" OFF)
 option(LANG_VCPKG_INSTALL "Use vcpkg installed library" OFF)
 
 # ----------------------------------
@@ -54,7 +55,9 @@ if (LANG_MANAGER_BUILD_STATIC)
     add_library(${PROJECT_NAME} STATIC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC LANG_MANAGER_STATIC)
 else ()
-    add_library(${PROJECT_NAME} SHARED)
+    add_library(${PROJECT_NAME} SHARED
+            src/G2p/BaseFactory/OnnxG2pFactory.cpp
+            src/G2p/BaseFactory/OnnxG2pFactory.h)
 endif ()
 target_compile_definitions(${PROJECT_NAME} PRIVATE LANG_MANAGER_LIBRARY)
 
@@ -80,20 +83,20 @@ endif ()
 # ----------------------------------
 # find dependencies
 # ----------------------------------
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
-
+find_package(Qt6 COMPONENTS Core REQUIRED)
+find_package(dsinfer CONFIG REQUIRED)
 find_package(cpp-pinyin CONFIG REQUIRED)
 find_package(cpp-kana CONFIG REQUIRED)
-
+find_package(yaml-cpp CONFIG REQUIRED)
 # ----------------------------------
 # link libraries
 # ----------------------------------
-target_link_libraries(${PROJECT_NAME} PRIVATE
-        Qt${QT_VERSION_MAJOR}::Core
+target_link_libraries(${PROJECT_NAME} PUBLIC
+        Qt6::Core
+        dsinfer::dsinfer
         cpp-pinyin::cpp-pinyin
         cpp-kana::cpp-kana
+        yaml-cpp::yaml-cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
