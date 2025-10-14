@@ -33,8 +33,8 @@ namespace LangMgr
             return;
         }
 
-        if (const auto result = m_driver->load(dllPath); !result.hasValue()) {
-            std::cout << "Failed to load ONNX Runtime DLL: " << result.error().message() << std::endl;
+        if (const auto result = m_driver->load(dllPath); !result) {
+            std::cout << "Failed to load ONNX Runtime DLL: " << std::endl;
             return;
         }
 
@@ -63,7 +63,7 @@ namespace LangMgr
             langNote.lyric = c;
             const auto phonemes = m_g2p->forward(c.toLower().toStdString());
             QString phonemeStr;
-            for (const auto &phoneme : phonemes.value())
+            for (const auto &phoneme : phonemes)
                 phonemeStr += QString::fromStdString(phoneme) + " ";
             langNote.syllable = phonemeStr;
             langNote.candidates = QStringList() << langNote.syllable;

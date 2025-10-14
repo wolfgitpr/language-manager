@@ -1,10 +1,6 @@
 #include "G2pModel.h"
 #include "G2pDriver.h"
 
-#ifdef ONNXRUNTIME_ENABLE_DML
-#include <dml_provider_factory.h>
-#endif
-
 #include <stdcorelib/str.h>
 #include <yaml-cpp/yaml.h>
 
@@ -15,11 +11,6 @@
 
 namespace LangMgr
 {
-    static inline bool initDirectML(const OrtApi *api, OrtSessionOptions *options, int deviceIndex,
-                                    std::string *errorMessage = nullptr);
-    static inline bool initCUDA(const OrtApi *api, OrtSessionOptions *options, int deviceIndex,
-                                std::string *errorMessage = nullptr);
-
     G2pModel::G2pModel(G2pDriver *driver, const std::filesystem::path &modelPath, const ExecutionProvider provider,
                        int device_id) : m_driver(driver) {
 
@@ -153,8 +144,7 @@ namespace LangMgr
 
         for (const char c : processed_word) {
             std::string char_str(1, c);
-            auto it = char_vocab.find(char_str);
-            if (it != char_vocab.end()) {
+            if (auto it = char_vocab.find(char_str); it != char_vocab.end()) {
                 word_indices.push_back(it->second);
             } else {
                 word_indices.push_back(UNK_IDX);
@@ -174,8 +164,7 @@ namespace LangMgr
                 continue;
             }
 
-            auto it = idx_to_phoneme.find(idx);
-            if (it != idx_to_phoneme.end()) {
+            if (auto it = idx_to_phoneme.find(idx); it != idx_to_phoneme.end()) {
                 phonemes.push_back(it->second);
             }
         }
@@ -202,32 +191,32 @@ namespace LangMgr
 
     const OrtApi *G2pModel::api() const { return m_driver ? m_driver->api() : nullptr; }
 
-    void G2pModel::terminate() {
-        const auto *ortApi = api();
-        if (ortApi && m_run_options) {
+    void G2pModel::terminate() const {
+        if (const auto *ortApi = api(); ortApi && m_run_options) {
             ortApi->RunOptionsSetTerminate(m_run_options);
         }
     }
 
     bool G2pModel::is_open() const { return m_session != nullptr; }
 
-    srt::Expected<std::vector<std::string>> G2pModel::forward(const std::string &word) {
+    std::vector<std::string> G2pModel::forward(const std::string &word) {
         std::vector<int64_t> phoneme_ids;
-        if (srt::Expected<void> result = forward(preprocess_word(word), phoneme_ids); !result) {
-            std::cerr << "G2p forward error: " << result.error().message() << std::endl;
+        if (!forward(preprocess_word(word), phoneme_ids)) {
+            std::cerr << "G2p forward error: " << std::endl;
         }
         return decode_phonemes(phoneme_ids);
     }
 
-    srt::Expected<void> G2pModel::forward(const std::vector<int64_t> &input_ids,
-                                          std::vector<int64_t> &phoneme_ids) const {
+    bool G2pModel::forward(const std::vector<int64_t> &input_ids, std::vector<int64_t> &phoneme_ids) const {
         if (!m_session) {
-            return srt::Error(srt::Error::SessionError, "G2p session is not initialized.");
+            std::cerr << "G2p session is not initialized." << std::endl;
+            return false;
         }
 
         const auto *ortApi = api();
         if (!ortApi) {
-            return srt::Error(srt::Error::SessionError, "ORT API not available.");
+            std::cerr << "ORT API not available." << std::endl;
+            return false;
         }
 
         try {
@@ -246,7 +235,8 @@ namespace LangMgr
             ortApi->Run(m_session, m_run_options, input_names, &input_tensor, 1, output_names, 1, &output_tensor);
             if (!output_tensor) {
                 ortApi->ReleaseValue(input_tensor);
-                return srt::Error(srt::Error::SessionError, "Invalid output from ONNX model");
+                std::cerr << "Invalid output from ONNX model" << std::endl;
+                return false;
             }
 
             OrtTensorTypeAndShapeInfo *output_info = nullptr;
@@ -275,10 +265,11 @@ namespace LangMgr
             ortApi->ReleaseValue(output_tensor);
             ortApi->ReleaseValue(input_tensor);
 
-            return {};
+            return true;
         }
         catch (const std::exception &e) {
-            return srt::Error(srt::Error::SessionError, stdc::formatN("ONNX inference failed: %1", e.what()));
+            std::cerr << "ONNX inference failed: " << e.what() << std::endl;
+            return false;
         }
     }
 } // namespace LangMgr

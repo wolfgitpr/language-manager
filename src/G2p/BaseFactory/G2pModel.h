@@ -6,9 +6,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <synthrt/Support/Expected.h>
-
-
 struct OrtApi;
 struct OrtEnv;
 struct OrtSession;
@@ -32,10 +29,10 @@ namespace LangMgr
 
         bool is_open() const;
 
-        srt::Expected<std::vector<std::string>> forward(const std::string &word);
-        srt::Expected<void> forward(const std::vector<int64_t> &input_ids, std::vector<int64_t> &phoneme_ids) const;
+        std::vector<std::string> forward(const std::string &word);
+        bool forward(const std::vector<int64_t> &input_ids, std::vector<int64_t> &phoneme_ids) const;
 
-        void terminate();
+        void terminate() const;
 
         void loadVocab(const std::string &vocab_path);
         void loadConfig(const std::string &config_path);

@@ -3,7 +3,6 @@
 
 #include <filesystem>
 #include <memory>
-#include <synthrt/Support/Expected.h>
 
 struct OrtApi;
 struct OrtApiBase;
@@ -15,7 +14,7 @@ namespace LangMgr
         G2pDriver();
         ~G2pDriver();
 
-        srt::Expected<void> load(const std::filesystem::path &path);
+        bool load(const std::filesystem::path &path);
         bool isLoaded() const { return loaded_; }
         void unload();
 

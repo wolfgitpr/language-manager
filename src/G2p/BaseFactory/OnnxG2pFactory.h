@@ -1,9 +1,6 @@
 #ifndef LANGUAGE_MANAGER_ONNXG2PFACTORY_H
 #define LANGUAGE_MANAGER_ONNXG2PFACTORY_H
 
-#include <filesystem>
-#include <synthrt/Support/Expected.h>
-
 #include "G2pDriver.h"
 #include "G2pModel.h"
 #include "language-manager/IG2pFactory.h"
@@ -23,8 +20,8 @@ namespace LangMgr
         void terminate() const;
 
     private:
-        G2pDriver *m_driver;
         G2pModel *m_g2p;
+        G2pDriver *m_driver;
     };
 
 } // namespace LangMgr

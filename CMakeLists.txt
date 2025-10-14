@@ -84,7 +84,7 @@ endif ()
 # find dependencies
 # ----------------------------------
 find_package(Qt6 COMPONENTS Core REQUIRED)
-find_package(dsinfer CONFIG REQUIRED)
+find_package(stdcorelib CONFIG REQUIRED)
 find_package(cpp-pinyin CONFIG REQUIRED)
 find_package(cpp-kana CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
@@ -93,10 +93,10 @@ find_package(yaml-cpp CONFIG REQUIRED)
 # ----------------------------------
 target_link_libraries(${PROJECT_NAME} PUBLIC
         Qt6::Core
-        dsinfer::dsinfer
         cpp-pinyin::cpp-pinyin
         cpp-kana::cpp-kana
         yaml-cpp::yaml-cpp
+        stdcorelib::stdcorelib
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
