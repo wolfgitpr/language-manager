@@ -1,10 +1,16 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <algorithm>
+#include <iostream>
 #include <qjsondocument.h>
 #include <qrandom.h>
 
+#include <filesystem>
+#include <fstream>
+
 #include <language-manager/ILanguageManager.h>
+
+#include "../src/G2p/BaseFactory/OnnxG2pFactory.h"
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
@@ -20,7 +26,6 @@ int main(int argc, char *argv[]) {
     qDebug() << "LangMgr: errorMsg" << errorMsg << "initialized:" << langMgr->initialized();
 
     const QStringList testId = langMgr->defaultOrder();
-    // langMgr->setDefaultOrder(testId);
 
     QList<LangNote *> langNotes;
 
@@ -65,6 +70,9 @@ int main(int argc, char *argv[]) {
 
     qDebug() << "好点"
              << "cmn-pinyin" << g2p->analysis("好点");
+
+    const auto onnx_g2p = new LangMgr::OnnxG2pFactory("onnx_en");
+    qDebug() << "onnx_g2p: hello ->" << onnx_g2p->convert(QStringList({"hello"})).first().syllable;
 
     return 0;
 }

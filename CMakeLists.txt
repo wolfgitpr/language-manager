@@ -13,6 +13,7 @@ set(CMAKE_AUTOUIC ON)
 option(LANG_MANAGER_BUILD_STATIC "Build static library" OFF)
 option(LANG_MANAGER_BUILD_TESTS "Build test cases" ON)
 option(LANG_MANAGER_INSTALL "Install library" ON)
+option(LANG_MANAGER_ONNX_G2P "Onnx G2p Support" OFF)
 option(LANG_VCPKG_INSTALL "Use vcpkg installed library" OFF)
 
 # ----------------------------------
@@ -54,7 +55,9 @@ if (LANG_MANAGER_BUILD_STATIC)
     add_library(${PROJECT_NAME} STATIC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC LANG_MANAGER_STATIC)
 else ()
-    add_library(${PROJECT_NAME} SHARED)
+    add_library(${PROJECT_NAME} SHARED
+            src/G2p/BaseFactory/OnnxG2pFactory.cpp
+            src/G2p/BaseFactory/OnnxG2pFactory.h)
 endif ()
 target_compile_definitions(${PROJECT_NAME} PRIVATE LANG_MANAGER_LIBRARY)
 
@@ -80,20 +83,20 @@ endif ()
 # ----------------------------------
 # find dependencies
 # ----------------------------------
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
-
+find_package(Qt6 COMPONENTS Core REQUIRED)
+find_package(stdcorelib CONFIG REQUIRED)
 find_package(cpp-pinyin CONFIG REQUIRED)
 find_package(cpp-kana CONFIG REQUIRED)
-
+find_package(yaml-cpp CONFIG REQUIRED)
 # ----------------------------------
 # link libraries
 # ----------------------------------
-target_link_libraries(${PROJECT_NAME} PRIVATE
-        Qt${QT_VERSION_MAJOR}::Core
+target_link_libraries(${PROJECT_NAME} PUBLIC
+        Qt6::Core
         cpp-pinyin::cpp-pinyin
         cpp-kana::cpp-kana
+        yaml-cpp::yaml-cpp
+        stdcorelib::stdcorelib
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
@@ -109,6 +112,26 @@ if (NOT LANG_VCPKG_INSTALL)
     )
 endif ()
 
+# ----------------------------------
+# onnxruntime support
+# ----------------------------------
+set(_onnxruntime_dir ${CMAKE_CURRENT_SOURCE_DIR}/third-party/onnxruntime)
+set(_onnxruntime_default_dir ${_onnxruntime_dir}/default)
+set(_onnxruntime_cuda_dir ${_onnxruntime_dir}/cuda)
+set(_onnxruntime_include_dir ${_onnxruntime_default_dir}/include)
+
+if (WIN32 AND LANG_ENABLE_DIRECTML)
+    set(_onnxdriver_ep_macro_dml "ONNXDRIVER_ENABLE_DML")
+endif ()
+
+if (LANG_ENABLE_CUDA)
+    set(_onnxdriver_ep_macro_cuda "ONNXDRIVER_ENABLE_CUDA")
+endif ()
+
+set(_onnxdriver_ep_macros ${_onnxdriver_ep_macro_dml} ${_onnxdriver_ep_macro_cuda})
+include_directories(${_onnxruntime_include_dir})
+target_compile_definitions(${PROJECT_NAME} PRIVATE ORT_API_MANUAL_INIT)
+message(STATUS "Building with ORT_API_MANUAL_INIT for dynamic loading")
 # ----------------------------------
 # install
 # ----------------------------------
