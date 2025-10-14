@@ -3,38 +3,51 @@
 
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-#include <dsinfer/Inference/InferenceDriver.h>
-#include <dsinfer/Inference/InferenceSession.h>
-#include <synthrt/Core/NamedObject.h>
 #include <synthrt/Support/Expected.h>
 
-namespace srt
-{
-    class SynthUnit;
-}
+
+struct OrtApi;
+struct OrtEnv;
+struct OrtSession;
+struct OrtSessionOptions;
+struct OrtRunOptions;
+struct OrtMemoryInfo;
+struct OrtAllocator;
+struct OrtValue;
 
 namespace LangMgr
 {
+    enum class ExecutionProvider { CPU, DML, CUDA };
+
+    class G2pDriver;
+
     class G2pModel {
     public:
-        explicit G2pModel(const srt::SynthUnit *su);
+        explicit G2pModel(G2pDriver *driver, const std::filesystem::path &modelPath, ExecutionProvider provider,
+                          int device_id);
         ~G2pModel();
 
-        srt::Expected<void> open(const std::filesystem::path &modelPath);
-        void close();
         bool is_open() const;
 
         srt::Expected<std::vector<std::string>> forward(const std::string &word);
         srt::Expected<void> forward(const std::vector<int64_t> &input_ids, std::vector<int64_t> &phoneme_ids) const;
 
-        void terminate() const;
+        void terminate();
+
+        void loadVocab(const std::string &vocab_path);
+        void loadConfig(const std::string &config_path);
 
     private:
-        const srt::SynthUnit *const m_su = nullptr;
-        srt::NO<ds::InferenceDriver> m_driver;
-        srt::NO<ds::InferenceSession> m_session;
+        G2pDriver *m_driver;
+
+        OrtEnv *m_env = nullptr;
+        OrtSession *m_session = nullptr;
+        OrtSessionOptions *m_session_options = nullptr;
+        OrtRunOptions *m_run_options = nullptr;
+        OrtMemoryInfo *m_memory_info = nullptr;
 
         std::unordered_map<std::string, int64_t> char_vocab;
         std::unordered_map<std::string, int64_t> phoneme_vocab;
@@ -46,17 +59,13 @@ namespace LangMgr
         int64_t EOS_IDX;
         int64_t max_len = 48;
 
-        void loadVocab(const std::string &vocab_path);
-
-        void loadConfig(const std::string &config_path);
-
         std::vector<int64_t> preprocess_word(const std::string &word);
-
         std::vector<std::string> decode_phonemes(const std::vector<int64_t> &indices);
 
         static std::string to_lower(const std::string &str);
-
         static std::string trim(const std::string &str);
+
+        const OrtApi *api() const;
     };
 
 } // namespace LangMgr

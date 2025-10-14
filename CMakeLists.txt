@@ -113,6 +113,26 @@ if (NOT LANG_VCPKG_INSTALL)
 endif ()
 
 # ----------------------------------
+# onnxruntime support
+# ----------------------------------
+set(_onnxruntime_dir ${CMAKE_CURRENT_SOURCE_DIR}/third-party/onnxruntime)
+set(_onnxruntime_default_dir ${_onnxruntime_dir}/default)
+set(_onnxruntime_cuda_dir ${_onnxruntime_dir}/cuda)
+set(_onnxruntime_include_dir ${_onnxruntime_default_dir}/include)
+
+if (WIN32 AND LANG_ENABLE_DIRECTML)
+    set(_onnxdriver_ep_macro_dml "ONNXDRIVER_ENABLE_DML")
+endif ()
+
+if (LANG_ENABLE_CUDA)
+    set(_onnxdriver_ep_macro_cuda "ONNXDRIVER_ENABLE_CUDA")
+endif ()
+
+set(_onnxdriver_ep_macros ${_onnxdriver_ep_macro_dml} ${_onnxdriver_ep_macro_cuda})
+include_directories(${_onnxruntime_include_dir})
+target_compile_definitions(${PROJECT_NAME} PRIVATE ORT_API_MANUAL_INIT)
+message(STATUS "Building with ORT_API_MANUAL_INIT for dynamic loading")
+# ----------------------------------
 # install
 # ----------------------------------
 if (LANG_MANAGER_INSTALL)

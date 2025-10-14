@@ -1,69 +1,115 @@
 #include "G2pModel.h"
+#include "G2pDriver.h"
 
+#ifdef ONNXRUNTIME_ENABLE_DML
+#include <dml_provider_factory.h>
+#endif
 
 #include <stdcorelib/str.h>
 #include <yaml-cpp/yaml.h>
 
-#include <dsinfer/Api/Drivers/Onnx/OnnxDriverApi.h>
-#include <dsinfer/Inference/InferenceDriver.h>
-#include <synthrt/Core/Contribute.h>
-#include <synthrt/Core/SynthUnit.h>
+#include <algorithm>
+#include <iostream>
+
+#include <onnxruntime_cxx_api.h>
+
 namespace LangMgr
 {
-    static srt::Expected<srt::NO<ds::InferenceDriver>> getInferenceDriver(const srt::SynthUnit *su) {
-        if (!su) {
-            return srt::Error(srt::Error::SessionError, "SynthUnit is nullptr");
+    static inline bool initDirectML(const OrtApi *api, OrtSessionOptions *options, int deviceIndex,
+                                    std::string *errorMessage = nullptr);
+    static inline bool initCUDA(const OrtApi *api, OrtSessionOptions *options, int deviceIndex,
+                                std::string *errorMessage = nullptr);
+
+    G2pModel::G2pModel(G2pDriver *driver, const std::filesystem::path &modelPath, const ExecutionProvider provider,
+                       int device_id) : m_driver(driver) {
+
+        if (!m_driver || !m_driver->isLoaded()) {
+            std::cout << "G2pDriver not loaded" << std::endl;
+            return;
         }
-        const auto inferenceCate = su->category("inference");
-        const auto dsdriverObject = inferenceCate->getFirstObject("dsdriver");
 
-        if (!dsdriverObject) {
-            return srt::Error(srt::Error::SessionError, "could not find dsdriver");
-        }
+        const auto *ortApi = api();
 
-        auto onnxDriver = dsdriverObject.as<ds::InferenceDriver>();
+        ortApi->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "G2pModel", &m_env);
+        ortApi->CreateSessionOptions(&m_session_options);
+        ortApi->SetInterOpNumThreads(m_session_options, 4);
+        ortApi->CreateRunOptions(&m_run_options);
 
-        return onnxDriver;
-    }
+#ifdef _WIN_X86
+        ortApi->CreateCpuMemoryInfo(OrtDeviceAllocator, OrtMemTypeCPU, &m_memory_info);
+#else
+        ortApi->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &m_memory_info);
+#endif
 
-    G2pModel::G2pModel(const srt::SynthUnit *su) : m_su(su) {}
-
-    G2pModel::~G2pModel() = default;
-
-    srt::Expected<void> G2pModel::open(const std::filesystem::path &modelPath) {
-        loadVocab((modelPath / "vocab.yaml").string());
-        loadConfig((modelPath / "config.yaml").string());
-
-        if (!m_driver) {
-            if (auto exp = getInferenceDriver(m_su); !exp) {
-                return exp.takeError();
-            } else {
-                m_driver = exp.take();
+        switch (provider) {
+#ifdef ONNXRUNTIME_ENABLE_DML
+        case ExecutionProvider::DML:
+            {
+                std::string errorMessage;
+                if (!initDirectML(ortApi, m_session_options, device_id, &errorMessage)) {
+                    std::cout << "Failed to enable Dml: " << errorMessage << ". Falling back to CPU." << std::endl;
+                } else {
+                    std::cout << "Use Dml execution provider" << std::endl;
+                }
+                break;
             }
+#endif
+
+#if ONNXRUNTIME_ENABLE_CUDA
+        case ExecutionProvider::CUDA:
+            {
+                std::string errorMessage;
+                if (!initCUDA(ortApi, m_session_options, device_id, &errorMessage)) {
+                    std::cout << "Failed to enable CUDA: " << errorMessage << std::endl;
+                } else {
+                    std::cout << "Using CUDA execution provider" << std::endl;
+                }
+                break;
+            }
+#endif
+
+        default:
+            break;
         }
-        auto session = m_driver->createSession();
-        if (!session) {
-            return srt::Error(srt::Error::SessionError, "could not create session");
+
+        try {
+#ifdef _WIN32
+            ortApi->CreateSession(m_env, modelPath.wstring().c_str(), m_session_options, &m_session);
+#else
+            ortApi->CreateSession(m_env, modelPath.c_str(), m_session_options, &m_session);
+#endif
         }
-        if (auto exp = session->open(modelPath / "model.onnx", srt::NO<ds::Api::Onnx::SessionOpenArgs>::create());
-            !exp) {
-            return exp.takeError();
+        catch (const std::exception &e) {
+            std::cout << "Failed to create session: " << e.what() << std::endl;
         }
-        m_session = std::move(session);
-        return srt::Expected<void>();
+
+        const auto vocab_path = modelPath.parent_path() / "vocab.yaml";
+        if (!std::filesystem::exists(vocab_path)) {
+            std::cout << "Vocab file not found at: " << vocab_path << std::endl;
+            return;
+        }
+        loadVocab(vocab_path.string());
+
+        const auto config_path = modelPath.parent_path() / "config.yaml";
+        if (!std::filesystem::exists(config_path)) {
+            std::cout << "Config file not found at: " << config_path << std::endl;
+            return;
+        }
+        loadConfig(config_path.string());
     }
 
-    void G2pModel::close() {
-        if (m_session) {
-            m_session->stop();
-            m_session->close();
-            m_session.reset();
-        }
-    }
-
-    void G2pModel::terminate() const {
-        if (m_session) {
-            m_session->stop();
+    G2pModel::~G2pModel() {
+        if (const auto *ortApi = api()) {
+            if (m_session)
+                ortApi->ReleaseSession(m_session);
+            if (m_session_options)
+                ortApi->ReleaseSessionOptions(m_session_options);
+            if (m_run_options)
+                ortApi->ReleaseRunOptions(m_run_options);
+            if (m_memory_info)
+                ortApi->ReleaseMemoryInfo(m_memory_info);
+            if (m_env)
+                ortApi->ReleaseEnv(m_env);
         }
     }
 
@@ -154,6 +200,15 @@ namespace LangMgr
         return str.substr(start, end - start + 1);
     }
 
+    const OrtApi *G2pModel::api() const { return m_driver ? m_driver->api() : nullptr; }
+
+    void G2pModel::terminate() {
+        const auto *ortApi = api();
+        if (ortApi && m_run_options) {
+            ortApi->RunOptionsSetTerminate(m_run_options);
+        }
+    }
+
     bool G2pModel::is_open() const { return m_session != nullptr; }
 
     srt::Expected<std::vector<std::string>> G2pModel::forward(const std::string &word) {
@@ -164,80 +219,66 @@ namespace LangMgr
         return decode_phonemes(phoneme_ids);
     }
 
-    template <typename T>
-    static srt::Expected<std::vector<T>> extractTensor(const std::map<std::string, srt::NO<ds::ITensor>> &outputs,
-                                                       const std::string &name) {
-
-        const auto it = outputs.find(name);
-        if (it == outputs.end()) {
-            return srt::Error(srt::Error::SessionError, "missing output: " + name);
-        }
-        const auto &tensor = it->second;
-        if (tensor->dataType() != ds::tensor_traits<T>::data_type) {
-            return srt::Error(srt::Error::SessionError, "data type mismatch: " + name);
-        }
-        const auto data = tensor->view<T>();
-        if (data.empty()) {
-            return srt::Error(srt::Error::SessionError, "could not get output data: " + name);
-        }
-        return data.vec();
-    }
-
-    template <>
-    srt::Expected<std::vector<bool>> extractTensor(const std::map<std::string, srt::NO<ds::ITensor>> &outputs,
-                                                   const std::string &name) {
-
-        const auto it = outputs.find(name);
-        if (it == outputs.end()) {
-            return srt::Error(srt::Error::SessionError, "missing output: " + name);
-        }
-        const auto &tensor = it->second;
-        if (tensor->dataType() != ds::tensor_traits<bool>::data_type) {
-            return srt::Error(srt::Error::SessionError, "data type mismatch: " + name);
-        }
-        const auto data = tensor->rawView();
-        if (data.empty()) {
-            return srt::Error(srt::Error::SessionError, "could not get output data: " + name);
-        }
-        std::vector output(data.size(), false);
-        for (size_t i = 0; i < data.size(); ++i) {
-            output[i] = data[i] != std::byte{0};
-        }
-        return output;
-    }
-
-    // Forward pass through the model: takes waveform and threshold as inputs, returns f0 and uv as outputs
     srt::Expected<void> G2pModel::forward(const std::vector<int64_t> &input_ids,
                                           std::vector<int64_t> &phoneme_ids) const {
         if (!m_session) {
             return srt::Error(srt::Error::SessionError, "G2p session is not initialized.");
         }
-        const size_t n_samples = input_ids.size();
-        const std::vector input_shape = {static_cast<int64_t>(n_samples)};
 
-        const auto sessionInput = srt::NO<ds::Api::Onnx::SessionStartInput>::create();
-
-        if (auto exp = ds::Tensor::createFromView<int64_t>(input_shape, input_ids); !exp) {
-            return exp.takeError();
-        } else {
-            sessionInput->inputs["input_ids"] = exp.take();
-        }
-        sessionInput->outputs = {"phoneme_ids"};
-
-        if (auto exp = m_session->start(sessionInput); !exp) {
-            return exp.takeError();
-        }
-        const auto result = m_session->result().as<ds::Api::Onnx::SessionResult>();
-        if (!result) {
-            return srt::Error(srt::Error::SessionError, "could not get G2p session result");
+        const auto *ortApi = api();
+        if (!ortApi) {
+            return srt::Error(srt::Error::SessionError, "ORT API not available.");
         }
 
-        if (auto exp = extractTensor<int64_t>(result->outputs, "phoneme_ids"); exp) {
-            phoneme_ids = exp.take();
-        } else {
-            return exp.takeError();
-        }
+        try {
+            const std::vector input_shape = {static_cast<int64_t>(input_ids.size())};
 
-        return srt::Expected<void>();
+            OrtValue *input_tensor = nullptr;
+            ortApi->CreateTensorWithDataAsOrtValue(
+                m_memory_info, const_cast<int64_t *>(input_ids.data()), input_ids.size() * sizeof(int64_t),
+                input_shape.data(), input_shape.size(), ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64, &input_tensor);
+
+            const char *input_names[] = {"input_ids"};
+            const char *output_names[] = {"phoneme_ids"};
+
+            OrtValue *output_tensor = nullptr;
+
+            ortApi->Run(m_session, m_run_options, input_names, &input_tensor, 1, output_names, 1, &output_tensor);
+            if (!output_tensor) {
+                ortApi->ReleaseValue(input_tensor);
+                return srt::Error(srt::Error::SessionError, "Invalid output from ONNX model");
+            }
+
+            OrtTensorTypeAndShapeInfo *output_info = nullptr;
+            ortApi->GetTensorTypeAndShape(output_tensor, &output_info);
+
+            // Get the number of dimensions (rank)
+            size_t num_dims = 0;
+            ortApi->GetDimensionsCount(output_info, &num_dims);
+
+            std::vector<int64_t> output_shape(num_dims);
+            ortApi->GetDimensions(output_info, output_shape.data(), num_dims);
+
+            // Calculate the total number of elements
+            size_t total_elements = 1;
+            for (size_t i = 0; i < num_dims; ++i) {
+                total_elements *= output_shape[i];
+            }
+
+            int64_t *output_data = nullptr;
+            ortApi->GetTensorMutableData(output_tensor, reinterpret_cast<void **>(&output_data));
+
+            // Use total_elements for assign
+            phoneme_ids.assign(output_data, output_data + total_elements);
+
+            ortApi->ReleaseTensorTypeAndShapeInfo(output_info);
+            ortApi->ReleaseValue(output_tensor);
+            ortApi->ReleaseValue(input_tensor);
+
+            return {};
+        }
+        catch (const std::exception &e) {
+            return srt::Error(srt::Error::SessionError, stdc::formatN("ONNX inference failed: %1", e.what()));
+        }
     }
 } // namespace LangMgr
