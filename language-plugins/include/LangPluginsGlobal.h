@@ -1,0 +1,18 @@
+#ifndef LANGPLUGINS_GLOBAL_H
+#define LANGPLUGINS_GLOBAL_H
+
+#include <stdcorelib/stdc_global.h>
+
+#ifndef LANGPLUGINS_EXPORT
+#  ifdef LANGPLUGINS_STATIC
+#    define LANGPLUGINS_EXPORT
+#  else
+#    ifdef LANGPLUGINS_LIBRARY
+#      define LANGPLUGINS_EXPORT STDCORELIB_DECL_EXPORT
+#    else
+#      define LANGPLUGINS_EXPORT STDCORELIB_DECL_IMPORT
+#    endif
+#  endif
+#endif
+
+#endif // LANGPLUGINS_GLOBAL_H

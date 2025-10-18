@@ -1,36 +1,26 @@
-cmake_minimum_required(VERSION 3.17)
-project(language-manager VERSION 0.0.0.1 LANGUAGES CXX)  # Language and G2p Manager
+cmake_minimum_required(VERSION 3.19)
+
+project(LangMgr
+        VERSION 0.0.0.1
+        LANGUAGES CXX
+        DESCRIPTION "Language and G2p Manager"
+        HOMEPAGE_URL "https://github.com/wolfgitpr/language-manager"
+)
 
 set(CMAKE_CXX_STANDARD 17)
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
 
 # ----------------------------------
 # Build Options
 # ----------------------------------
-option(LANG_MANAGER_BUILD_STATIC "Build static library" OFF)
-option(LANG_MANAGER_BUILD_TESTS "Build test cases" ON)
-option(LANG_MANAGER_INSTALL "Install library" ON)
-option(LANG_MANAGER_ONNX_G2P "Onnx G2p Support" OFF)
-option(LANG_VCPKG_INSTALL "Use vcpkg installed library" OFF)
+option(LANGMGR_BUILD_TESTS "Build test cases" OFF)
+option(LANGMGR_BUILD_EXAMPLES "Build examples" OFF)
+option(LANGMGR_INSTALL "Install library" ON)
+option(LANGMGR_INSTALL_DEPLOY "Install with deploying dependencies" OFF)
+option(LANGMGR_INSTALL_MSVC_RUNTIME "Install MSVC runtime" OFF)
 
 # ----------------------------------
 # CMake Settings
 # ----------------------------------
-if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-endif ()
-
-if (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-endif ()
-
-if (NOT DEFINED CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-endif ()
-
 if (MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /manifest:no")
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /manifest:no")
@@ -40,158 +30,44 @@ if (MSVC)
     if (NOT DEFINED CMAKE_DEBUG_POSTFIX)
         set(CMAKE_DEBUG_POSTFIX "d")
     endif ()
+elseif (MINGW)
+    set(CMAKE_STATIC_LIBRARY_PREFIX "")
+    set(CMAKE_SHARED_LIBRARY_PREFIX "")
+else ()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif ()
 
-if (LANG_MANAGER_INSTALL)
+if (LANGMGR_INSTALL)
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
 endif ()
-# ----------------------------------
-# Main Project
-# ----------------------------------
-file(GLOB_RECURSE _src include/*.h src/*.h src/*.cpp)
-
-if (LANG_MANAGER_BUILD_STATIC)
-    add_library(${PROJECT_NAME} STATIC)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC LANG_MANAGER_STATIC)
-else ()
-    add_library(${PROJECT_NAME} SHARED)
-endif ()
-target_compile_definitions(${PROJECT_NAME} PRIVATE LANG_MANAGER_LIBRARY)
-
-target_sources(${PROJECT_NAME} PRIVATE ${_src} language-manager_res.qrc)
-add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 # ----------------------------------
 # Add platform specific
 # ----------------------------------
 if (WIN32)
     set(RC_DESCRIPTION "Language and G2p Manager.")
-    set(RC_COPYRIGHT "Copyright (C) 2023-2024 wolfgitpr")
-    include("cmake/winrc.cmake")
+    set(RC_COPYRIGHT "Copyright (C) 2023-2025 wolfgitpr")
 endif ()
 
 # ----------------------------------
-# Tests
+# Project Variables
 # ----------------------------------
-if (LANG_MANAGER_BUILD_TESTS)
-    add_subdirectory(tests)
-endif ()
-
-# ----------------------------------
-# find dependencies
-# ----------------------------------
-find_package(Qt6 COMPONENTS Core REQUIRED)
-find_package(stdcorelib CONFIG REQUIRED)
-find_package(cpp-pinyin CONFIG REQUIRED)
-find_package(cpp-kana CONFIG REQUIRED)
-find_package(yaml-cpp CONFIG REQUIRED)
-# ----------------------------------
-# link libraries
-# ----------------------------------
-target_link_libraries(${PROJECT_NAME} PUBLIC
-        Qt6::Core
-        cpp-pinyin::cpp-pinyin
-        cpp-kana::cpp-kana
-        yaml-cpp::yaml-cpp
-        stdcorelib::stdcorelib
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE src)
-target_include_directories(${PROJECT_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
-if (NOT LANG_VCPKG_INSTALL)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
-            ${CMAKE_BINARY_DIR}/bin/dict
-    )
-endif ()
+set(LANGMGR_VERSION ${PROJECT_VERSION})
+set(LANGMGR_INSTALL_NAME ${PROJECT_NAME})
+set(LANGMGR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ----------------------------------
-# onnxruntime support
+# Find basic dependencies
 # ----------------------------------
-set(_onnxruntime_dir ${CMAKE_CURRENT_SOURCE_DIR}/third-party/onnxruntime)
-set(_onnxruntime_default_dir ${_onnxruntime_dir}/default)
-set(_onnxruntime_cuda_dir ${_onnxruntime_dir}/cuda)
-set(_onnxruntime_include_dir ${_onnxruntime_default_dir}/include)
+find_package(qmsetup REQUIRED)
 
-if (WIN32 AND LANG_ENABLE_DIRECTML)
-    set(_onnxdriver_ep_macro_dml "ONNXDRIVER_ENABLE_DML")
-endif ()
+qm_import(Filesystem)
+qm_init_directories()
 
-if (LANG_ENABLE_CUDA)
-    set(_onnxdriver_ep_macro_cuda "ONNXDRIVER_ENABLE_CUDA")
-endif ()
-
-set(_onnxdriver_ep_macros ${_onnxdriver_ep_macro_dml} ${_onnxdriver_ep_macro_cuda})
-include_directories(${_onnxruntime_include_dir})
-target_compile_definitions(${PROJECT_NAME} PRIVATE ORT_API_MANUAL_INIT)
-message(STATUS "Building with ORT_API_MANUAL_INIT for dynamic loading")
 # ----------------------------------
-# install
+# Add source modules
 # ----------------------------------
-if (LANG_MANAGER_INSTALL)
-    target_include_directories(${PROJECT_NAME} PUBLIC
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
-
-    install(TARGETS ${PROJECT_NAME}
-            EXPORT ${PROJECT_NAME}Targets
-            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL
-            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
-            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" OPTIONAL
-    )
-
-    install(DIRECTORY include/${PROJECT_NAME}
-            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-    )
-
-    # Generate and install package config and version files
-    write_basic_package_version_file(
-            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-            VERSION ${PROJECT_VERSION}
-            COMPATIBILITY AnyNewerVersion
-    )
-
-    configure_package_config_file(
-            ${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Config.cmake.in
-            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-            INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-            NO_CHECK_REQUIRED_COMPONENTS_MACRO
-    )
-
-    install(FILES
-            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-    )
-
-    install(EXPORT ${PROJECT_NAME}Targets
-            FILE ${PROJECT_NAME}Targets.cmake
-            NAMESPACE ${PROJECT_NAME}::
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-    )
-
-    if (NOT LANG_VCPKG_INSTALL)
-        install(DIRECTORY ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/cpp-pinyin/dict
-                DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        )
-
-        if (WIN32)
-            install(FILES
-                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-pinyin.dll
-                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/cpp-kana.dll
-                    DESTINATION ${CMAKE_INSTALL_BINDIR}
-            )
-        else ()
-            install(FILES
-                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-pinyin.a
-                    ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/cpp-kana.a
-                    DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            )
-        endif ()
-    endif ()
-endif ()
+add_subdirectory(third-party)
+add_subdirectory(language-manager)
+add_subdirectory(language-plugins)
