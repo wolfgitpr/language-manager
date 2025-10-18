@@ -7,9 +7,9 @@ from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader, random_split
 
-from data.dataset import CMUDictDataset, collate_fn
 from models.lstm_g2p import LstmG2p
 from tools.config_utils import load_yaml
+from tools.dataset import CMUDictDataset, collate_fn
 from tools.train_callbacks import MonitorCheckpointsCallback
 
 

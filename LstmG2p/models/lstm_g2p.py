@@ -1,7 +1,6 @@
+import lightning as pl
 import torch
 import torch.nn as nn
-
-import lightning as pl
 
 from models.decoder import LstmDecoder
 from models.encoder import LstmEncoder
@@ -185,7 +184,92 @@ class LstmG2p(pl.LightningModule):
             }
         }
 
-    def predict(self, word: str, max_len: int = None):
+    def beam_search_decode(self, src: torch.Tensor, max_len: int = None, beam_size: int = 5):
+        if max_len is None:
+            max_len = self.max_phoneme_len
+
+        batch_size = src.size(0)
+        assert batch_size == 1, "beam search requires batch_size == 1"
+
+        encoder_outputs, hidden, cell = self.encoder(src)
+
+        start_token = torch.tensor([[self.config['bos_idx']]], dtype=torch.long, device=self.device)
+
+        beams = [{
+            'tokens': [start_token.item()],
+            'score': 0.0,
+            'hidden': hidden,
+            'cell': cell,
+            'finished': False
+        }]
+
+        for step in range(max_len):
+            candidates = []
+
+            all_finished = all(beam['finished'] for beam in beams)
+            if all_finished:
+                break
+
+            for beam in beams:
+                if beam['finished']:
+                    candidates.append(beam)
+                    continue
+
+                last_token = beam['tokens'][-1]
+                decoder_input = torch.tensor([[last_token]], dtype=torch.long, device=self.device)
+
+                output, new_hidden, new_cell, _ = self.decoder(
+                    decoder_input, beam['hidden'], beam['cell'], encoder_outputs
+                )
+
+                log_probs = torch.log_softmax(output.squeeze(1), dim=-1)
+                topk_scores, topk_indices = torch.topk(log_probs, beam_size * 2, dim=-1)  # 取更多候选
+
+                for i in range(beam_size * 2):
+                    token = topk_indices[0, i].item()
+                    token_score = topk_scores[0, i].item()
+
+                    new_length = len(beam['tokens']) + 1
+                    normalized_score = (beam['score'] * (new_length - 1) + token_score) / new_length
+
+                    new_tokens = beam['tokens'] + [token]
+                    finished = (token == self.config['eos_idx']) or (len(new_tokens) >= max_len)
+
+                    candidate = {
+                        'tokens': new_tokens,
+                        'score': beam['score'] + token_score,
+                        'normalized_score': normalized_score,
+                        'hidden': new_hidden,
+                        'cell': new_cell,
+                        'finished': finished
+                    }
+                    candidates.append(candidate)
+
+            candidates.sort(key=lambda x: x['normalized_score'], reverse=True)
+
+            beams = []
+            seen_sequences = set()
+
+            for candidate in candidates:
+                seq_tuple = tuple(candidate['tokens'])
+                if seq_tuple not in seen_sequences:
+                    seen_sequences.add(seq_tuple)
+                    beams.append(candidate)
+                    if len(beams) >= beam_size:
+                        break
+
+        best_beam = max(beams, key=lambda x: x['normalized_score'])
+
+        predictions = []
+        for token in best_beam['tokens'][1:]:
+            if token == self.config['eos_idx']:
+                break
+            if token not in [self.config['bos_idx'], self.config['pad_idx']]:
+                predictions.append(token)
+
+        return [self.idx_to_phoneme[idx] for idx in predictions if idx in self.idx_to_phoneme]
+
+    def predict(self, word: str, max_len: int = None, beam_size: int = 1):
         if max_len is None:
             max_len = self.max_phoneme_len
 
@@ -194,19 +278,22 @@ class LstmG2p(pl.LightningModule):
             word_indices = [self.config['bos_idx']] + word_indices + [self.config['eos_idx']]
             src = torch.tensor([word_indices], dtype=torch.long).to(self.device)
 
-            encoder_outputs, hidden, cell = self.encoder(src)
-            decoder_input = torch.tensor([[self.config['bos_idx']]], dtype=torch.long).to(self.device)
-            predictions = []
+            if beam_size > 1:
+                return self.beam_search_decode(src, max_len, beam_size)
+            else:
+                encoder_outputs, hidden, cell = self.encoder(src)
+                decoder_input = torch.tensor([[self.config['bos_idx']]], dtype=torch.long).to(self.device)
+                predictions = []
 
-            for _ in range(max_len):
-                output, hidden, cell, _ = self.decoder(decoder_input, hidden, cell, encoder_outputs)
-                pred_token = output.argmax(2).item()
+                for _ in range(max_len):
+                    output, hidden, cell, _ = self.decoder(decoder_input, hidden, cell, encoder_outputs)
+                    pred_token = output.argmax(2).item()
 
-                if pred_token == self.config['eos_idx']:
-                    break
+                    if pred_token == self.config['eos_idx']:
+                        break
 
-                if pred_token not in [self.config['bos_idx'], self.config['pad_idx']]:
-                    predictions.append(pred_token)
+                    if pred_token not in [self.config['bos_idx'], self.config['pad_idx']]:
+                        predictions.append(pred_token)
 
-                decoder_input = output.argmax(2)
-            return [self.idx_to_phoneme[idx] for idx in predictions if idx in self.idx_to_phoneme]
+                    decoder_input = output.argmax(2)
+                return [self.idx_to_phoneme[idx] for idx in predictions if idx in self.idx_to_phoneme]

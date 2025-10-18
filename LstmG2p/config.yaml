@@ -2,7 +2,7 @@ model_name: LSTM_G2P
 
 data:
   dict_type: 'cmudict'
-  dict_path: 'cmudict-0.7b'
+  dict_path: 'data/cmudict/cmudict-0.7b'
   remove_word_digits: true
   remove_phoneme_digits: true
 

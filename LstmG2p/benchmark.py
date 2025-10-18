@@ -9,13 +9,21 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from data.dataset import CMUDictDataset
+from models.lstm_g2p import LstmG2p
 from tools.config_utils import load_yaml
+from tools.dataset import CMUDictDataset
 
 
 class LstmOnnx:
-    def __init__(self, onnx_model_path: str, vocab_path: str, config_path: str):
-        self.session = ort.InferenceSession(onnx_model_path)
+    def __init__(self, onnx_model_dir: str):
+        encoder_path = os.path.join(onnx_model_dir, "encoder.onnx")
+        decoder_path = os.path.join(onnx_model_dir, "decoder.onnx")
+
+        self.encoder_session = ort.InferenceSession(encoder_path)
+        self.decoder_session = ort.InferenceSession(decoder_path)
+
+        vocab_path = os.path.join(onnx_model_dir, "vocab.yaml")
+        config_path = os.path.join(onnx_model_dir, "config.yaml")
 
         with open(vocab_path, 'r', encoding='utf-8') as f:
             vocab_data = yaml.safe_load(f)
@@ -47,8 +55,38 @@ class LstmOnnx:
 
     def predict(self, word: str):
         input_ids = self.preprocess_word(word)
-        phoneme_ids = self.session.run(None, {"input_ids": np.array(input_ids, dtype=np.int64)})
-        phonemes = self.decode_phonemes(phoneme_ids[0])
+        input_tensor = np.array(input_ids, dtype=np.int64)
+
+        encoder_outputs, hidden, cell = self.encoder_session.run(
+            None, {"input_ids": input_tensor}
+        )
+
+        decoder_input = np.array([self.BOS_IDX], dtype=np.int64)
+        phoneme_ids = []
+
+        for _ in range(self.max_len):
+            outputs = self.decoder_session.run(
+                None,
+                {
+                    "decoder_input": decoder_input,
+                    "hidden": hidden,
+                    "cell": cell,
+                    "encoder_outputs": encoder_outputs
+                }
+            )
+
+            output, hidden, cell, attention_weights = outputs
+
+            predicted_id = np.argmax(output, axis=-1)
+
+            if predicted_id == self.EOS_IDX:
+                break
+
+            phoneme_ids.append(int(predicted_id))
+
+            decoder_input = np.array([predicted_id], dtype=np.int64)
+
+        phonemes = self.decode_phonemes(phoneme_ids)
         return phonemes
 
 
@@ -122,14 +160,46 @@ class OpuOnnx:
         return phonemes
 
 
-class Benchmark:
-    def __init__(self, lstm_onnx_path, opu_onnx_path):
-        model_dir = os.path.dirname(lstm_onnx_path)
-        vocab_path = os.path.join(model_dir, "vocab.yaml")
-        self.config_path = os.path.join(model_dir, "config.yaml")
+class PyTorchModel:
+    def __init__(self, ckpt_path: str, config_path: str, beam_size: int = 5):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            self.config = yaml.safe_load(f)
 
-        self.lstm_onnx = LstmOnnx(lstm_onnx_path, vocab_path, self.config_path)
-        self.opu_onnx = OpuOnnx(opu_onnx_path)
+        self.model = LstmG2p.load_from_checkpoint(ckpt_path, config=self.config)
+        self.model.to('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model.eval()
+
+        self.beam_size = beam_size
+        self.max_len = 48
+
+    def predict(self, word: str) -> List[str]:
+        with torch.no_grad():
+            return self.model.predict(word, self.max_len, self.beam_size)
+
+
+class Benchmark:
+    def __init__(self, lstm_onnx_path=None, opu_onnx_path=None, ckpt_path=None, beam_size=5):
+        model_dir = None
+
+        if lstm_onnx_path:
+            model_dir = os.path.dirname(lstm_onnx_path)
+            self.config_path = os.path.join(model_dir, "config.yaml")
+            self.lstm_onnx = LstmOnnx(lstm_onnx_path)
+        else:
+            self.lstm_onnx = None
+
+        if opu_onnx_path:
+            self.opu_onnx = OpuOnnx(opu_onnx_path)
+        else:
+            self.opu_onnx = None
+
+        if ckpt_path:
+            if not model_dir:
+                model_dir = os.path.dirname(ckpt_path)
+                self.config_path = os.path.join(model_dir, "config.yaml")
+            self.pytorch_model = PyTorchModel(ckpt_path, self.config_path, beam_size)
+        else:
+            self.pytorch_model = None
 
     def load_benchmark_data(self, sample_size: int = 1000):
         dataset = CMUDictDataset(load_yaml(self.config_path))
@@ -177,9 +247,11 @@ class Benchmark:
 
     def evaluate_model(self, model_type: str, benchmark_data: List[Tuple[str, List[str]]]):
         if model_type == "lstm" and not self.lstm_onnx:
-            raise ValueError("Current ONNX model not loaded")
+            raise ValueError("LSTM ONNX model not loaded")
         if model_type == "opu" and not self.opu_onnx:
-            raise ValueError("Legacy ONNX model not loaded")
+            raise ValueError("OPU ONNX model not loaded")
+        if model_type == "pytorch" and not self.pytorch_model:
+            raise ValueError("PyTorch model not loaded")
 
         total_phone_acc = 0.0
         total_seq_acc = 0.0
@@ -191,8 +263,10 @@ class Benchmark:
 
             if model_type == "lstm":
                 predicted_phones = self.lstm_onnx.predict(word)
-            else:
+            elif model_type == "opu":
                 predicted_phones = self.opu_onnx.predict(word)
+            else:
+                predicted_phones = self.pytorch_model.predict(word)
 
             inference_time = time.time() - start_time
             inference_times.append(inference_time)
@@ -233,8 +307,12 @@ class Benchmark:
             results['lstm'] = self.evaluate_model("lstm", benchmark_data)
 
         if self.opu_onnx:
-            print("\nEvaluating opu ONNX model...")
+            print("\nEvaluating OPU ONNX model...")
             results['opu'] = self.evaluate_model("opu", benchmark_data)
+
+        if self.pytorch_model:
+            print("\nEvaluating PyTorch model (with beam search)...")
+            results['pytorch'] = self.evaluate_model("pytorch", benchmark_data)
 
         self._print_results(results)
         return results
@@ -246,7 +324,13 @@ class Benchmark:
         print("=" * 70)
 
         for model_type, result in results.items():
-            model_name = "Lstm onnx" if model_type == "lstm" else "Opu onnx"
+            if model_type == "lstm":
+                model_name = "LSTM ONNX"
+            elif model_type == "opu":
+                model_name = "OPU ONNX"
+            else:
+                model_name = "PyTorch (beam search)"
+
             print(f"\n{model_name} Model:")
             print(f"  Samples: {result['total_samples']}")
             print(
@@ -255,25 +339,35 @@ class Benchmark:
                 f"  Avg Sequence Accuracy: {result['avg_sequence_accuracy']:.4f} ({result['avg_sequence_accuracy'] * 100:.2f}%)")
             print(f"  Avg Inference Time: {result['avg_inference_time'] * 1000:.2f} ms")
 
-        print(f"\nModel Comparison:")
-        lstm_acc = results['lstm']['avg_phone_accuracy']
-        opu_acc = results['opu']['avg_phone_accuracy']
-        lstm_time = results['lstm']['avg_inference_time']
-        opu_time = results['opu']['avg_inference_time']
+        if len(results) > 1:
+            print(f"\nModel Comparison:")
+            model_types = list(results.keys())
 
-        acc_diff = lstm_acc - opu_acc
-        time_ratio = lstm_time / opu_time if opu_time > 0 else float('inf')
+            for i in range(len(model_types)):
+                for j in range(i + 1, len(model_types)):
+                    model1 = model_types[i]
+                    model2 = model_types[j]
+                    acc1 = results[model1]['avg_phone_accuracy']
+                    acc2 = results[model2]['avg_phone_accuracy']
+                    time1 = results[model1]['avg_inference_time']
+                    time2 = results[model2]['avg_inference_time']
 
-        print(f"  Phone Accuracy Difference: {acc_diff:+.4f} ({acc_diff * 100:+.2f}%)")
-        print(f"  Inference Time Ratio: {time_ratio:.2f}x")
+                    acc_diff = acc1 - acc2
+                    time_ratio = time1 / time2 if time2 > 0 else float('inf')
+
+                    print(f"  {model1.upper()} vs {model2.upper()}:")
+                    print(f"    Phone Accuracy Difference: {acc_diff:+.4f} ({acc_diff * 100:+.2f}%)")
+                    print(f"    Inference Time Ratio: {time_ratio:.2f}x")
 
 
 if __name__ == "__main__":
     SAMPLE_SIZE = 1000
 
     benchmark = Benchmark(
-        lstm_onnx_path="lstm_g2p_en/model.onnx",
-        opu_onnx_path="g2p-arpabet/g2p.onnx"
+        lstm_onnx_path="lstm_g2p_en/",
+        opu_onnx_path="g2p-arpabet/g2p.onnx",
+        ckpt_path="ckpt/LSTM_G2P/best-step=15120-val_seq_acc=0.69333.ckpt",
+        beam_size=3
     )
 
     benchmark.run_benchmark(SAMPLE_SIZE)

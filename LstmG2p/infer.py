@@ -27,7 +27,7 @@ def main():
     model.to('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
 
-    phonemes = model.predict(args.word, args.max_len)
+    phonemes = model.predict(args.word, args.max_len, beam_size=3)
     print(f"\nresult:")
     print(f"word: {args.word}")
     print(f"phoneme_string: {' '.join(phonemes)}")
