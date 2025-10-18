@@ -55,9 +55,7 @@ if (LANG_MANAGER_BUILD_STATIC)
     add_library(${PROJECT_NAME} STATIC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC LANG_MANAGER_STATIC)
 else ()
-    add_library(${PROJECT_NAME} SHARED
-            src/G2p/BaseFactory/OnnxG2pFactory.cpp
-            src/G2p/BaseFactory/OnnxG2pFactory.h)
+    add_library(${PROJECT_NAME} SHARED)
 endif ()
 target_compile_definitions(${PROJECT_NAME} PRIVATE LANG_MANAGER_LIBRARY)
 

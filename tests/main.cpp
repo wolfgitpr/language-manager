@@ -10,8 +10,6 @@
 
 #include <language-manager/ILanguageManager.h>
 
-#include "../src/G2p/BaseFactory/OnnxG2pFactory.h"
-
 #ifdef Q_OS_WIN
 #include <Windows.h>
 #endif
@@ -88,8 +86,8 @@ int main(int argc, char *argv[]) {
     qDebug() << "Successfully loaded onnxruntime.dll";
 #endif
 
-    const auto onnx_g2p = new LangMgr::OnnxG2pFactory("onnx_en");
-    qDebug() << "onnx_g2p: hello ->" << onnx_g2p->convert(QStringList({"hello"})).first().syllable;
+    // const auto onnx_g2p = new LangMgr::OnnxG2pFactory("onnx_en");
+    // qDebug() << "onnx_g2p: hello ->" << onnx_g2p->convert(QStringList({"hello"})).first().syllable;
 
 #ifdef Q_OS_WIN
     if (hOnnxRuntime) {

@@ -3,19 +3,6 @@
 
 #include <language-manager/ILanguageFactory.h>
 
-#include "G2p/BaseG2p/LinebreakG2p.h"
-#include "G2p/BaseG2p/NumberG2p.h"
-#include "G2p/BaseG2p/PunctuationG2p.h"
-#include "G2p/BaseG2p/ReservedTokensG2p.h"
-#include "G2p/BaseG2p/SlurG2p.h"
-#include "G2p/BaseG2p/SpaceG2p.h"
-#include "G2p/BaseG2p/UnknownG2p.h"
-
-#include "G2p/CantoneseG2p.h"
-#include "G2p/EnglishG2p.h"
-#include "G2p/JapaneseG2p.h"
-#include "G2p/MandarinG2p.h"
-
 #include <QCoreApplication>
 #include <QDebug>
 #include <QLocale>
@@ -265,19 +252,6 @@ namespace LangMgr
         }
         // TODO: Install translator
         // QCoreApplication::installTranslator(translator);
-
-        addG2p(new LinebreakG2p());
-        addG2p(new NumberG2p());
-        addG2p(new PunctuationG2p());
-        addG2p(new SlurG2p());
-        addG2p(new SpaceG2p());
-        addG2p(new UnknownG2p());
-        addG2p(new ReservedTokensG2p());
-
-        addG2p(new MandarinG2p());
-        addG2p(new CantoneseG2p());
-        addG2p(new JapaneseG2p());
-        addG2p(new EnglishG2p());
     }
 
     void ILanguageManager::convert(const QList<LangNote *> &input) const {
