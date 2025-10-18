@@ -15,6 +15,8 @@ namespace LangMgr
         ~G2pDriver();
 
         bool load(const std::filesystem::path &path);
+        bool loadFromProcess();
+
         bool isLoaded() const { return loaded_; }
         void unload();
 
@@ -27,6 +29,8 @@ namespace LangMgr
         bool loaded_ = false;
         const OrtApiBase *ortApiBase_ = nullptr;
         const OrtApi *ortApi_ = nullptr;
+
+        bool initializeFromHandle(void *handle);
     };
 
 } // namespace LangMgr

@@ -33,7 +33,7 @@ namespace LangMgr
             return;
         }
 
-        if (const auto result = m_driver->load(dllPath); !result) {
+        if (const auto result = m_driver->loadFromProcess(); !result) {
             std::cout << "Failed to load ONNX Runtime DLL: " << std::endl;
             return;
         }
