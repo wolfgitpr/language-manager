@@ -3,11 +3,11 @@
 
 #include <filesystem>
 
-#include <synthrt/Support/Expected.h>
+#include <LangMgr/Support/Expected.h>
 
 #include <onnxruntime_cxx_api.h>
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
     class SessionImage {
     public:

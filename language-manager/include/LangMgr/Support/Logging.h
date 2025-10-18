@@ -3,7 +3,7 @@
 
 #include <stdcorelib/str.h>
 
-#include <synthrt/synthrt_global.h>
+#include <LangMgr/LangMgrGlobal.h>
 
 namespace LangMgr
 {
@@ -21,7 +21,7 @@ namespace LangMgr
         const char *category = nullptr;
     };
 
-    class Logger {
+    class LANGMGR_EXPORT Logger {
     public:
         enum Level {
             Trace = 1,
@@ -96,7 +96,7 @@ namespace LangMgr
     };
 
     /// Yet another logging category implementation of Qt QLoggingCategory.
-    class LogCategory {
+    class LANGMGR_EXPORT LogCategory {
     public:
         explicit LogCategory(const char *name);
         ~LogCategory();
@@ -139,7 +139,7 @@ namespace LangMgr
             }
         }
 
-        inline const LogCategory &_srtGetLogCategory() const { return *this; }
+        inline const LogCategory &_langMgrGetLogCategory() const { return *this; }
 
     protected:
         const char *_name;
@@ -152,42 +152,44 @@ namespace LangMgr
 
 } // namespace LangMgr
 
-static inline const LangMgr::LogCategory &_srtGetLogCategory() { return LangMgr::LogCategory::defaultCategory(); }
+static inline const LangMgr::LogCategory &_langMgrGetLogCategory() { return LangMgr::LogCategory::defaultCategory(); }
 
 /*!
-    \macro srtDebug
+    \macro langMgrDebug
     \brief Logs a debug message to a log category.
     \code
         // User category
-        srt::LogCategory lc("test");
-        lc.setLevelEnabled(srt::Logger::Debug, true);
-        lc.srtDebug("This is a debug message");
-        lc.srtDebug("This is a debug message with arg: %1", 42);
-        lc.srtDebugF("This is a debug message with arg: %d", 42);
+        langMgr::LogCategory lc("test");
+        lc.setLevelEnabled(langMgr::Logger::Debug, true);
+        lc.langMgrDebug("This is a debug message");
+        lc.langMgrDebug("This is a debug message with arg: %1", 42);
+        lc.langMgrDebugF("This is a debug message with arg: %d", 42);
 
         // Default category
-        srtDebug("This is a debug message");
-        srtDebug("This is a debug message with arg: %1", 42);
-        srtDebug("This is a debug message with arg: %d", 42);
+        langMgrDebug("This is a debug message");
+        langMgrDebug("This is a debug message with arg: %1", 42);
+        langMgrDebug("This is a debug message with arg: %d", 42);
     \endcode
 */
 
-#define srtLog(LEVEL, ...) _srtGetLogCategory().log<srt::Logger::LEVEL>(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
-#define srtTrace(...) srtLog(Trace, __VA_ARGS__)
-#define srtDebug(...) srtLog(Debug, __VA_ARGS__)
-#define srtSuccess(...) srtLog(Success, __VA_ARGS__)
-#define srtInfo(...) srtLog(Information, __VA_ARGS__)
-#define srtWarning(...) srtLog(Warning, __VA_ARGS__)
-#define srtCritical(...) srtLog(Critical, __VA_ARGS__)
-#define srtFatal(...) srtLog(Critical, __VA_ARGS__)
+#define langMgrLog(LEVEL, ...)                                                                                         \
+    _langMgrGetLogCategory().log<LangMgr::Logger::LEVEL>(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define langMgrTrace(...) langMgrLog(Trace, __VA_ARGS__)
+#define langMgrDebug(...) langMgrLog(Debug, __VA_ARGS__)
+#define langMgrSuccess(...) langMgrLog(Success, __VA_ARGS__)
+#define langMgrInfo(...) langMgrLog(Information, __VA_ARGS__)
+#define langMgrWarning(...) langMgrLog(Warning, __VA_ARGS__)
+#define langMgrCritical(...) langMgrLog(Critical, __VA_ARGS__)
+#define langMgrFatal(...) langMgrLog(Critical, __VA_ARGS__)
 
-#define srtLogF(LEVEL, ...) _srtGetLogCategory().logf<srt::Logger::LEVEL>(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
-#define srtTraceF(...) srtLogF(Trace, __VA_ARGS__)
-#define srtDebugF(...) srtLogF(Debug, __VA_ARGS__)
-#define srtSuccessF(...) srtLogF(Success, __VA_ARGS__)
-#define srtInfoF(...) srtLogF(Information, __VA_ARGS__)
-#define srtWarningF(...) srtLogF(Warning, __VA_ARGS__)
-#define srtCriticalF(...) srtLogF(Critical, __VA_ARGS__)
-#define srtFatalF(...) srtLogF(Critical, __VA_ARGS__)
+#define langMgrLogF(LEVEL, ...)                                                                                        \
+    _langMgrGetLogCategory().logf<langMgr::Logger::LEVEL>(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define langMgrTraceF(...) langMgrLogF(Trace, __VA_ARGS__)
+#define langMgrDebugF(...) langMgrLogF(Debug, __VA_ARGS__)
+#define langMgrSuccessF(...) langMgrLogF(Success, __VA_ARGS__)
+#define langMgrInfoF(...) langMgrLogF(Information, __VA_ARGS__)
+#define langMgrWarningF(...) langMgrLogF(Warning, __VA_ARGS__)
+#define langMgrCriticalF(...) langMgrLogF(Critical, __VA_ARGS__)
+#define langMgrFatalF(...) langMgrLogF(Critical, __VA_ARGS__)
 
 #endif // LANGUAGE_MANAGER_LOGGING_H

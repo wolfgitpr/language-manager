@@ -47,7 +47,7 @@ namespace LangMgr
 
         std::unique_ptr<ILanguageFactoryPrivate> d_ptr;
 
-        friend class LanguageEngine;
+        friend class LanguageManager;
 
     }; // ILanguageFactory
 

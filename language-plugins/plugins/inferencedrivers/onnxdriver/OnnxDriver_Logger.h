@@ -1,11 +1,11 @@
 #ifndef DSINFER_ONNXDRIVER_LOGGER_H
 #define DSINFER_ONNXDRIVER_LOGGER_H
 
-#include <synthrt/Support/Logging.h>
+#include <LangMgr/Support/Logging.h>
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
-    extern srt::LogCategory Log;
+    extern LangMgr::LogCategory Log;
 
 }
 

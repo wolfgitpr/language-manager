@@ -1,6 +1,7 @@
 #ifndef LANGUAGE_MANAGER_NAMEDOBJECT_H
 #define LANGUAGE_MANAGER_NAMEDOBJECT_H
 
+
 #include <any>
 #include <memory>
 #include <string>
@@ -9,11 +10,12 @@
 
 #include <stdcorelib/adt/array_view.h>
 
+#include <LangMgr/LangMgrGlobal.h>
 
 namespace LangMgr
 {
 
-    class NamedObject {
+    class LANGMGR_EXPORT NamedObject {
     public:
         NamedObject();
         explicit NamedObject(std::string name);
@@ -91,7 +93,7 @@ namespace LangMgr
         }
     };
 
-    class ObjectPool : public NamedObject {
+    class LANGMGR_EXPORT ObjectPool : public NamedObject {
     public:
         explicit ObjectPool();
         ~ObjectPool();

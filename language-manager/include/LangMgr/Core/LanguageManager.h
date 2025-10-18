@@ -21,14 +21,14 @@ namespace LangMgr
     template <class T>
     class ContribCategoryRegistrar;
 
-    class LANGMGR_EXPORT LanguageEngine : public PluginFactory {
+    class LANGMGR_EXPORT LanguageManager : public PluginFactory {
     public:
-        LanguageEngine();
-        ~LanguageEngine() override;
+        LanguageManager();
+        ~LanguageManager() override;
 
         ContribCategory *category(const std::string_view &name) const;
 
-        static LanguageEngine *instance();
+        static LanguageManager *instance();
 
         bool initialize(std::string &errMsg);
         bool initialized() const;
@@ -70,7 +70,7 @@ namespace LangMgr
 
     protected:
         class Impl;
-        static void registerCategoryFactory(ContribCategory *(*fac)(LanguageEngine *));
+        static void registerCategoryFactory(ContribCategory *(*fac)(LanguageManager *));
 
         friend class PackageRef;
         friend class ContribCategory;
@@ -78,7 +78,7 @@ namespace LangMgr
         friend class ContribCategoryRegistrar;
     };
 
-    inline void LanguageEngine::addPackagePath(const std::filesystem::path &path) { addPackagePaths({path}); }
+    inline void LanguageManager::addPackagePath(const std::filesystem::path &path) { addPackagePaths({path}); }
 
 } // namespace LangMgr
 

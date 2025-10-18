@@ -1,5 +1,5 @@
-#include "LanguageEngine.h"
 #include "LanguageEngine_p.h"
+#include "LanguageManager.h"
 
 #include <iostream>
 #include <mutex>
@@ -18,9 +18,9 @@ namespace fs = std::filesystem;
 
 namespace LangMgr
 {
-    llvm::SmallVector<ContribCategory *(*)(LanguageEngine *)> LanguageEngine::Impl::categoryFactories;
+    llvm::SmallVector<ContribCategory *(*)(LanguageManager *)> LanguageManager::Impl::categoryFactories;
 
-    LanguageEngine::Impl::Impl(LanguageEngine *decl) : PluginFactory::Impl(decl) {
+    LanguageManager::Impl::Impl(LanguageManager *decl) : PluginFactory::Impl(decl) {
         for (const auto &factory : categoryFactories) {
             const auto category = factory(decl);
             categories[std::string(category->name())] = category;
@@ -28,7 +28,7 @@ namespace LangMgr
         }
     }
 
-    LanguageEngine::Impl::~Impl() {
+    LanguageManager::Impl::~Impl() {
         closeAllLoadedPackages();
         stdc::delete_all(categories);
 
@@ -40,7 +40,7 @@ namespace LangMgr
         g2ps.clear();
     }
 
-    std::pair<std::string, std::string> LanguageEngine::Impl::extractConfig(const std::string &g2pId) {
+    std::pair<std::string, std::string> LanguageManager::Impl::extractConfig(const std::string &g2pId) {
         const auto firstColonIndex = g2pId.find(':');
 
         if (firstColonIndex == std::string::npos) {
@@ -62,7 +62,7 @@ namespace LangMgr
     }
 
     std::vector<IG2pFactory *>
-    LanguageEngine::Impl::priorityG2ps(const std::vector<std::string> &priorityG2pIds) const {
+    LanguageManager::Impl::priorityG2ps(const std::vector<std::string> &priorityG2pIds) const {
         std::vector<std::string> order = defaultG2pOrder;
 
         std::vector<IG2pFactory *> result;
@@ -91,7 +91,7 @@ namespace LangMgr
         return result;
     }
 
-    Expected<PackageData *> LanguageEngine::Impl::open(const std::filesystem::path &path, bool noLoad) {
+    Expected<PackageData *> LanguageManager::Impl::open(const std::filesystem::path &path, bool noLoad) {
         __stdc_decl_t;
         auto canonicalPath = stdc::path::canonical(path);
         if (canonicalPath.empty() || !fs::is_directory(canonicalPath)) {
@@ -420,7 +420,7 @@ namespace LangMgr
         return pd;
     }
 
-    bool LanguageEngine::Impl::close(PackageData *spec) {
+    bool LanguageManager::Impl::close(PackageData *spec) {
         if (!spec->loaded) {
             std::unique_lock lock(su_mtx);
             const auto it = resourcePackages.find(spec);
@@ -491,14 +491,14 @@ namespace LangMgr
         return true;
     }
 
-    void LanguageEngine::Impl::closeAllLoadedPackages() {
+    void LanguageManager::Impl::closeAllLoadedPackages() {
         while (!loadedPackageMap.packages.empty()) {
             const auto spec = loadedPackageMap.packages.back().spec;
             std::ignore = close(spec);
         }
     }
 
-    void LanguageEngine::Impl::refreshPackageIndexes() {
+    void LanguageManager::Impl::refreshPackageIndexes() {
         cachedPackageIndexesMap.clear();
         for (const auto &path : std::as_const(packagePaths)) {
             if (!fs::is_directory(path)) {
@@ -561,11 +561,11 @@ namespace LangMgr
         packagePathsDirty = false;
     }
 
-    LanguageEngine::LanguageEngine() : PluginFactory(*new Impl(this)) {}
+    LanguageManager::LanguageManager() : PluginFactory(*new Impl(this)) {}
 
-    LanguageEngine::~LanguageEngine() = default;
+    LanguageManager::~LanguageManager() = default;
 
-    ContribCategory *LanguageEngine::category(const std::string_view &name) const {
+    ContribCategory *LanguageManager::category(const std::string_view &name) const {
         __stdc_impl_t;
         const auto it = impl.categories.find(name);
         if (it == impl.categories.end()) {
@@ -574,33 +574,33 @@ namespace LangMgr
         return it->second;
     }
 
-    LanguageEngine *LanguageEngine::instance() {
-        static LanguageEngine obj;
+    LanguageManager *LanguageManager::instance() {
+        static LanguageManager obj;
         return &obj;
     }
 
-    bool LanguageEngine::initialize(std::string &errMsg) {
+    bool LanguageManager::initialize(std::string &errMsg) {
         __stdc_impl_t;
         impl.initialized = true;
         return true;
     }
 
-    bool LanguageEngine::initialized() const {
+    bool LanguageManager::initialized() const {
         __stdc_impl_t;
         return impl.initialized;
     }
 
-    IG2pFactory *LanguageEngine::g2p(const std::string &id) const {
+    IG2pFactory *LanguageManager::g2p(const std::string &id) const {
         __stdc_impl_t;
         const auto it = impl.g2ps.find(id);
         if (it == impl.g2ps.end()) {
-            std::cerr << "LangMgr::LanguageEngine::g2p(): factory does not exist:" << id << std::endl;
+            std::cerr << "LangMgr::LanguageManager::g2p(): factory does not exist:" << id << std::endl;
             return nullptr;
         }
         return it->second;
     }
 
-    std::vector<IG2pFactory *> LanguageEngine::g2ps() const {
+    std::vector<IG2pFactory *> LanguageManager::g2ps() const {
         __stdc_impl_t;
         std::vector<IG2pFactory *> result;
         for (const auto &[id, factory] : impl.g2ps) {
@@ -609,14 +609,14 @@ namespace LangMgr
         return result;
     }
 
-    bool LanguageEngine::addG2p(IG2pFactory *factory) {
+    bool LanguageManager::addG2p(IG2pFactory *factory) {
         __stdc_impl_t;
         if (!factory) {
-            std::cerr << "LangMgr::LanguageEngine::addG2p(): trying to add null factory" << std::endl;
+            std::cerr << "LangMgr::LanguageManager::addG2p(): trying to add null factory" << std::endl;
             return false;
         }
         if (impl.g2ps.find(factory->id()) != impl.g2ps.end()) {
-            std::cerr << "LangMgr::LanguageEngine::addG2p(): trying to add duplicated factory:" << factory->id()
+            std::cerr << "LangMgr::LanguageManager::addG2p(): trying to add duplicated factory:" << factory->id()
                       << std::endl;
             return false;
         }
@@ -624,41 +624,41 @@ namespace LangMgr
         return true;
     }
 
-    bool LanguageEngine::removeG2p(const IG2pFactory *factory) {
+    bool LanguageManager::removeG2p(const IG2pFactory *factory) {
         if (factory == nullptr) {
-            std::cerr << "LangMgr::LanguageEngine::removeG2p(): trying to remove null factory" << std::endl;
+            std::cerr << "LangMgr::LanguageManager::removeG2p(): trying to remove null factory" << std::endl;
             return false;
         }
         return removeG2p(factory->id());
     }
 
-    bool LanguageEngine::removeG2p(const std::string &id) {
+    bool LanguageManager::removeG2p(const std::string &id) {
         __stdc_impl_t;
         const auto it = impl.g2ps.find(id);
         if (it == impl.g2ps.end()) {
-            std::cerr << "LangMgr::LanguageEngine::removeG2p(): factory does not exist:" << id << std::endl;
+            std::cerr << "LangMgr::LanguageManager::removeG2p(): factory does not exist:" << id << std::endl;
             return false;
         }
         impl.g2ps.erase(it);
         return true;
     }
 
-    void LanguageEngine::clearG2ps() {
+    void LanguageManager::clearG2ps() {
         __stdc_impl_t;
         impl.g2ps.clear();
     }
 
-    std::vector<std::string> LanguageEngine::defaultOrder() const {
+    std::vector<std::string> LanguageManager::defaultOrder() const {
         __stdc_impl_t;
         return impl.defaultG2pOrder;
     }
 
-    void LanguageEngine::setDefaultOrder(const std::vector<std::string> &order) {
+    void LanguageManager::setDefaultOrder(const std::vector<std::string> &order) {
         __stdc_impl_t;
         impl.defaultG2pOrder = order;
     }
 
-    std::vector<LangNote> LanguageEngine::split(const std::string &input,
+    std::vector<LangNote> LanguageManager::split(const std::string &input,
                                                 const std::vector<std::string> &priorityG2pIds) const {
         __stdc_impl_t;
         const auto &g2psList = impl.priorityG2ps(priorityG2pIds);
@@ -668,7 +668,7 @@ namespace LangMgr
         return result;
     }
 
-    void LanguageEngine::correct(const std::vector<LangNote *> &input, const std::vector<std::string> &priorityG2pIds,
+    void LanguageManager::correct(const std::vector<LangNote *> &input, const std::vector<std::string> &priorityG2pIds,
                                  const std::vector<std::string> &reservedTokens) const {
         __stdc_impl_t;
         const auto &g2psList = impl.priorityG2ps(priorityG2pIds);
@@ -676,7 +676,7 @@ namespace LangMgr
             g2p->correct(input);
     }
 
-    void LanguageEngine::convert(const std::vector<LangNote *> &input) const {
+    void LanguageManager::convert(const std::vector<LangNote *> &input) const {
         __stdc_impl_t;
         std::map<std::string, std::vector<int>> indexMap;
         std::map<std::string, std::vector<std::u32string>> lyricMap;
@@ -706,7 +706,7 @@ namespace LangMgr
         }
     }
 
-    std::string LanguageEngine::analysis(const std::string &input, const std::vector<std::string> &priorityG2pIds,
+    std::string LanguageManager::analysis(const std::string &input, const std::vector<std::string> &priorityG2pIds,
                                          const std::vector<std::string> &reservedTokens) const {
         __stdc_impl_t;
         static std::vector<std::string> keywords = {"AP", "SP"};
@@ -723,7 +723,7 @@ namespace LangMgr
         return "unknown";
     }
 
-    std::vector<std::string> LanguageEngine::analysis(const std::vector<std::string> &input,
+    std::vector<std::string> LanguageManager::analysis(const std::vector<std::string> &input,
                                                       const std::vector<std::string> &priorityG2pIds,
                                                       const std::vector<std::string> &reservedTokens) const {
         __stdc_impl_t;
@@ -747,7 +747,7 @@ namespace LangMgr
         return result;
     }
 
-    void LanguageEngine::addPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
+    void LanguageManager::addPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
         __stdc_impl_t;
         std::unique_lock lock(impl.su_mtx);
         for (const auto &path : paths) {
@@ -759,7 +759,7 @@ namespace LangMgr
         }
     }
 
-    void LanguageEngine::setPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
+    void LanguageManager::setPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
         __stdc_impl_t;
         std::unique_lock lock(impl.su_mtx);
         impl.packagePaths.clear();
@@ -774,13 +774,13 @@ namespace LangMgr
         }
     }
 
-    std::vector<std::filesystem::path> LanguageEngine::packagePaths() const {
+    std::vector<std::filesystem::path> LanguageManager::packagePaths() const {
         __stdc_impl_t;
         std::shared_lock lock(impl.su_mtx);
         return {impl.packagePaths.begin(), impl.packagePaths.end()};
     }
 
-    Expected<PackageRef> LanguageEngine::open(const std::filesystem::path &path, const bool noLoad) {
+    Expected<PackageRef> LanguageManager::open(const std::filesystem::path &path, const bool noLoad) {
         __stdc_impl_t;
         auto result = impl.open(path, noLoad);
         if (!result) {
@@ -789,7 +789,7 @@ namespace LangMgr
         return PackageRef(result.get());
     }
 
-    PackageRef LanguageEngine::find(const std::string_view &id, const stdc::VersionNumber &version) const {
+    PackageRef LanguageManager::find(const std::string_view &id, const stdc::VersionNumber &version) const {
         __stdc_impl_t;
         std::shared_lock lock(impl.su_mtx);
         auto &pkgMap = impl.loadedPackageMap;
@@ -806,7 +806,7 @@ namespace LangMgr
         return PackageRef(it2->second->spec);
     }
 
-    std::vector<PackageRef> LanguageEngine::find(const std::string_view &id) const {
+    std::vector<PackageRef> LanguageManager::find(const std::string_view &id) const {
         __stdc_impl_t;
         std::shared_lock lock(impl.su_mtx);
         auto &pkgMap = impl.loadedPackageMap;
@@ -824,7 +824,7 @@ namespace LangMgr
         return res;
     }
 
-    std::vector<PackageRef> LanguageEngine::packages() const {
+    std::vector<PackageRef> LanguageManager::packages() const {
         __stdc_impl_t;
         std::shared_lock lock(impl.su_mtx);
         auto &list = impl.loadedPackageMap.packages;
@@ -837,7 +837,7 @@ namespace LangMgr
         return res;
     }
 
-    void LanguageEngine::registerCategoryFactory(ContribCategory *(*fac)(LanguageEngine *)) {
+    void LanguageManager::registerCategoryFactory(ContribCategory *(*fac)(LanguageManager *)) {
         Impl::categoryFactories.push_back(fac);
     }
 

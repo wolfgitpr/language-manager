@@ -30,6 +30,8 @@ include("${LANGMGR_SOURCE_DIR}/cmake/BuildAPI.cmake")
 # ----------------------------------
 add_subdirectory(lib)
 
+add_subdirectory(util)
+
 add_subdirectory(plugins)
 
 if (LANGMGR_BUILD_TESTS)

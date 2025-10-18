@@ -14,7 +14,7 @@
 namespace LangMgr
 {
 
-    class LanguageEngine;
+    class LanguageManager;
 
     class ContribSpec;
 
@@ -32,16 +32,16 @@ namespace LangMgr
             return id == other.id && version == other.version;
         }
 
-        static Expected<PackageDependency> fromJsonValue(const JsonValue &val);
+        LANGMGR_EXPORT static Expected<PackageDependency> fromJsonValue(const JsonValue &val);
     };
 
     class PackageData;
 
     class ScopedPackageRef;
 
-    /// PackageRef - Represents a reference to a package opened by \c LanguageEngine, does not own the
+    /// PackageRef - Represents a reference to a package opened by \c LanguageManager, does not own the
     /// package resources.
-    class PackageRef {
+    class LANGMGR_EXPORT PackageRef {
     public:
         PackageRef();
         ~PackageRef();
@@ -49,8 +49,8 @@ namespace LangMgr
     public:
         inline bool isValid() const { return SU() != nullptr; }
 
-        /// Close the package or reduce its reference count in \c LanguageEngine. When all \c PackageRef
-        /// instances opened using \c LanguageEngine::open are closed, its shared internal data will be
+        /// Close the package or reduce its reference count in \c LanguageManager. When all \c PackageRef
+        /// instances opened using \c LanguageManager::open are closed, its shared internal data will be
         /// deleted. Anyone creating a \c PackageRef instance using a copy construct should be aware
         /// of the lifetime of the internal data.
         bool close();
@@ -83,12 +83,12 @@ namespace LangMgr
         /// Returns true if and only if the \c noLoad option is not specified when opening the
         /// package and the loading is successful.
         ///
-        /// If the package is successfully loaded, its resources are managed by \c LanguageEngine, which
+        /// If the package is successfully loaded, its resources are managed by \c LanguageManager, which
         /// maintains its reference count.
         bool isLoaded() const;
 
-        /// Returns the \c LanguageEngine instance that loaded this package.
-        LanguageEngine *SU() const;
+        /// Returns the \c LanguageManager instance that loaded this package.
+        LanguageManager *SU() const;
 
     private:
         explicit PackageRef(PackageData *data) : _data(data) {}
@@ -96,11 +96,11 @@ namespace LangMgr
         PackageData *_data;
 
         friend class ContribSpec;
-        friend class LanguageEngine;
+        friend class LanguageManager;
         friend class ScopedPackageRef;
     };
 
-    /// ScopedPackageRef - Represents a unique reference to a package opened by \c LanguageEngine, and
+    /// ScopedPackageRef - Represents a unique reference to a package opened by \c LanguageManager, and
     /// closes it upon destruction.
     class ScopedPackageRef : public PackageRef {
     public:
@@ -125,7 +125,7 @@ namespace LangMgr
         }
 
     private:
-        void forceClose();
+        LANGMGR_EXPORT void forceClose();
 
         STDCORELIB_DISABLE_COPY(ScopedPackageRef);
     };

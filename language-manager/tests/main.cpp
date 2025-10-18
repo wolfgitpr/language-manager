@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include <LangMgr/Core/LanguageEngine.h>
+#include <LangMgr/Core/LanguageManager.h>
 #include <LangMgr/Support/U32Str.h>
 
 #ifdef Q_OS_WIN
@@ -18,7 +18,7 @@
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
 
-    const auto langMgr = LangMgr::LanguageEngine::instance();
+    const auto langMgr = LangMgr::LanguageManager::instance();
 
     std::string errorMsg;
 

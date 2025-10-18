@@ -2,14 +2,14 @@
 
 #include <onnxruntime_cxx_api.h>
 
-#include <dsinfer/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
 
 #include "OnnxDriver_Logger.h"
 #include "ExecutionProvider.h"
 #include "Env.h"
 #include "Session.h"
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
     using Api::Onnx::ExecutionProvider;
 
     static Ort::Session createOrtSession(const Ort::Env &ortEnv,
@@ -29,11 +29,11 @@ namespace ds::onnxdriver {
                         if (!initDirectML(sessOpt, deviceIndex, &initEPErrorMsg)) {
                             // log warning: "Could not initialize DirectML: {initEPErrorMsg},
                             // falling back to CPU."
-                            Log.srtWarning(
+                            Log.langMgrWarning(
                                 "Could not initialize DirectML: %1, falling back to CPU.",
                                 initEPErrorMsg);
                         } else {
-                            Log.srtInfo("Use DirectML. Device index: %1", deviceIndex);
+                            Log.langMgrInfo("Use DirectML. Device index: %1", deviceIndex);
                         }
                         break;
                     }
@@ -41,22 +41,22 @@ namespace ds::onnxdriver {
                         if (!initCUDA(sessOpt, deviceIndex, &initEPErrorMsg)) {
                             // log warning: "Could not initialize CUDA: {initEPErrorMsg}, falling
                             // back to CPU."
-                            Log.srtWarning(
+                            Log.langMgrWarning(
                                 "Could not initialize CUDA: %1, falling back to CPU.",
                                 initEPErrorMsg);
                         } else {
-                            Log.srtInfo("Use CUDA. Device index: %1", deviceIndex);
+                            Log.langMgrInfo("Use CUDA. Device index: %1", deviceIndex);
                         }
                         break;
                     }
                     default: {
                         // log info: "Use CPU."
-                        Log.srtInfo("Use CPU.");
+                        Log.langMgrInfo("Use CPU.");
                         break;
                     }
                 }
             } else {
-                Log.srtInfo("The model prefers to use CPU. [%1]", modelPath.filename());
+                Log.langMgrInfo("The model prefers to use CPU. [%1]", modelPath.filename());
             }
             return Ort::Session{ortEnv, std::filesystem::path::string_type(modelPath).c_str(),
                                 sessOpt};
@@ -72,19 +72,19 @@ namespace ds::onnxdriver {
                                const char *logid, const char *code_location, const char *message) {
         switch (severity) {
             case ORT_LOGGING_LEVEL_VERBOSE:
-                Log.srtLog(Debug, "[%1] %2", code_location, message);
+                Log.langMgrLog(Debug, "[%1] %2", code_location, message);
                 break;
             case ORT_LOGGING_LEVEL_WARNING:
-                Log.srtLog(Warning, "[%1] %2", code_location, message);
+                Log.langMgrLog(Warning, "[%1] %2", code_location, message);
                 break;
             case ORT_LOGGING_LEVEL_ERROR:
-                Log.srtLog(Critical, "[%1] %2", code_location, message);
+                Log.langMgrLog(Critical, "[%1] %2", code_location, message);
                 break;
             case ORT_LOGGING_LEVEL_FATAL:
-                Log.srtLog(Fatal, "[%1] %2", code_location, message);
+                Log.langMgrLog(Fatal, "[%1] %2", code_location, message);
                 break;
             default:
-                Log.srtLog(Information, "[%1] %2", code_location, message);
+                Log.langMgrLog(Information, "[%1] %2", code_location, message);
                 break;
         }
     }
@@ -98,11 +98,11 @@ namespace ds::onnxdriver {
     bool SessionImage::open(const std::filesystem::path &onnxPath, int hints,
                             std::string *errorMessage) {
         auto filename = onnxPath.filename();
-        Log.srtDebug("SessionImage [%1] - creating", filename);
+        Log.langMgrDebug("SessionImage [%1] - creating", filename);
 
         session = createOrtSession(env, onnxPath, hints & Session::SH_PreferCPUHint, errorMessage);
         if (!session) {
-            Log.srtCritical("SessionImage [%1] - create failed", filename);
+            Log.langMgrCritical("SessionImage [%1] - create failed", filename);
             return false;
         }
         Ort::AllocatorWithDefaultOptions allocator;
@@ -118,7 +118,7 @@ namespace ds::onnxdriver {
         for (size_t i = 0; i < outputCount; ++i) {
             outputNames.emplace_back(session.GetOutputNameAllocated(i, allocator).get());
         }
-        Log.srtDebug("SessionImage [%1] - created successfully", filename);
+        Log.langMgrDebug("SessionImage [%1] - created successfully", filename);
         return true;
     }
 

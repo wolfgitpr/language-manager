@@ -1,9 +1,9 @@
 #ifndef DSINFER_ONNXSESSION_H
 #define DSINFER_ONNXSESSION_H
 
-#include <dsinfer/Inference/InferenceSession.h>
+#include <LangPlugins/Inference/InferenceSession.h>
 
-namespace ds {
+namespace LangPlugins {
 
     class OnnxSession : public InferenceSession {
     public:
@@ -11,18 +11,18 @@ namespace ds {
         ~OnnxSession();
 
     public:
-        srt::Expected<void> open(const std::filesystem::path &path,
-                                 const srt::NO<InferenceSessionOpenArgs> &args) override;
-        srt::Expected<void> close() override;
+        LangMgr::Expected<void> open(const std::filesystem::path &path,
+                                 const LangMgr::NO<InferenceSessionOpenArgs> &args) override;
+        LangMgr::Expected<void> close() override;
         bool isOpen() const override;
 
         int64_t id() const override;
 
     public:
-        srt::Expected<srt::NO<srt::TaskResult>> start(const srt::NO<srt::TaskStartInput> &input) override;
-        srt::Expected<void> startAsync(const srt::NO<srt::TaskStartInput> &input,
+        LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> start(const LangMgr::NO<LangMgr::TaskStartInput> &input) override;
+        LangMgr::Expected<void> startAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
                                        const StartAsyncCallback &callback) override;
-        srt::NO<srt::TaskResult> result() const override;
+        LangMgr::NO<LangMgr::TaskResult> result() const override;
         bool stop() override;
 
     protected:

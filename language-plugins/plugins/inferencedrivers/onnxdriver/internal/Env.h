@@ -3,9 +3,9 @@
 
 #include <atomic>
 #include <shared_mutex>
-#include <dsinfer/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
     class Env {
     public:
@@ -31,6 +31,6 @@ namespace ds::onnxdriver {
         static inline std::atomic<int64_t> s_idCounter = 0;
     };
 
-} // namespace ds::onnxdriver
+} // namespace LangPlugins::onnxdriver
 
 #endif // DSINFER_ONNXDRIVER_ENV_H

@@ -6,6 +6,7 @@
 
 #include <stdcorelib/adt/array_view.h>
 
+#include <LangMgr/LangMgrGlobal.h>
 #include <LangMgr/Plugin/Plugin.h>
 
 namespace LangMgr
@@ -17,7 +18,7 @@ namespace LangMgr
     ///  - filesystem plugins: shared libraries loaded from registered directories per \c iid
     ///  - runtime plugins   : runtime class instances (not owned by PluginFactory)
     ///  - static plugins    : static class instances (not owned by PluginFactory)
-    class PluginFactory {
+    class LANGMGR_EXPORT PluginFactory {
     public:
         PluginFactory();
         virtual ~PluginFactory();

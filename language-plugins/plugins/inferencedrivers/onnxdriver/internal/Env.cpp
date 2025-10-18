@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <mutex>
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
     void Env::setDeviceConfig(const DeviceConfig& config) {
         std::unique_lock lock(s_mutex);
@@ -18,4 +18,4 @@ namespace ds::onnxdriver {
     int64_t Env::nextId() {
         return ++s_idCounter;
     }
-} // namespace ds::onnxdriver
+} // namespace LangPlugins::onnxdriver

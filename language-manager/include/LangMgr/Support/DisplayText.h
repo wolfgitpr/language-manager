@@ -11,7 +11,7 @@ namespace LangMgr
 {
 
     /// DisplayText - Represents a text with multiple translations.
-    class DisplayText {
+    class LANGMGR_EXPORT DisplayText {
     public:
         /// Constructs an empty display text object.
         DisplayText();

@@ -50,7 +50,7 @@ namespace LangMgr
 
         std::map<std::string, ILanguageFactory *> m_langFactory;
 
-        friend class LanguageEngine;
+        friend class LanguageManager;
     };
 
 } // namespace LangMgr

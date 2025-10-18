@@ -38,13 +38,13 @@ namespace LangMgr
 
     class ContribCategory::Impl : public ObjectPool::Impl {
     public:
-        explicit Impl(ContribCategory *decl, std::string name, LanguageEngine *su) :
+        explicit Impl(ContribCategory *decl, std::string name, LanguageManager *su) :
             ObjectPool::Impl(decl), name(std::move(name)), su(su) {}
         virtual ~Impl() = default;
 
     public:
         std::string name;
-        LanguageEngine *su;
+        LanguageManager *su;
 
         std::list<ContribSpec *> contributes;
         std::map<std::string,
@@ -52,7 +52,7 @@ namespace LangMgr
             indexes;
 
         inline std::shared_mutex &su_mtx() const {
-            return static_cast<LanguageEngine::Impl *>(su->_impl.get())->su_mtx;
+            return static_cast<LanguageManager::Impl *>(su->_impl.get())->su_mtx;
         }
 
         std::vector<ContribSpec *> findContributes(const ContribLocator &loc) const;

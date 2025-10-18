@@ -122,7 +122,7 @@ namespace LangMgr
         return PackageRef(impl.package);
     }
 
-    LanguageEngine *ContribSpec::SU() const {
+    LanguageManager *ContribSpec::SU() const {
         __stdc_impl_t;
         return impl.package->su;
     }
@@ -171,7 +171,7 @@ namespace LangMgr
         return impl.name;
     }
 
-    LanguageEngine *ContribCategory::SU() const {
+    LanguageManager *ContribCategory::SU() const {
         __stdc_impl_t;
         return impl.su;
     }
@@ -238,7 +238,7 @@ namespace LangMgr
 
     ContribCategory::ContribCategory(Impl &impl) : ObjectPool(impl) {}
 
-    ContribCategory::ContribCategory(std::string name, LanguageEngine *su) :
+    ContribCategory::ContribCategory(std::string name, LanguageManager *su) :
         ObjectPool(*new Impl(this, std::move(name), su)) {}
 
 } // namespace LangMgr

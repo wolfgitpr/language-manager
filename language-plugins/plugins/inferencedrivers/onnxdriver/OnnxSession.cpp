@@ -5,7 +5,7 @@
 #include "internal/Env.h"
 #include "internal/Session.h"
 
-namespace ds {
+namespace LangPlugins {
 
     class OnnxSession::Impl {
     public:
@@ -25,13 +25,13 @@ namespace ds {
         __stdc_impl_t;
     }
 
-    srt::Expected<void> OnnxSession::open(const std::filesystem::path &path,
-                                          const srt::NO<InferenceSessionOpenArgs> &args) {
+    LangMgr::Expected<void> OnnxSession::open(const std::filesystem::path &path,
+                                          const LangMgr::NO<InferenceSessionOpenArgs> &args) {
         __stdc_impl_t;
         auto openArgs = args.as<Api::Onnx::SessionOpenArgs>();
         if (!openArgs) {
-            return srt::Error{
-                srt::Error::InvalidArgument,
+            return LangMgr::Error{
+                LangMgr::Error::InvalidArgument,
                 "session open args is null pointer",
             };
         }
@@ -43,7 +43,7 @@ namespace ds {
         return impl.session.isOpen();
     }
 
-    srt::Expected<void> OnnxSession::close() {
+    LangMgr::Expected<void> OnnxSession::close() {
         __stdc_impl_t;
         return impl.session.close();
     }
@@ -53,18 +53,18 @@ namespace ds {
         return impl.sessionId;
     }
 
-    srt::Expected<srt::NO<srt::TaskResult>> OnnxSession::start(const srt::NO<srt::TaskStartInput> &input) {
+    LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> OnnxSession::start(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
         __stdc_impl_t;
         return impl.session.run(input);
     }
 
-    srt::Expected<void> OnnxSession::startAsync(const srt::NO<srt::TaskStartInput> &input,
+    LangMgr::Expected<void> OnnxSession::startAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
                                                 const StartAsyncCallback &callback) {
         __stdc_impl_t;
         return impl.session.runAsync(input, callback);
     }
 
-    srt::NO<srt::TaskResult> OnnxSession::result() const {
+    LangMgr::NO<LangMgr::TaskResult> OnnxSession::result() const {
         __stdc_impl_t;
         return impl.session.result();
     }

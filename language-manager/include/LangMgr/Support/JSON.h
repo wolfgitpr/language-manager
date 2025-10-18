@@ -9,6 +9,8 @@
 
 #include <stdcorelib/adt/array_view.h>
 
+#include <LangMgr/LangMgrGlobal.h>
+
 // TODO: Remove this macro
 #define LANGUAGE_MANAGER_JSON_IN_PLACE
 
@@ -25,7 +27,7 @@ namespace LangMgr
 
     /// JsonValue - Encapsulates the \c nlohmann_json library to provide a refined and unified
     /// interface for JSON operations.
-    class JsonValue {
+    class LANGMGR_EXPORT JsonValue {
     public:
         enum Type {
             Null = 0,

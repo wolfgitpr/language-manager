@@ -5,7 +5,7 @@
 
 #include <stdcorelib/support/versionnumber.h>
 
-#include <LangMgr/Core/LanguageEngine.h>
+#include <LangMgr/Core/LanguageManager.h>
 #include <LangMgr/Core/NamedObject.h>
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Support/JSON.h>
@@ -60,7 +60,7 @@ namespace LangMgr
         std::string _id;
     };
 
-    class LanguageEngine;
+    class LanguageManager;
 
     class PackageData;
 
@@ -68,7 +68,7 @@ namespace LangMgr
 
     class ContribCategory;
 
-    class ContribSpec {
+    class LANGMGR_EXPORT ContribSpec {
     public:
         enum State {
             Invalid,
@@ -89,8 +89,8 @@ namespace LangMgr
         State state() const;
         /// Related package.
         PackageRef parent() const;
-        /// Related \c LanguageEngine instance.
-        LanguageEngine *SU() const;
+        /// Related \c LanguageManager instance.
+        LanguageManager *SU() const;
 
     public:
         template <class T>
@@ -106,7 +106,7 @@ namespace LangMgr
         explicit ContribSpec(std::string category);
 
         friend class ContribCategory;
-        friend class LanguageEngine;
+        friend class LanguageManager;
     };
 
     template <class T>
@@ -128,8 +128,8 @@ namespace LangMgr
     public:
         const std::string &name() const;
 
-        /// Returns the related \c LanguageEngine instance.
-        LanguageEngine *SU() const;
+        /// Returns the related \c LanguageManager instance.
+        LanguageManager *SU() const;
 
     public:
         template <class T>
@@ -157,9 +157,9 @@ namespace LangMgr
     protected:
         class Impl;
         explicit ContribCategory(Impl &impl);
-        ContribCategory(std::string name, LanguageEngine *su);
+        ContribCategory(std::string name, LanguageManager *su);
 
-        friend class LanguageEngine;
+        friend class LanguageManager;
         friend class PackageRef;
         friend class PackageData;
     };
@@ -181,13 +181,13 @@ namespace LangMgr
         static_assert(std::is_base_of<ContribCategory, T>::value, "T should inherit from LangMgr::ContribCategory");
 
     public:
-        inline ContribCategoryRegistrar(ContribCategory *(*fac)(LanguageEngine *)) {
-            LanguageEngine::registerCategoryFactory(fac);
+        inline ContribCategoryRegistrar(ContribCategory *(*fac)(LanguageManager *)) {
+            LanguageManager::registerCategoryFactory(fac);
         }
 
         inline ContribCategoryRegistrar() {
-            LanguageEngine::registerCategoryFactory(
-                [](LanguageEngine *su) -> ContribCategory *
+            LanguageManager::registerCategoryFactory(
+                [](LanguageManager *su) -> ContribCategory *
                 {
                     return new T(su); //
                 });

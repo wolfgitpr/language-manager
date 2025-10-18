@@ -6,12 +6,12 @@
 #include <filesystem>
 #include <functional>
 
-#include <synthrt/Support/Expected.h>
-#include <dsinfer/Api/Drivers/Onnx/OnnxDriverApi.h>
-#include <synthrt/Task/ITask.h>
+#include <LangMgr/Support/Expected.h>
+#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangMgr/Task/ITask.h>
 
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
     class Session {
     public:
@@ -30,21 +30,21 @@ namespace ds::onnxdriver {
         Session &operator=(Session &&other) noexcept;
 
     public:
-        srt::Expected<void> open(const std::filesystem::path &path, const srt::NO<Api::Onnx::SessionOpenArgs> &args);
-        srt::Expected<void> close();
+        LangMgr::Expected<void> open(const std::filesystem::path &path, const LangMgr::NO<Api::Onnx::SessionOpenArgs> &args);
+        LangMgr::Expected<void> close();
 
         const std::vector<std::string> &inputNames() const;
         const std::vector<std::string> &outputNames() const;
 
-        srt::Expected<srt::NO<srt::TaskResult>> run(const srt::NO<srt::TaskStartInput> &input);
-        srt::Expected<void> runAsync(const srt::NO<srt::TaskStartInput> &input, const srt::ITask::StartAsyncCallback &callback);
+        LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> run(const LangMgr::NO<LangMgr::TaskStartInput> &input);
+        LangMgr::Expected<void> runAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input, const LangMgr::ITask::StartAsyncCallback &callback);
 
         void terminate();
 
         const std::filesystem::path &path() const;
         bool isOpen() const;
 
-        srt::NO<srt::TaskResult> result() const;
+        LangMgr::NO<LangMgr::TaskResult> result() const;
 
     protected:
         class Impl;

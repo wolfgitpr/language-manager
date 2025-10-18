@@ -356,7 +356,7 @@ namespace LangMgr {
         if (!_data->su) {
             return true;
         }
-        if (!static_cast<LanguageEngine::Impl *>(_data->su->_impl.get())->close(_data)) {
+        if (!static_cast<LanguageManager::Impl *>(_data->su->_impl.get())->close(_data)) {
             return false;
         }
         _data = &staticEmptyPackageData();
@@ -443,7 +443,7 @@ namespace LangMgr {
         return _data->loaded;
     }
 
-    LanguageEngine *PackageRef::SU() const {
+    LanguageManager *PackageRef::SU() const {
         return _data->su;
     }
 

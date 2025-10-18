@@ -20,7 +20,7 @@ namespace LangMgr
 
     class PackageData {
     public:
-        explicit PackageData(LanguageEngine *su) : su(su) {}
+        explicit PackageData(LanguageManager *su) : su(su) {}
         ~PackageData();
 
     public:
@@ -30,7 +30,7 @@ namespace LangMgr
 
         static Expected<JsonObject> readDesc(const std::filesystem::path &dir);
 
-        LanguageEngine *su;
+        LanguageManager *su;
 
         std::filesystem::path path;
         std::string id;

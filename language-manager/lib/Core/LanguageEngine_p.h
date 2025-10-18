@@ -9,7 +9,7 @@
 
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
 
-#include "LanguageEngine.h"
+#include "LanguageManager.h"
 #include "PluginFactory_p.h"
 
 namespace LangMgr
@@ -18,12 +18,12 @@ namespace LangMgr
     class ContribSpec;
     class PackageData;
 
-    class LanguageEngine::Impl : public PluginFactory::Impl {
+    class LanguageManager::Impl : public PluginFactory::Impl {
     public:
-        explicit Impl(LanguageEngine *decl);
+        explicit Impl(LanguageManager *decl);
         ~Impl();
 
-        using Decl = LanguageEngine;
+        using Decl = LanguageManager;
 
         Expected<PackageData *> open(const std::filesystem::path &path, bool noLoad);
         bool close(PackageData *spec);
@@ -80,7 +80,7 @@ namespace LangMgr
         mutable std::shared_mutex su_mtx;
 
     public:
-        static llvm::SmallVector<ContribCategory *(*)(LanguageEngine *)> categoryFactories;
+        static llvm::SmallVector<ContribCategory *(*)(LanguageManager *)> categoryFactories;
     };
 
 } // namespace LangMgr

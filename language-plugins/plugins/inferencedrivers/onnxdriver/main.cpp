@@ -1,8 +1,8 @@
-#include <dsinfer/Inference/InferenceDriverPlugin.h>
+#include <LangPlugins/Inference/InferenceDriverPlugin.h>
 
 #include "OnnxDriver.h"
 
-namespace ds {
+namespace LangPlugins {
 
     class OnnxDriverPlugin : public InferenceDriverPlugin {
     public:
@@ -13,11 +13,11 @@ namespace ds {
             return "onnx";
         }
 
-        srt::NO<InferenceDriver> create() override {
-            return srt::NO<OnnxDriver>::create();
+        LangMgr::NO<InferenceDriver> create() override {
+            return LangMgr::NO<OnnxDriver>::create();
         }
     };
 
 }
 
-SYNTHRT_EXPORT_PLUGIN(ds::OnnxDriverPlugin)
+LANGMGR_EXPORT_PLUGIN(LangPlugins::OnnxDriverPlugin)

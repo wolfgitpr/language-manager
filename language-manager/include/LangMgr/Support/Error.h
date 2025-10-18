@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <LangMgr/LangMgrGlobal.h>
+
 namespace LangMgr
 {
 
@@ -46,7 +48,7 @@ namespace LangMgr
         int _type;
         std::shared_ptr<std::string> _msg;
 
-        static std::shared_ptr<std::string> defaultMessage(int type);
+        LANGMGR_EXPORT static std::shared_ptr<std::string> defaultMessage(int type);
     };
 
 } // namespace LangMgr

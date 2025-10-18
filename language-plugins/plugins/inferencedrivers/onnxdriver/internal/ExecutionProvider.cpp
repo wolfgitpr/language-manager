@@ -13,7 +13,7 @@
 
 #include <stdcorelib/support/sharedlibrary.h>
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
     bool initCUDA(Ort::SessionOptions &options, int deviceIndex, std::string *errorMessage) {
 #if defined(ONNXDRIVER_ENABLE_CUDA)

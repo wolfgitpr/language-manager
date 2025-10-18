@@ -3,9 +3,10 @@
 
 #include <filesystem>
 
-#include <dsinfer/Inference/InferenceDriver.h>
+#include <LangPlugins/Inference/InferenceDriver.h>
 
-namespace ds {
+namespace LangPlugins
+{
 
     class OnnxDriver : public InferenceDriver {
     public:
@@ -16,14 +17,15 @@ namespace ds {
         std::string arch() const override;
         std::string backend() const override;
 
-        srt::Expected<void> initialize(const srt::NO<InferenceDriverInitArgs> &args) override;
-        srt::NO<InferenceSession> createSession() override;
+        LangMgr::Expected<void> initialize(const LangMgr::NO<InferenceDriverInitArgs> &args) override;
+        LangMgr::NO<InferenceSession> createSession() override;
+        LangMgr::Expected<void> loadFromProcess() const;
 
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
     };
 
-}
+} // namespace LangPlugins
 
 #endif // DSINFER_ONNXDRIVER_H

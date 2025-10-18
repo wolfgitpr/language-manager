@@ -3,7 +3,7 @@
 
 #include <onnxruntime_cxx_api.h>
 
-namespace ds::onnxdriver {
+namespace LangPlugins::onnxdriver {
 
     bool initCUDA(Ort::SessionOptions &options, int deviceIndex,
                   std::string *errorMessage = nullptr);
