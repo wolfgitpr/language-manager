@@ -13,30 +13,27 @@
 namespace LangPlugins::Api::LstmG2p::L1
 {
 
-    inline constexpr char API_NAME[] = "lstmG2p";
-
-    inline constexpr char API_CLASS[] = "ai.svs.LstmG2pInference";
-
-    inline constexpr int API_LEVEL = 1;
+    constexpr char API_NAME[] = "lstmG2p";
+    constexpr char API_CLASS[] = "ai.svs.LstmG2pInference";
+    constexpr int API_LEVEL = 1;
 
 
     class LstmG2pSchema : public LangMgr::InferenceSchema {
     public:
-        inline LstmG2pSchema() : LangMgr::InferenceSchema(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pSchema() : InferenceSchema(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::vector<std::string> languages;
     };
 
     class LstmG2pConfiguration : public LangMgr::InferenceConfiguration {
     public:
-        inline LstmG2pConfiguration() : LangMgr::InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pConfiguration() : InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::map<std::string, int> charVocab;
-
         std::map<std::string, int> phonemeVocab;
+        std::map<int, std::string> idx_to_phoneme;
 
         std::filesystem::path encoder;
-
         std::filesystem::path decoder;
 
         int unkIdx = 0;
@@ -44,15 +41,11 @@ namespace LangPlugins::Api::LstmG2p::L1
         int bosIdx = 2;
         int eosIdx = 3;
         int maxLen = 48;
-
-        bool useBeamSearch = false;
-
-        int beamSize = 5;
     };
 
     class LstmG2pImportOptions : public LangMgr::InferenceImportOptions {
     public:
-        inline LstmG2pImportOptions() : LangMgr::InferenceImportOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pImportOptions() : InferenceImportOptions(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::filesystem::path vocabPath;
         std::filesystem::path configPath;
@@ -60,7 +53,7 @@ namespace LangPlugins::Api::LstmG2p::L1
 
     class LstmG2pRuntimeOptions : public LangMgr::InferenceRuntimeOptions {
     public:
-        inline LstmG2pRuntimeOptions() : LangMgr::InferenceRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pRuntimeOptions() : InferenceRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::string device = "cpu";
         bool optimizePerformance = false;
@@ -68,7 +61,7 @@ namespace LangPlugins::Api::LstmG2p::L1
 
     class LstmG2pInitArgs : public LangMgr::InferenceInitArgs {
     public:
-        inline LstmG2pInitArgs() : InferenceInitArgs(API_NAME) {}
+        LstmG2pInitArgs() : InferenceInitArgs(API_NAME) {}
 
         LangMgr::NO<LstmG2pRuntimeOptions> runtimeOptions;
     };
@@ -81,16 +74,15 @@ namespace LangPlugins::Api::LstmG2p::L1
 
     class LstmG2pStartInput : public LangMgr::TaskStartInput {
     public:
-        inline LstmG2pStartInput() : LangMgr::TaskStartInput(API_NAME) {}
+        LstmG2pStartInput() : TaskStartInput(API_NAME) {}
 
         std::vector<G2pWord> words;
-
         bool returnDetailedInfo = false;
     };
 
     class LstmG2pResult : public LangMgr::TaskResult {
     public:
-        inline LstmG2pResult() : LangMgr::TaskResult(API_NAME) {}
+        LstmG2pResult() : TaskResult(API_NAME) {}
 
         std::string word;
         std::vector<std::string> phonemes;

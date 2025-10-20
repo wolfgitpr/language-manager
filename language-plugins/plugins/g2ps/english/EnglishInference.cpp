@@ -1,8 +1,6 @@
 #include "EnglishInference.h"
 
-#include <fstream>
 #include <mutex>
-#include <numeric>
 #include <shared_mutex>
 
 #include <stdcorelib/path.h>
@@ -155,6 +153,10 @@ namespace LangPlugins
         auto encoderInput = LangMgr::NO<Onnx::SessionStartInput>::create();
         encoderInput->inputs["input_ids"] = preprocessedInput.take();
 
+        encoderInput->outputs.insert("encoder_outputs");
+        encoderInput->outputs.insert("hidden");
+        encoderInput->outputs.insert("cell");
+
         std::unique_lock lock(impl.mutex);
         if (!impl.encoderSession || !impl.encoderSession->isOpen()) {
             setState(Failed);
@@ -235,17 +237,15 @@ namespace LangPlugins
     LangMgr::Expected<LangMgr::NO<ITensor>>
     EnglishInferenceHelper::preprocessWord(const std::string &word,
                                            const LangMgr::NO<Lstm::LstmG2pConfiguration> &config) {
-
-        // Convert word to lowercase and preprocess
         const std::string processedWord = stdc::to_lower(word);
         stdc::trim(processedWord);
 
-        // Convert characters to indices
         std::vector<int64_t> indices;
         indices.push_back(config->bosIdx); // BOS
 
         for (const char c : processedWord) {
-            if (auto it = config->charVocab.find(std::string(1, c)); it != config->charVocab.end()) {
+            std::string charStr(1, c);
+            if (auto it = config->charVocab.find(charStr); it != config->charVocab.end()) {
                 indices.push_back(it->second);
             } else {
                 indices.push_back(config->unkIdx);
@@ -254,7 +254,12 @@ namespace LangPlugins
 
         indices.push_back(config->eosIdx); // EOS
 
-        return createTensor(indices, {1, static_cast<int64_t>(indices.size())});
+        const std::vector shape{static_cast<int64_t>(indices.size())};
+        if (auto exp = Tensor::createFromView<int64_t>(shape, stdc::array_view<int64_t>{indices}); exp) {
+            return exp.take();
+        }
+        return LangMgr::Error(LangMgr::Error::InvalidArgument,
+                              stdc::formatN("Failed to create tensor for word: %1", word));
     }
 
     LangMgr::Expected<LangMgr::NO<ITensor>>
@@ -278,12 +283,17 @@ namespace LangPlugins
         std::vector<int64_t> phonemeIds;
         const int64_t maxLen = config->maxLen > 0 ? config->maxLen : 48;
 
-        // Initialize decoder input with BOS
-        auto decoderInputExp = createTensor(std::vector<int64_t>{config->bosIdx}, {1, 1});
-        if (!decoderInputExp) {
-            return decoderInputExp.takeError();
+        // Initialize decoder input with BOS - 创建1D张量
+        std::vector<int64_t> decoderInitData{config->bosIdx};
+        std::vector<int64_t> decoderInitShape{1};
+        LangMgr::NO<ITensor> decoderInput;
+
+        if (auto exp = Tensor::createFromView<int64_t>(decoderInitShape, stdc::array_view<int64_t>{decoderInitData});
+            exp) {
+            decoderInput = exp.take();
+        } else {
+            return exp.takeError();
         }
-        auto decoderInput = decoderInputExp.take();
 
         auto currentHidden = hidden;
         auto currentCell = cell;
@@ -294,6 +304,11 @@ namespace LangPlugins
             decoderSessionInput->inputs["hidden"] = currentHidden;
             decoderSessionInput->inputs["cell"] = currentCell;
             decoderSessionInput->inputs["encoder_outputs"] = encoderOutputs;
+
+            decoderSessionInput->outputs.insert("output");
+            decoderSessionInput->outputs.insert("hidden_new");
+            decoderSessionInput->outputs.insert("cell_new");
+            decoderSessionInput->outputs.insert("attention_weights");
 
             LangMgr::NO<Onnx::SessionResult> decoderResult;
             if (auto decoderExp = decodeSession->start(decoderSessionInput); !decoderExp) {
@@ -307,8 +322,8 @@ namespace LangPlugins
             }
 
             auto output = getTensorFromResult(decoderResult, "output");
-            currentHidden = getTensorFromResult(decoderResult, "hidden").take();
-            currentCell = getTensorFromResult(decoderResult, "cell").take();
+            currentHidden = getTensorFromResult(decoderResult, "hidden_new").take();
+            currentCell = getTensorFromResult(decoderResult, "cell_new").take();
 
             if (!output || !currentHidden || !currentCell) {
                 return LangMgr::Error(LangMgr::Error::SessionError, "failed to get decoder outputs");
@@ -341,12 +356,15 @@ namespace LangPlugins
 
             phonemeIds.push_back(predictedId);
 
-            // Update decoder input for next step
-            auto nextInputExp = createTensor(std::vector{predictedId}, {1, 1});
-            if (!nextInputExp) {
-                return nextInputExp.takeError();
+            // Update decoder input for next step - 创建1D张量
+            std::vector nextInputData{predictedId};
+            std::vector<int64_t> nextInputShape{1};
+            if (auto exp = Tensor::createFromView<int64_t>(nextInputShape, stdc::array_view<int64_t>{nextInputData});
+                exp) {
+                decoderInput = exp.take();
+            } else {
+                return exp.takeError();
             }
-            decoderInput = nextInputExp.take();
         }
 
         return phonemeIds;
@@ -375,48 +393,4 @@ namespace LangPlugins
 
         return phonemes;
     }
-
-    template <typename T>
-    LangMgr::Expected<LangMgr::NO<ITensor>> EnglishInferenceHelper::createTensor(const std::vector<T> &data,
-                                                                                 const std::vector<int64_t> &shape) {
-
-        int64_t totalElements = 1;
-        for (const auto &dim : shape) {
-            if (dim <= 0) {
-                return LangMgr::Error(LangMgr::Error::InvalidArgument, "invalid tensor shape dimension");
-            }
-            totalElements *= dim;
-        }
-
-        if (data.size() != static_cast<size_t>(totalElements)) {
-            return LangMgr::Error(
-                LangMgr::Error::InvalidArgument,
-                stdc::formatN("data size (%1) does not match tensor shape (%2)", data.size(), totalElements));
-        }
-
-        auto helperExp = inferutil::TensorHelper<T>::createFor1DArray(data.size());
-        if (!helperExp) {
-            return helperExp.takeError();
-        }
-
-        auto helper = helperExp.take();
-
-        for (const auto &value : data) {
-            if (!helper.write(value)) {
-                return LangMgr::Error(LangMgr::Error::SessionError, "failed to write data to tensor");
-            }
-        }
-
-        if (!helper.isComplete()) {
-            return LangMgr::Error(LangMgr::Error::SessionError, "tensor data writing incomplete");
-        }
-
-        return helper.take().template as<ITensor>();
-    }
-
-    template LangMgr::Expected<LangMgr::NO<ITensor>>
-    EnglishInferenceHelper::createTensor<int64_t>(const std::vector<int64_t> &, const std::vector<int64_t> &);
-
-    template LangMgr::Expected<LangMgr::NO<ITensor>>
-    EnglishInferenceHelper::createTensor<float>(const std::vector<float> &, const std::vector<int64_t> &);
 } // namespace LangPlugins

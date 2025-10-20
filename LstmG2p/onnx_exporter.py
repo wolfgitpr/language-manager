@@ -1,4 +1,5 @@
 import argparse
+import json
 import pathlib
 
 import onnx
@@ -126,15 +127,25 @@ class LstmG2pOnnxExporter:
         except Exception as e:
             print(f"Simplification failed: {e}")
 
-        with open(onnx_dir / "config.yaml", 'w', encoding='utf-8') as f:
-            yaml.dump(self.config, f, default_flow_style=False, allow_unicode=True)
+        with open(onnx_dir / "config.json", 'w', encoding='utf-8') as f:
+            config_json = {
+                "$version": "1.0",
+                "level": 1,
+                "schema": {},
+                "configuration": {
+                    "encoder": "encoder.onnx",
+                    "decoder": "decoder.onnx",
+                    "charVocab": "char.json",
+                    "phonemeVocab": "phoneme.json"
+                }
+            }
+            json.dump(config_json, f, indent=4)
 
-        with open(onnx_dir / "vocab.yaml", 'w', encoding='utf-8') as f:
-            yaml.dump({
-                "char_vocab": self.model.char_vocab,
-                "phoneme_vocab": self.model.phoneme_vocab,
-                "idx_to_phoneme": self.model.idx_to_phoneme
-            }, f, default_flow_style=False, allow_unicode=True)
+        with open(onnx_dir / "char.json", 'w', encoding='utf-8') as f:
+            json.dump(self.model.char_vocab, f, indent=4)
+
+        with open(onnx_dir / "phoneme.json", 'w', encoding='utf-8') as f:
+            json.dump(self.model.phoneme_vocab, f, indent=4)
 
         print(f"LSTM G2p Onnx exported to: {onnx_dir}")
         return onnx_dir

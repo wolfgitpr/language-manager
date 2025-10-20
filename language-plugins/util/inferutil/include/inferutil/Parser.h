@@ -1,7 +1,6 @@
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_H
 #define LANGPLUGINS_INFERUTIL_PARSER_H
 
-#include <set>
 #include <string>
 #include <vector>
 
@@ -29,29 +28,10 @@ namespace LangPlugins::inferutil
         inline void parse_double_optional(double &out, const std::string &fieldName);
         inline void parse_positive_double_optional(double &out, const std::string &fieldName);
         inline void parse_path_required(std::filesystem::path &out, const std::string &fieldName);
-
-        inline void parse_phonemes(std::map<std::string, int> &out);
-        inline void parse_languages(bool useLanguageId, std::map<std::string, int> &out);
-        inline void parse_hiddenSize(bool useSpeakerEmbedding, int &out);
-        inline void parse_speakers_and_load_emb(bool useSpeakerEmbedding, int hiddenSize,
-                                                std::map<std::string, std::vector<float>> &out);
-
-        /// First, try parsing `frameWidth`.
-        ///
-        /// If not found, try parsing `sampleRate` and `hopSize`,
-        /// calculate frameWidth = hopSize / sampleRate
-        ///
-        /// If all those parameters not found, collect an error.
-        inline void parse_frameWidth(double &out);
-
-        template <ParameterType PT>
-        inline void parse_parameters(std::set<ParamTag> &out, const std::string &fieldName);
-
-        template <ParameterType PT>
-        inline void parse_parameters(std::vector<ParamTag> &out, const std::string &fieldName);
+        inline void parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName);
 
         template <typename T>
-        inline void collectError(T &&msg) {
+        void collectError(T &&msg) {
             if (ec) {
                 ec->collectError(std::forward<T>(msg));
             }
@@ -75,14 +55,8 @@ namespace LangPlugins::inferutil
         inline void parse_bool_optional(bool &out, const std::string &fieldName);
         inline void parse_string_array_optional(std::vector<std::string> &out, const std::string &fieldName);
 
-        template <ParameterType PT>
-        inline void parse_parameters(std::set<ParamTag> &out, const std::string &fieldName);
-
-        template <ParameterType PT>
-        inline void parse_parameters(std::vector<ParamTag> &out, const std::string &fieldName);
-
         template <typename T>
-        inline void collectError(T &&msg) {
+        void collectError(T &&msg) {
             if (ec) {
                 ec->collectError(std::forward<T>(msg));
             }
@@ -105,7 +79,7 @@ namespace LangPlugins::inferutil
         inline void parse_path_required(std::filesystem::path &out, const std::string &fieldName);
 
         template <typename T>
-        inline void collectError(T &&msg) {
+        void collectError(T &&msg) {
             if (ec) {
                 ec->collectError(std::forward<T>(msg));
             }

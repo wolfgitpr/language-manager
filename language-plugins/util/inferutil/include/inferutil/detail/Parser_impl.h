@@ -3,6 +3,7 @@
 
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 #define LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
+#include <set>
 
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 #error "Parser_impl.h should only be included by Parser.h"
@@ -35,7 +36,7 @@ namespace LangPlugins::inferutil
         }
 
         template <typename Container>
-        inline bool tryFindAndInsertParameters(std::string_view key, Container &out) {
+        bool tryFindAndInsertParameters(std::string_view key, Container &out) {
             return tryFindAndInsertVarianceParameters(key, out) || tryFindAndInsertTransitionParameters(key, out);
         }
     } // namespace detail
@@ -130,103 +131,18 @@ namespace LangPlugins::inferutil
         }
     }
 
-    inline void ConfigurationParser::parse_phonemes(std::map<std::string, int> &out) {
+    inline void ConfigurationParser::parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName) {
         const auto &config = *pConfig;
 
-        if (const auto it = config.find("phonemes"); it != config.end()) {
+        if (const auto it = config.find(fieldName); it != config.end()) {
             if (!it->second.isString()) {
                 collectError(R"(string field "phonemes" type mismatch)");
             } else {
-                auto path = spec->path() / stdc::path::from_utf8(it->second.toStringView());
+                const auto path = spec->path() / stdc::path::from_utf8(it->second.toStringView());
                 loadIdMapping(it->first, path, out);
             }
         } else {
             collectError("string field \"phonemes\" is missing");
-        }
-    }
-
-    inline void ConfigurationParser::parse_languages(bool useLanguageId, std::map<std::string, int> &out) {
-        const auto &config = *pConfig;
-
-        if (const auto it = config.find("languages"); it != config.end()) {
-            if (!it->second.isString()) {
-                collectError(R"(string field "languages" type mismatch)");
-            } else {
-                auto path = spec->path() / stdc::path::from_utf8(it->second.toStringView());
-                loadIdMapping(it->first, path, out);
-            }
-        } else {
-            if (useLanguageId) {
-                // Missing required `languages` field.
-                collectError(R"(string field "languages" is missing)"
-                             R"((required when "useLanguageId" is set to true))");
-            } else {
-                // Nothing to do:
-                // `languages` is an optional field when "useLanguageId" is set to false
-            }
-        }
-    }
-
-    inline void ConfigurationParser::parse_hiddenSize(bool useSpeakerEmbedding, int &out) {
-        const auto &config = *pConfig;
-
-        if (const auto it = config.find("hiddenSize"); it != config.end()) {
-            if (it->second.isNumber()) {
-                auto val = static_cast<int>(it->second.toInt());
-                if (val <= 0) {
-                    collectError(R"(integer field "hiddenSize" must be a positive integer)");
-                }
-                out = val;
-            } else {
-                collectError(R"(integer field "hiddenSize" type mismatch)");
-            }
-        } else {
-            if (useSpeakerEmbedding) {
-                // Missing required `hiddenSize` field.
-                collectError(R"(integer field "hiddenSize" is missing )"
-                             R"((required when "useSpeakerEmbedding" is set to true))");
-            } else {
-                // Nothing to do:
-                // `hiddenSize` is an optional field when "useSpeakerEmbedding" is set to false
-            }
-        }
-    }
-
-    inline void ConfigurationParser::parse_frameWidth(double &out) {
-        const auto &config = *pConfig;
-
-        if (const auto it = config.find("frameWidth"); it != config.end()) {
-            // `frameWidth` found
-            if (it->second.isNumber()) {
-                out = it->second.toDouble();
-            } else {
-                collectError(R"(float field "frameWidth" type mismatch)");
-            }
-        } else {
-            // `frameWidth` not found, fall back to `sampleRate` and `hopSize`
-            auto it_sampleRate = config.find("sampleRate");
-            auto it_hopSize = config.find("hopSize");
-            if (it_sampleRate != config.end() && it_hopSize != config.end()) {
-                // OK: Fields exist
-                if (it_sampleRate->second.isNumber() && it_hopSize->second.isNumber()) {
-                    // OK: Is a number
-                    auto sampleRate = it_sampleRate->second.toDouble();
-                    auto hopSize = it_hopSize->second.toDouble();
-                    if (sampleRate > 0 && hopSize > 0) {
-                        // OK: Is positive
-                        out = 1.0 * hopSize / sampleRate;
-                    } else {
-                        // Error: Not positive
-                        collectError(R"(integer fields "hopSize" and "hopSize" must be positive)");
-                    }
-                } else {
-                    // Error: Not a number
-                    collectError(R"(integer fields "hopSize" or "hopSize" type mismatch)");
-                }
-            } else {
-                // Error: `frameWidth` not found, and `sampleRate` `hopSize` also not found
-                collectError(R"(must specify either "frameWidth" or ("sampleRate and "hopSize")");
-            }
         }
     }
 
@@ -239,13 +155,13 @@ namespace LangPlugins::inferutil
             return false;
         }
         file.seekg(0, std::ios::end);
-        auto size = file.tellg();
+        const auto size = file.tellg();
         std::string buffer(size, '\0');
         file.seekg(0);
         file.read(buffer.data(), size);
 
         std::string errString;
-        auto j = srt::JsonValue::fromJson(buffer, true, &errString);
+        const auto j = LangMgr::JsonValue::fromJson(buffer, true, &errString);
         if (!errString.empty()) {
             if (ec) {
                 ec->collectError(std::move(errString));

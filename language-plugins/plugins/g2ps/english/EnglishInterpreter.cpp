@@ -52,7 +52,6 @@ namespace LangPlugins
 
         // Collect all the errors and return to user
         inferutil::ErrorCollector ec;
-
         inferutil::ConfigurationParser parser(spec, &ec);
 
         // [REQUIRED] encoder, path (json value is string)
@@ -64,8 +63,24 @@ namespace LangPlugins
         // [REQUIRED] predictor, path (json value is string)
         {
             static_assert(std::is_same_v<decltype(result->decoder), std::filesystem::path>);
-            parser.parse_path_required(result->decoder, "predictor");
+            parser.parse_path_required(result->decoder, "decoder");
         } // predictor
+
+        // chars, load file (json value is string of file path)
+        {
+            static_assert(std::is_same_v<decltype(result->charVocab), std::map<std::string, int>>);
+            parser.parse_phonemes(result->charVocab, "charVocab");
+        } // chars
+
+        // phonemes, load file (json value is string of file path)
+        {
+            static_assert(std::is_same_v<decltype(result->phonemeVocab), std::map<std::string, int>>);
+            parser.parse_phonemes(result->phonemeVocab, "phonemeVocab");
+        } // phonemes
+
+        // idx to phoneme mapping
+        for (const auto &[phoneme, index] : result->phonemeVocab)
+            result->idx_to_phoneme[index] = phoneme;
 
         if (ec.hasErrors()) {
             return LangMgr::Error{
