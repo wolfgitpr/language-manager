@@ -4,24 +4,22 @@
 #include <LangMgr/Plugin/Plugin.h>
 #include <LangMgr/Tool/InferenceInterpreter.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class InferenceInterpreterPlugin : public Plugin {
     public:
         InferenceInterpreterPlugin() = default;
-        ~InferenceInterpreterPlugin() = default;
+        ~InferenceInterpreterPlugin() override;
 
-        const char *iid() const override {
-            return "org.openvpi.InferenceInterpreter";
-        }
+        const char *iid() const override { return "org.openvpi.InferenceInterpreter"; }
 
-    public:
         virtual NO<InferenceInterpreter> create() = 0;
 
-    public:
         STDCORELIB_DISABLE_COPY(InferenceInterpreterPlugin)
     };
+    inline InferenceInterpreterPlugin::~InferenceInterpreterPlugin() = default;
 
-}
+} // namespace LangMgr
 
 #endif // LANGMGR_INFERENCEINTERPRETERPLUGIN_H

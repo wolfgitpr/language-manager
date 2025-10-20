@@ -1,4 +1,4 @@
-#include "EnglishInference.h"
+#include "LstmG2pInference.h"
 
 #include <mutex>
 #include <shared_mutex>
@@ -28,7 +28,7 @@ namespace LangPlugins
         return genericConfig.as<Lstm::LstmG2pConfiguration>();
     }
 
-    class EnglishInference::Impl {
+    class LstmG2pInference::Impl {
     public:
         LangMgr::NO<Lstm::LstmG2pResult> result;
         LangMgr::NO<InferenceDriver> driver;
@@ -37,12 +37,12 @@ namespace LangPlugins
         mutable std::shared_mutex mutex;
     };
 
-    EnglishInference::EnglishInference(const LangMgr::InferenceSpec *spec) :
+    LstmG2pInference::LstmG2pInference(const LangMgr::InferenceSpec *spec) :
         Inference(spec), _impl(std::make_unique<Impl>()) {}
 
-    EnglishInference::~EnglishInference() = default;
+    LstmG2pInference::~LstmG2pInference() = default;
 
-    LangMgr::Expected<void> EnglishInference::initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) {
+    LangMgr::Expected<void> LstmG2pInference::initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) {
         __stdc_impl_t;
         // Currently, no args to process. But we still need to enforce callers to pass the correct
         // args type.
@@ -101,7 +101,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>>
-    EnglishInference::start(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
+    LstmG2pInference::start(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
         __stdc_impl_t;
         {
             std::shared_lock lock(impl.mutex);
@@ -143,7 +143,7 @@ namespace LangPlugins
 
         // For now, process only the first word
         const auto &word = g2pInput->words[0];
-        auto preprocessedInput = EnglishInferenceHelper::preprocessWord(word.text, config);
+        auto preprocessedInput = LstmG2pInferenceHelper::preprocessWord(word.text, config);
         if (!preprocessedInput) {
             setState(Failed);
             return preprocessedInput.takeError();
@@ -177,9 +177,9 @@ namespace LangPlugins
         }
 
         // Extract encoder outputs
-        auto encoderOutputs = EnglishInferenceHelper::getTensorFromResult(encoderResult, "encoder_outputs");
-        auto hidden = EnglishInferenceHelper::getTensorFromResult(encoderResult, "hidden");
-        auto cell = EnglishInferenceHelper::getTensorFromResult(encoderResult, "cell");
+        auto encoderOutputs = LstmG2pInferenceHelper::getTensorFromResult(encoderResult, "encoder_outputs");
+        auto hidden = LstmG2pInferenceHelper::getTensorFromResult(encoderResult, "hidden");
+        auto cell = LstmG2pInferenceHelper::getTensorFromResult(encoderResult, "cell");
 
         if (!encoderOutputs || !hidden || !cell) {
             setState(Failed);
@@ -187,7 +187,7 @@ namespace LangPlugins
         }
 
         // Run decoder with autoregressive generation
-        auto phonemeIds = EnglishInferenceHelper::runDecoder(impl.decodeSession, encoderOutputs.take(), hidden.take(),
+        auto phonemeIds = LstmG2pInferenceHelper::runDecoder(impl.decodeSession, encoderOutputs.take(), hidden.take(),
                                                              cell.take(), config);
         if (!phonemeIds) {
             setState(Failed);
@@ -195,7 +195,7 @@ namespace LangPlugins
         }
 
         // Decode phonemes
-        auto phonemes = EnglishInferenceHelper::decodePhonemes(phonemeIds.take(), config);
+        auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), config);
         if (!phonemes) {
             setState(Failed);
             return phonemes.takeError();
@@ -210,13 +210,13 @@ namespace LangPlugins
         return g2pResult;
     }
 
-    LangMgr::Expected<void> EnglishInference::startAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
+    LangMgr::Expected<void> LstmG2pInference::startAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
                                                          const StartAsyncCallback &callback) {
         // TODO:
         return LangMgr::Error(LangMgr::Error::NotImplemented);
     }
 
-    bool EnglishInference::stop() {
+    bool LstmG2pInference::stop() {
         __stdc_impl_t;
         bool flag = true;
         for (auto &session : {impl.encoderSession, impl.decodeSession}) {
@@ -228,14 +228,14 @@ namespace LangPlugins
         return flag;
     }
 
-    LangMgr::NO<LangMgr::TaskResult> EnglishInference::result() const {
+    LangMgr::NO<LangMgr::TaskResult> LstmG2pInference::result() const {
         __stdc_impl_t;
         std::shared_lock lock(impl.mutex);
         return impl.result;
     }
 
     LangMgr::Expected<LangMgr::NO<ITensor>>
-    EnglishInferenceHelper::preprocessWord(const std::string &word,
+    LstmG2pInferenceHelper::preprocessWord(const std::string &word,
                                            const LangMgr::NO<Lstm::LstmG2pConfiguration> &config) {
         const std::string processedWord = stdc::to_lower(word);
         stdc::trim(processedWord);
@@ -263,7 +263,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<ITensor>>
-    EnglishInferenceHelper::getTensorFromResult(const LangMgr::NO<Onnx::SessionResult> &result,
+    LstmG2pInferenceHelper::getTensorFromResult(const LangMgr::NO<Onnx::SessionResult> &result,
                                                 const std::string &name) {
 
         const auto it = result->outputs.find(name);
@@ -275,7 +275,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<std::vector<int64_t>>
-    EnglishInferenceHelper::runDecoder(const LangMgr::NO<InferenceSession> &decodeSession,
+    LstmG2pInferenceHelper::runDecoder(const LangMgr::NO<InferenceSession> &decodeSession,
                                        const LangMgr::NO<ITensor> &encoderOutputs, const LangMgr::NO<ITensor> &hidden,
                                        const LangMgr::NO<ITensor> &cell,
                                        const LangMgr::NO<Lstm::LstmG2pConfiguration> &config) {
@@ -371,7 +371,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<std::vector<std::string>>
-    EnglishInferenceHelper::decodePhonemes(const std::vector<int64_t> &phonemeIds,
+    LstmG2pInferenceHelper::decodePhonemes(const std::vector<int64_t> &phonemeIds,
                                            const LangMgr::NO<Lstm::LstmG2pConfiguration> &config) {
         std::vector<std::string> phonemes;
 

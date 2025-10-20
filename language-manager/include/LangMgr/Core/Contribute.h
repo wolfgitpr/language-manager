@@ -129,7 +129,7 @@ namespace LangMgr
         const std::string &name() const;
 
         /// Returns the related \c LanguageManager instance.
-        LanguageManager *SU() const;
+        LanguageManager *Mgr() const;
 
     public:
         template <class T>

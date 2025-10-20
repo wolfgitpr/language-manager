@@ -18,7 +18,6 @@
 #include <LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h>
 
 #include <LangMgr/Core/PackageRef.h>
-#include "../../plugins/g2ps/english/EnglishInference.h"
 
 using EP = LangPlugins::Api::Onnx::ExecutionProvider;
 
@@ -63,19 +62,18 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, cons
                               stdc::formatN(R"(failed to initialize onnx driver: %1)", exp.error().message()));
     }
 
-    // Load EnglishInterpreter
-    const auto englishInterpreterPlugin = mgr.plugin<LangMgr::InferenceInterpreterPlugin>("ai.g2p.EnglishInference");
-    if (!englishInterpreterPlugin) {
-        return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load English interpreter plugin");
+    // Load LstmG2pInterpreter
+    const auto lstmG2pInterpreterPlugin = mgr.plugin<LangMgr::InferenceInterpreterPlugin>("ai.g2p.LstmG2pInference");
+    if (!lstmG2pInterpreterPlugin) {
+        return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load LstmG2p interpreter plugin");
     }
 
-    const auto englishInterpreter = englishInterpreterPlugin->create();
+    const auto lstmG2pInterpreter = lstmG2pInterpreterPlugin->create();
 
     // Add drivers and interpreters to manager
     auto &ic = *mgr.category("inference");
     ic.addObject("g2pOnnxDriver", onnxDriver);
-    ic.addObject("englishInterpreter", englishInterpreter);
-
+    ic.addObject("lstmG2pInterpreter", lstmG2pInterpreter);
     return {};
 }
 
@@ -101,7 +99,7 @@ int main() {
         return -1;
     }
 
-    const auto modelBasePath = std::filesystem::path("D:\\projects\\language-manager\\g2p-en");
+    const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\g2p-en)");
 
     LangMgr::InferenceSpec *g2pSpec = nullptr;
     LangMgr::ScopedPackageRef pkg;
@@ -110,12 +108,12 @@ int main() {
         return -1;
     } else {
         pkg = exp.take();
-        const auto englishG2pContrib = pkg.contributes("inference");
-        if (englishG2pContrib.empty()) {
+        const auto lstmG2pG2pContrib = pkg.contributes("inference");
+        if (lstmG2pG2pContrib.empty()) {
             std::cerr << "no inference contributions found in package" << std::endl;
             return -1;
         }
-        g2pSpec = dynamic_cast<LangMgr::InferenceSpec *>(englishG2pContrib.front());
+        g2pSpec = dynamic_cast<LangMgr::InferenceSpec *>(lstmG2pG2pContrib.front());
         if (!g2pSpec) {
             std::cerr << "failed to cast to InferenceSpec" << std::endl;
             return -1;
@@ -123,11 +121,11 @@ int main() {
     }
 
     const auto &inferenceCategory = *langMgr.category("inference");
-    const auto englishInterpreter =
-        inferenceCategory.getFirstObject("englishInterpreter").as<LangMgr::InferenceInterpreter>();
+    const auto lstmG2pInterpreter =
+        inferenceCategory.getFirstObject("lstmG2pInterpreter").as<LangMgr::InferenceInterpreter>();
 
-    if (!englishInterpreter) {
-        std::cerr << "English interpreter not found" << std::endl;
+    if (!lstmG2pInterpreter) {
+        std::cerr << "LstmG2p interpreter not found" << std::endl;
         return -1;
     }
 
@@ -139,25 +137,25 @@ int main() {
     std::cout << "Class name: " << g2pSpec->className() << std::endl;
     std::cout << "API Level: " << g2pSpec->apiLevel() << std::endl;
 
-    auto importOptionsExp = englishInterpreter->createImportOptions(g2pSpec, importOptionsJson);
+    auto importOptionsExp = lstmG2pInterpreter->createImportOptions(g2pSpec, importOptionsJson);
     if (!importOptionsExp) {
         std::cerr << "Failed to create import options: " << importOptionsExp.error().message() << std::endl;
         return -1;
     }
-    auto importOptions = importOptionsExp.take();
 
-    auto runtimeOptions = LangMgr::NO<LangPlugins::Lstm::LstmG2pRuntimeOptions>::create();
+    auto importOptions = importOptionsExp.take();
+    auto runtimeOptions = LangMgr::NO<LangPlugins::Api::LstmG2p::L1::LstmG2pRuntimeOptions>::create();
     runtimeOptions->device = "cpu";
     runtimeOptions->optimizePerformance = false;
 
-    auto inferenceExp = englishInterpreter->createInference(g2pSpec, importOptions, runtimeOptions);
+    auto inferenceExp = lstmG2pInterpreter->createInference(g2pSpec, importOptions, runtimeOptions);
     if (!inferenceExp) {
         std::cerr << "failed to create inference: " << inferenceExp.error().message() << std::endl;
         return -1;
     }
     auto inference = inferenceExp.take();
 
-    auto initArgs = LangMgr::NO<LangPlugins::Lstm::LstmG2pInitArgs>::create();
+    auto initArgs = LangMgr::NO<LangPlugins::Api::LstmG2p::L1::LstmG2pInitArgs>::create();
     initArgs->runtimeOptions = runtimeOptions;
 
     if (auto exp = inference->initialize(initArgs); !exp) {
@@ -167,8 +165,8 @@ int main() {
 
     std::cout << "Inference initialized successfully" << std::endl;
 
-    auto input = LangMgr::NO<LangPlugins::Lstm::LstmG2pStartInput>::create();
-    input->words.push_back(LangPlugins::Lstm::G2pWord{"hello"});
+    auto input = LangMgr::NO<LangPlugins::Api::LstmG2p::L1::LstmG2pStartInput>::create();
+    input->words.push_back(LangPlugins::Api::LstmG2p::L1::G2pWord{"hello"});
     input->returnDetailedInfo = true;
 
     std::cout << "Starting inference..." << std::endl;
@@ -179,7 +177,7 @@ int main() {
     }
 
     auto result = resultExp.take();
-    if (auto g2pResult = result.as<LangPlugins::Lstm::LstmG2pResult>()) {
+    if (auto g2pResult = result.as<LangPlugins::Api::LstmG2p::L1::LstmG2pResult>()) {
         std::cout << "Input: hello" << std::endl;
         std::cout << "Phonemes: ";
         for (const auto &phoneme : g2pResult->phonemes) {

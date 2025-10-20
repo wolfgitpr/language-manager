@@ -5,12 +5,11 @@
 
 namespace LangPlugins
 {
-    class EnglishInterpreter : public LangMgr::InferenceInterpreter {
+    class LstmG2pInterpreter : public LangMgr::InferenceInterpreter {
     public:
-        EnglishInterpreter();
-        ~EnglishInterpreter();
+        LstmG2pInterpreter();
+        ~LstmG2pInterpreter() override;
 
-    public:
         int apiLevel() const override;
         LangMgr::Expected<LangMgr::NO<LangMgr::InferenceSchema>>
         createSchema(const LangMgr::InferenceSpec *spec) const override;

@@ -2,23 +2,23 @@
 
 #include <fstream>
 
+#include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
-#include <stdcorelib/path.h>
 
+#include "Contribute_p.h"
 #include "Inference.h"
 #include "InferenceInterpreter.h"
 #include "InferenceInterpreterPlugin.h"
-#include "Contribute_p.h"
 
 namespace fs = std::filesystem;
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class InferenceSpec::Impl : public ContribSpec::Impl {
     public:
-        Impl() : ContribSpec::Impl("inference") {
-        }
+        Impl() : ContribSpec::Impl("inference") {}
 
         Expected<void> read(const std::filesystem::path &basePath, const JsonObject &obj) override;
 
@@ -38,8 +38,7 @@ namespace LangMgr {
         NO<InferenceInterpreter> interp = nullptr;
     };
 
-    Expected<void> InferenceSpec::Impl::read(const std::filesystem::path &basePath,
-                                             const JsonObject &obj) {
+    Expected<void> InferenceSpec::Impl::read(const std::filesystem::path &basePath, const JsonObject &obj) {
         fs::path configPath;
         stdc::VersionNumber fmtVersion_;
         std::string id_;
@@ -131,8 +130,7 @@ namespace LangMgr {
             if (!error2.empty()) {
                 return Error{
                     Error::InvalidFormat,
-                    stdc::formatN(R"(%1: invalid inference manifest format: %2)", configPath,
-                                  error2),
+                    stdc::formatN(R"(%1: invalid inference manifest format: %2)", configPath, error2),
                 };
             }
             if (!root.isObject()) {
@@ -147,8 +145,7 @@ namespace LangMgr {
         // Get attributes
         // $version
         {
-            auto it = configObj.find("$version");
-            if (it == configObj.end()) {
+            if (auto it = configObj.find("$version"); it == configObj.end()) {
                 fmtVersion_ = stdc::VersionNumber(1);
             } else {
                 fmtVersion_ = stdc::VersionNumber::fromString(it->second.toString());
@@ -163,8 +160,7 @@ namespace LangMgr {
         }
         // name
         {
-            auto it = configObj.find("name");
-            if (it != configObj.end()) {
+            if (auto it = configObj.find("name"); it != configObj.end()) {
                 name_ = it->second;
             }
             if (name_.isEmpty()) {
@@ -190,8 +186,7 @@ namespace LangMgr {
         }
         // schema
         {
-            auto it = configObj.find("schema");
-            if (it != configObj.end()) {
+            if (auto it = configObj.find("schema"); it != configObj.end()) {
                 if (!it->second.isObject()) {
                     return Error{
                         Error::InvalidFormat,
@@ -203,8 +198,7 @@ namespace LangMgr {
         }
         // configuration
         {
-            auto it = configObj.find("configuration");
-            if (it != configObj.end()) {
+            if (auto it = configObj.find("configuration"); it != configObj.end()) {
                 if (!it->second.isObject()) {
                     return Error{
                         Error::InvalidFormat,
@@ -219,26 +213,21 @@ namespace LangMgr {
         fmtVersion = fmtVersion_;
         id = std::move(id_);
         className = std::move(className_);
-        name = std::move(name_);
+        name = name_;
         apiLevel = apiLevel_;
         manifestSchema = std::move(schema_);
         manifestConfiguration = std::move(configuration_);
-        return Expected<void>();
+        return {};
     }
 
     class InferenceCategory::Impl : public ContribCategory::Impl {
     public:
-        explicit Impl(InferenceCategory *decl, LanguageManager *su)
-            : ContribCategory::Impl(decl, "inference", su) {
-        }
+        explicit Impl(InferenceCategory *decl, LanguageManager *su) : ContribCategory::Impl(decl, "inference", su) {}
 
-        ~Impl() {
-        }
+        ~Impl() override = default;
 
         std::map<std::string, NO<InferenceInterpreter>> interpreters;
     };
-
-
 
     InferenceSpec::~InferenceSpec() = default;
 
@@ -282,26 +271,22 @@ namespace LangMgr {
         return impl.path;
     }
 
-    Expected<NO<InferenceImportOptions>>
-        InferenceSpec::createImportOptions(const JsonValue &options) const {
+    Expected<NO<InferenceImportOptions>> InferenceSpec::createImportOptions(const JsonValue &options) const {
         __stdc_impl_t;
         return impl.interp->createImportOptions(this, options);
     }
 
-    Expected<NO<Inference>>
-        InferenceSpec::createInference(const NO<InferenceImportOptions> &importOptions,
-                                       const NO<InferenceRuntimeOptions> &runtimeOptions) const {
+    Expected<NO<Inference>> InferenceSpec::createInference(const NO<InferenceImportOptions> &importOptions,
+                                                           const NO<InferenceRuntimeOptions> &runtimeOptions) const {
         __stdc_impl_t;
         return impl.interp->createInference(this, importOptions, runtimeOptions);
     }
 
-    InferenceSpec::InferenceSpec() : ContribSpec(*new Impl()) {
-    }
+    InferenceSpec::InferenceSpec() : ContribSpec(*new Impl()) {}
 
     InferenceCategory::~InferenceCategory() = default;
 
-    std::vector<InferenceSpec *>
-        InferenceCategory::findInferences(const ContribLocator &locator) const {
+    std::vector<InferenceSpec *> InferenceCategory::findInferences(const ContribLocator &locator) const {
         __stdc_impl_t;
         std::vector<InferenceSpec *> res;
         auto temp = impl.findContributes(locator);
@@ -323,9 +308,7 @@ namespace LangMgr {
         return res;
     }
 
-    std::string InferenceCategory::key() const {
-        return "inferences";
-    }
+    std::string InferenceCategory::key() const { return "inferences"; }
 
     Expected<ContribSpec *> InferenceCategory::parseSpec(const std::filesystem::path &basePath,
                                                          const JsonValue &config) const {
@@ -344,29 +327,28 @@ namespace LangMgr {
         return spec;
     }
 
-    Expected<void> InferenceCategory::loadSpec(ContribSpec *spec, ContribSpec::State state) {
+    Expected<void> InferenceCategory::loadSpec(ContribSpec *spec, const ContribSpec::State state) {
         __stdc_impl_t;
         switch (state) {
-            case ContribSpec::Initialized: {
-                auto infSpec = static_cast<InferenceSpec *>(spec);
-                auto spec_impl = static_cast<InferenceSpec::Impl *>(infSpec->_impl.get());
+        case ContribSpec::Initialized:
+            {
+                const auto infSpec = static_cast<InferenceSpec *>(spec);
+                const auto spec_impl = static_cast<InferenceSpec::Impl *>(infSpec->_impl.get());
 
                 const auto &key = infSpec->className();
                 NO<InferenceInterpreter> interp;
 
                 // Search interpreter cache
-                if (auto it = impl.interpreters.find(key); it != impl.interpreters.end()) {
+                if (const auto it = impl.interpreters.find(key); it != impl.interpreters.end()) {
                     interp = it->second;
                 } else {
                     // Search interpreter
-                    auto plugin =
-                        SU()->plugin<InferenceInterpreterPlugin>(infSpec->className().c_str());
+                    const auto plugin = Mgr()->plugin<InferenceInterpreterPlugin>(infSpec->className().c_str());
                     if (!plugin) {
                         return Error{
                             Error::FeatureNotSupported,
-                            stdc::formatN(
-                                R"(required interpreter "%1" of inference "%2" not found)",
-                                infSpec->className(), infSpec->id()),
+                            stdc::formatN(R"(required interpreter "%1" of inference "%2" not found)",
+                                          infSpec->className(), infSpec->id()),
                         };
                     }
                     interp = plugin->create();
@@ -379,8 +361,7 @@ namespace LangMgr {
                         Error::FeatureNotSupported,
                         stdc::formatN(
                             R"(required interpreter "%1" of api level %2 doesn't support inference "%3" of api level %4)",
-                            infSpec->className(), interp->apiLevel(), infSpec->id(),
-                            infSpec->apiLevel()),
+                            infSpec->className(), interp->apiLevel(), infSpec->id(), infSpec->apiLevel()),
                     };
                 }
 
@@ -389,8 +370,8 @@ namespace LangMgr {
                 if (!schema) {
                     return Error{
                         Error::InvalidFormat,
-                        stdc::formatN(R"(failed to parse inference schema of "%1": %2)",
-                                      infSpec->id(), schema.error().message()),
+                        stdc::formatN(R"(failed to parse inference schema of "%1": %2)", infSpec->id(),
+                                      schema.error().message()),
                     };
                 }
                 spec_impl->schema = schema.get();
@@ -399,8 +380,8 @@ namespace LangMgr {
                 if (!config) {
                     return Error{
                         Error::InvalidFormat,
-                        stdc::formatN(R"(failed to parse inference configuration of "%1": %2)",
-                                      infSpec->id(), config.error().message()),
+                        stdc::formatN(R"(failed to parse inference configuration of "%1": %2)", infSpec->id(),
+                                      config.error().message()),
                     };
                 }
                 spec_impl->configuration = config.get();
@@ -408,23 +389,24 @@ namespace LangMgr {
                 return ContribCategory::loadSpec(spec, state);
             }
 
-            case ContribSpec::Ready:
-            case ContribSpec::Finished: {
-                return Expected<void>();
+        case ContribSpec::Ready:
+        case ContribSpec::Finished:
+            {
+                return {};
             }
 
-            case ContribSpec::Deleted: {
+        case ContribSpec::Deleted:
+            {
                 return ContribCategory::loadSpec(spec, state);
             }
-            default:
-                break;
+        default:
+            break;
         }
-        return Expected<void>();
+        return {};
     }
 
-    InferenceCategory::InferenceCategory(LanguageManager *su) : ContribCategory(*new Impl(this, su)) {
-    }
+    InferenceCategory::InferenceCategory(LanguageManager *env) : ContribCategory(*new Impl(this, env)) {}
 
     static ContribCategoryRegistrar<InferenceCategory> registrar;
 
-}
+} // namespace LangMgr

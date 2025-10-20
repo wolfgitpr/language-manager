@@ -4,24 +4,19 @@
 #include <LangMgr/Core/Contribute.h>
 #include <LangMgr/Support/DisplayText.h>
 
-namespace LangMgr {
-
+namespace LangMgr
+{
     /// InferenceInfoBase - The base class storing inference information which should be created
     /// by a specific inference interpreter.
     class InferenceInfoBase : public NamedObject {
     public:
-        inline InferenceInfoBase(std::string name, std::string className, int apiLevel)
-            : NamedObject(std::move(name)), _className(std::move(className)), _apiLevel(apiLevel) {
-        }
-        virtual ~InferenceInfoBase() = default;
+        InferenceInfoBase(std::string name, std::string className, const int apiLevel) :
+            NamedObject(std::move(name)), _className(std::move(className)), _apiLevel(apiLevel) {}
+        ~InferenceInfoBase() override = default;
 
         /// Related interpreter information.
-        inline const std::string &className() const {
-            return _className;
-        }
-        inline int apiLevel() const {
-            return _apiLevel;
-        }
+        const std::string &className() const { return _className; }
+        int apiLevel() const { return _apiLevel; }
 
     protected:
         std::string _className;
@@ -30,30 +25,26 @@ namespace LangMgr {
 
     class InferenceSchema : public InferenceInfoBase {
     public:
-        inline InferenceSchema(std::string name, std::string iid, int apiLevel)
-            : InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {
-        }
+        InferenceSchema(std::string name, std::string iid, const int apiLevel) :
+            InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
     };
 
     class InferenceConfiguration : public InferenceInfoBase {
     public:
-        inline InferenceConfiguration(std::string name, std::string iid, int apiLevel)
-            : InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {
-        }
+        InferenceConfiguration(std::string name, std::string iid, const int apiLevel) :
+            InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
     };
 
     class InferenceImportOptions : public InferenceInfoBase {
     public:
-        inline InferenceImportOptions(std::string name, std::string iid, int apiLevel)
-            : InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {
-        }
+        InferenceImportOptions(std::string name, std::string iid, const int apiLevel) :
+            InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
     };
 
     class InferenceRuntimeOptions : public InferenceInfoBase {
     public:
-        inline InferenceRuntimeOptions(std::string name, std::string iid, int apiLevel)
-            : InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {
-        }
+        InferenceRuntimeOptions(std::string name, std::string iid, const int apiLevel) :
+            InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
     };
 
     class Inference;
@@ -62,9 +53,8 @@ namespace LangMgr {
 
     class LANGMGR_EXPORT InferenceSpec : public ContribSpec {
     public:
-        ~InferenceSpec();
+        ~InferenceSpec() override;
 
-    public:
         const std::string &className() const;
         DisplayText name() const;
         int apiLevel() const;
@@ -77,14 +67,12 @@ namespace LangMgr {
 
         const std::filesystem::path &path() const;
 
-    public:
         /// Mainly called by \c SingerSpec at loading state.
         Expected<NO<InferenceImportOptions>> createImportOptions(const JsonValue &options) const;
 
         /// Creates an inference interface with the given options.
-        Expected<NO<Inference>>
-            createInference(const NO<InferenceImportOptions> &importOptions,
-                            const NO<InferenceRuntimeOptions> &runtimeOptions) const;
+        Expected<NO<Inference>> createInference(const NO<InferenceImportOptions> &importOptions,
+                                                const NO<InferenceRuntimeOptions> &runtimeOptions) const;
 
     protected:
         class Impl;
@@ -97,9 +85,8 @@ namespace LangMgr {
 
     class LANGMGR_EXPORT InferenceCategory : public ContribCategory {
     public:
-        ~InferenceCategory();
+        ~InferenceCategory() override;
 
-    public:
         std::vector<InferenceSpec *> findInferences(const ContribLocator &identifier) const;
         std::vector<InferenceSpec *> inferences() const;
 
@@ -109,7 +96,6 @@ namespace LangMgr {
                                           const JsonValue &config) const override;
         Expected<void> loadSpec(ContribSpec *spec, ContribSpec::State state) override;
 
-    protected:
         class Impl;
         explicit InferenceCategory(LanguageManager *env);
 
@@ -117,6 +103,6 @@ namespace LangMgr {
         friend class ContribCategoryRegistrar<InferenceCategory>;
     };
 
-}
+} // namespace LangMgr
 
 #endif // LANGMGR_INFERENCECONTRIB_H

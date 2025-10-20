@@ -1,18 +1,15 @@
 #ifndef DSINFER_INFERENCEDRIVER_H
 #define DSINFER_INFERENCEDRIVER_H
 
-#include <LangMgr/Support/JSON.h>
-#include <LangMgr/Support/Expected.h>
 #include <LangMgr/Core/NamedObject.h>
+#include <LangMgr/Support/Expected.h>
 
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     class InferenceDriverInitArgs : public LangMgr::NamedObject {
     public:
-        inline InferenceDriverInitArgs(std::string name, int version)
-            : LangMgr::NamedObject(std::move(name)), version(version) {
-        }
-
+        InferenceDriverInitArgs(std::string name, const int version) : NamedObject(std::move(name)), version(version) {}
         int version;
     };
 
@@ -32,7 +29,7 @@ namespace LangPlugins {
     /// \endcode
     class InferenceDriver : public LangMgr::NamedObject {
     public:
-        virtual ~InferenceDriver() = default;
+        ~InferenceDriver() override;
 
         /// Related singer arch.
         virtual std::string arch() const = 0;
@@ -44,7 +41,8 @@ namespace LangPlugins {
 
         virtual LangMgr::NO<InferenceSession> createSession() = 0;
     };
+    inline InferenceDriver::~InferenceDriver() = default;
 
-}
+} // namespace LangPlugins
 
 #endif // DSINFER_INFERENCEDRIVER_H

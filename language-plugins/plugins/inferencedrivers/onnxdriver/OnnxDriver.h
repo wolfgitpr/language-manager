@@ -11,7 +11,7 @@ namespace LangPlugins
     class OnnxDriver : public InferenceDriver {
     public:
         OnnxDriver();
-        ~OnnxDriver();
+        ~OnnxDriver() override;
 
     public:
         std::string arch() const override;

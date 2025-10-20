@@ -171,7 +171,7 @@ namespace LangMgr
         return impl.name;
     }
 
-    LanguageManager *ContribCategory::SU() const {
+    LanguageManager *ContribCategory::Mgr() const {
         __stdc_impl_t;
         return impl.su;
     }

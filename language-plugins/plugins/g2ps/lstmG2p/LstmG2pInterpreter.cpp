@@ -1,21 +1,21 @@
-#include "EnglishInterpreter.h"
+#include "LstmG2pInterpreter.h"
 
 #include <stdcorelib/str.h>
 
 #include <inferutil/Parser.h>
 
-#include "EnglishInference.h"
+#include "LstmG2pInference.h"
 
 namespace LangPlugins
 {
-    EnglishInterpreter::EnglishInterpreter() = default;
+    LstmG2pInterpreter::LstmG2pInterpreter() = default;
 
-    EnglishInterpreter::~EnglishInterpreter() = default;
+    LstmG2pInterpreter::~LstmG2pInterpreter() = default;
 
-    int EnglishInterpreter::apiLevel() const { return 1; }
+    int LstmG2pInterpreter::apiLevel() const { return 1; }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::InferenceSchema>>
-    EnglishInterpreter::createSchema(const LangMgr::InferenceSpec *spec) const {
+    LstmG2pInterpreter::createSchema(const LangMgr::InferenceSpec *spec) const {
         if (!spec) {
             // fatal error: null pointer, return immediately
             return LangMgr::Error{
@@ -38,7 +38,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::InferenceConfiguration>>
-    EnglishInterpreter::createConfiguration(const LangMgr::InferenceSpec *spec) const {
+    LstmG2pInterpreter::createConfiguration(const LangMgr::InferenceSpec *spec) const {
         if (!spec) {
             // fatal error: null pointer, return immediately
             return LangMgr::Error{
@@ -92,7 +92,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::InferenceImportOptions>>
-    EnglishInterpreter::createImportOptions(const LangMgr::InferenceSpec *spec,
+    LstmG2pInterpreter::createImportOptions(const LangMgr::InferenceSpec *spec,
                                             const LangMgr::JsonValue &options) const {
         if (!options.isObject()) {
             return LangMgr::Error{
@@ -123,10 +123,10 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>
-    EnglishInterpreter::createInference(const LangMgr::InferenceSpec *spec,
+    LstmG2pInterpreter::createInference(const LangMgr::InferenceSpec *spec,
                                         const LangMgr::NO<LangMgr::InferenceImportOptions> &importOptions,
                                         const LangMgr::NO<LangMgr::InferenceRuntimeOptions> &runtimeOptions) {
-        return LangMgr::NO<EnglishInference>::create(spec);
+        return LangMgr::NO<LstmG2pInference>::create(spec);
     }
 
 } // namespace LangPlugins

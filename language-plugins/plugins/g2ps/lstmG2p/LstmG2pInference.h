@@ -13,12 +13,11 @@ namespace LangPlugins
     namespace Lstm = Api::LstmG2p::L1;
     namespace Onnx = Api::Onnx;
 
-    class EnglishInference : public LangMgr::Inference {
+    class LstmG2pInference : public LangMgr::Inference {
     public:
-        explicit EnglishInference(const LangMgr::InferenceSpec *spec);
-        ~EnglishInference();
+        explicit LstmG2pInference(const LangMgr::InferenceSpec *spec);
+        ~LstmG2pInference() override;
 
-    public:
         LangMgr::Expected<void> initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;
 
         LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>>
@@ -34,7 +33,7 @@ namespace LangPlugins
         std::unique_ptr<Impl> _impl;
     };
 
-    class EnglishInferenceHelper {
+    class LstmG2pInferenceHelper {
     public:
         // Preprocess word into tensor
         static LangMgr::Expected<LangMgr::NO<ITensor>>
@@ -53,10 +52,6 @@ namespace LangPlugins
         // Decode phoneme indices to phoneme strings
         static LangMgr::Expected<std::vector<std::string>>
         decodePhonemes(const std::vector<int64_t> &phonemeIds, const LangMgr::NO<Lstm::LstmG2pConfiguration> &config);
-
-        template <typename T>
-        static LangMgr::Expected<LangMgr::NO<ITensor>> createTensor(const std::vector<T> &data,
-                                                                    const std::vector<int64_t> &shape);
     };
 } // namespace LangPlugins
 
