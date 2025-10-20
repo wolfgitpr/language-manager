@@ -19,6 +19,10 @@
 
 #include <LangMgr/Core/PackageRef.h>
 
+#ifdef WIN32
+#include <Windows.h>
+#endif
+
 using EP = LangPlugins::Api::Onnx::ExecutionProvider;
 
 static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, const EP ep, int deviceIndex,
@@ -78,6 +82,18 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, cons
 }
 
 int main() {
+#ifdef WIN32
+    const auto onnxRuntimePath = std::filesystem::current_path() /
+        "../lib/plugins/LangPlugins/inferencedrivers/runtimes/onnx/default/onnxruntime.dll";
+    const HMODULE hOnnxRuntime = LoadLibraryW(onnxRuntimePath.wstring().c_str());
+    if (hOnnxRuntime == nullptr) {
+        const DWORD error = GetLastError();
+        std::cout << "Failed to load onnxruntime.dll from" << onnxRuntimePath << "Error code:" << error;
+        return -1;
+    }
+    std::cout << "Successfully loaded onnxruntime.dll";
+#endif
+
     const auto g2pProvider = [](const std::string &provider_) -> EP
     {
         const auto provider_lower = stdc::to_lower(provider_);
@@ -94,7 +110,7 @@ int main() {
     }("cpu");
 
     LangMgr::LanguageManager langMgr;
-    if (auto exp = initializeMgr(langMgr, g2pProvider, 0, false); !exp) {
+    if (auto exp = initializeMgr(langMgr, g2pProvider, 0, true); !exp) {
         std::cerr << "failed to initialize LanguageManager: " << exp.error().message() << std::endl;
         return -1;
     }
@@ -196,5 +212,11 @@ int main() {
     inference->stop();
     std::cout << "Inference completed successfully" << std::endl;
 
+#ifdef WIN32
+    if (hOnnxRuntime) {
+        FreeLibrary(hOnnxRuntime);
+        std::cout << "Released onnxruntime.dll";
+    }
+#endif
     return 0;
 }
