@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import time
@@ -22,22 +23,22 @@ class LstmOnnx:
         self.encoder_session = ort.InferenceSession(encoder_path)
         self.decoder_session = ort.InferenceSession(decoder_path)
 
-        vocab_path = os.path.join(onnx_model_dir, "vocab.yaml")
-        config_path = os.path.join(onnx_model_dir, "config.yaml")
+        char_path = os.path.join(onnx_model_dir, "char.json")
+        phonemes_path = os.path.join(onnx_model_dir, "phonemes.json")
+        config_path = os.path.join(onnx_model_dir, "config.json")
 
-        with open(vocab_path, 'r', encoding='utf-8') as f:
-            vocab_data = yaml.safe_load(f)
         with open(config_path, 'r', encoding='utf-8') as f:
-            self.config = yaml.safe_load(f)
-
-        self.char_vocab = vocab_data['char_vocab']
-        self.phoneme_vocab = vocab_data['phoneme_vocab']
+            self.config = json.load(f)
+        with open(char_path, 'r', encoding='utf-8') as f:
+            self.char_vocab = json.load(f)
+        with open(phonemes_path, 'r', encoding='utf-8') as f:
+            self.phoneme_vocab = json.load(f)
         self.idx_to_phone = {v: k for k, v in self.phoneme_vocab.items()}
 
-        self.UNK_IDX = self.config['unk_idx']
-        self.PAD_IDX = self.config['pad_idx']
-        self.BOS_IDX = self.config['bos_idx']
-        self.EOS_IDX = self.config['eos_idx']
+        self.UNK_IDX = self.phoneme_vocab['<unk>']
+        self.PAD_IDX = self.phoneme_vocab['<pad>']
+        self.BOS_IDX = self.phoneme_vocab['<bos>']
+        self.EOS_IDX = self.phoneme_vocab['<eos>']
         self.max_len = 48
 
     def preprocess_word(self, word: str):
@@ -181,25 +182,13 @@ class Benchmark:
     def __init__(self, lstm_onnx_path=None, opu_onnx_path=None, ckpt_path=None, beam_size=5):
         model_dir = None
 
-        if lstm_onnx_path:
-            model_dir = os.path.dirname(lstm_onnx_path)
+        self.lstm_onnx = LstmOnnx(lstm_onnx_path)
+        self.opu_onnx = OpuOnnx(opu_onnx_path)
+
+        if not model_dir:
+            model_dir = os.path.dirname(ckpt_path)
             self.config_path = os.path.join(model_dir, "config.yaml")
-            self.lstm_onnx = LstmOnnx(lstm_onnx_path)
-        else:
-            self.lstm_onnx = None
-
-        if opu_onnx_path:
-            self.opu_onnx = OpuOnnx(opu_onnx_path)
-        else:
-            self.opu_onnx = None
-
-        if ckpt_path:
-            if not model_dir:
-                model_dir = os.path.dirname(ckpt_path)
-                self.config_path = os.path.join(model_dir, "config.yaml")
-            self.pytorch_model = PyTorchModel(ckpt_path, self.config_path, beam_size)
-        else:
-            self.pytorch_model = None
+        self.pytorch_model = PyTorchModel(ckpt_path, self.config_path, beam_size)
 
     def load_benchmark_data(self, sample_size: int = 1000):
         dataset = CMUDictDataset(load_yaml(self.config_path))
@@ -367,7 +356,7 @@ if __name__ == "__main__":
         lstm_onnx_path="lstm_g2p_en/",
         opu_onnx_path="g2p-arpabet/g2p.onnx",
         ckpt_path="ckpt/LSTM_G2P/best-step=15120-val_seq_acc=0.69333.ckpt",
-        beam_size=3
+        beam_size=1
     )
 
     benchmark.run_benchmark(SAMPLE_SIZE)

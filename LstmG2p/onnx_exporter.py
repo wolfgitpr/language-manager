@@ -44,12 +44,19 @@ class LstmG2pOnnxExporter:
         self.config = model.config
         self.device = next(model.parameters()).device
 
-    def export_components(self, onnx_dir: str):
+    def export_components(self, onnx_dir: str, use_fp16: bool = True):
         onnx_dir = pathlib.Path(onnx_dir)
         onnx_dir.mkdir(parents=True, exist_ok=True)
 
+        if use_fp16:
+            self.model = self.model.half()
+            print("Model converted to FP16 precision")
+
         encoder_onnx = EncoderOnnx(self.model.encoder)
         encoder_onnx.eval()
+
+        if use_fp16:
+            encoder_onnx = encoder_onnx.half()
 
         example_word = "hello"
         example_indices = [self.model.char_vocab.get(c, self.config['unk_idx']) for c in example_word]
@@ -58,6 +65,13 @@ class LstmG2pOnnxExporter:
             dtype=torch.long,
             device=self.device
         )
+
+        dynamic_quant_config = {
+            torch.nn.Linear: {
+                'dtype': torch.float16 if use_fp16 else torch.float32,
+                'qscheme': torch.per_tensor_affine
+            }
+        }
 
         torch.onnx.export(
             encoder_onnx,
@@ -80,17 +94,23 @@ class LstmG2pOnnxExporter:
         decoder_onnx = DecoderStepOnnx(self.model.decoder)
         decoder_onnx.eval()
 
+        if use_fp16:
+            decoder_onnx = decoder_onnx.half()
+
         seq_len = example_input.size(0)
         hidden_dim = self.config['model']['hidden_dim']
         num_layers = self.config['model']['num_layers']
 
         example_decoder_input = torch.tensor([self.config['bos_idx']], dtype=torch.long, device=self.device)  # [1]
 
-        example_hidden = torch.randn(num_layers, 1, hidden_dim, device=self.device)  # [num_layers, 1, hidden_dim]
-        example_cell = torch.randn(num_layers, 1, hidden_dim, device=self.device)  # [num_layers, 1, hidden_dim]
-
-        example_encoder_outputs = torch.randn(1, seq_len, hidden_dim,
-                                              device=self.device)  # [1, src_seq_len, hidden_dim]
+        if use_fp16:
+            example_hidden = torch.randn(num_layers, 1, hidden_dim, device=self.device, dtype=torch.float16)
+            example_cell = torch.randn(num_layers, 1, hidden_dim, device=self.device, dtype=torch.float16)
+            example_encoder_outputs = torch.randn(1, seq_len, hidden_dim, device=self.device, dtype=torch.float16)
+        else:
+            example_hidden = torch.randn(num_layers, 1, hidden_dim, device=self.device)
+            example_cell = torch.randn(num_layers, 1, hidden_dim, device=self.device)
+            example_encoder_outputs = torch.randn(1, seq_len, hidden_dim, device=self.device)
 
         torch.onnx.export(
             decoder_onnx,
@@ -127,6 +147,26 @@ class LstmG2pOnnxExporter:
         except Exception as e:
             print(f"Simplification failed: {e}")
 
+        if use_fp16:
+            try:
+                import onnxmltools
+                from onnxmltools.utils.float16_converter import convert_float_to_float16
+
+                for model_name in ["encoder.onnx", "decoder.onnx"]:
+                    model_path = str(onnx_dir / model_name)
+                    model_onnx = onnx.load(model_path)
+
+                    model_fp16 = convert_float_to_float16(model_onnx)
+
+                    fp16_model_path = str(onnx_dir / f"{model_name}")
+                    onnx.save(model_fp16, fp16_model_path)
+                    print(f"FP16 model saved to: {fp16_model_path}")
+
+            except ImportError:
+                print("onnxmltools not available, skipping additional FP16 conversion")
+            except Exception as e:
+                print(f"Additional FP16 conversion failed: {e}")
+
         with open(onnx_dir / "config.json", 'w', encoding='utf-8') as f:
             config_json = {
                 "$version": "1.0",
@@ -144,21 +184,23 @@ class LstmG2pOnnxExporter:
         with open(onnx_dir / "char.json", 'w', encoding='utf-8') as f:
             json.dump(self.model.char_vocab, f, indent=4)
 
-        with open(onnx_dir / "phoneme.json", 'w', encoding='utf-8') as f:
+        with open(onnx_dir / "phonemes.json", 'w', encoding='utf-8') as f:
             json.dump(self.model.phoneme_vocab, f, indent=4)
 
         print(f"LSTM G2p Onnx exported to: {onnx_dir}")
+        if use_fp16:
+            print("Models are in FP16 precision for reduced size")
         return onnx_dir
 
 
-def export_lstm_g2p_to_onnx(ckpt_path: str, onnx_dir: str, config_path: str = "config.yaml"):
+def export_lstm_g2p_to_onnx(ckpt_path: str, onnx_dir: str, config_path: str = "config.yaml", use_fp16: bool = True):
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     model = LstmG2p.load_from_checkpoint(ckpt_path, config=config)
     model.eval()
 
     exporter = LstmG2pOnnxExporter(model)
-    result_dir = exporter.export_components(onnx_dir)
+    result_dir = exporter.export_components(onnx_dir, use_fp16=use_fp16)
     return str(result_dir)
 
 
@@ -167,6 +209,8 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_path', type=str, required=True, help='checkpoint path')
     parser.add_argument('--onnx_dir', type=str, required=True, help='onnx output directory')
     parser.add_argument('--config_path', type=str, default="config.yaml", help='config file path')
+    parser.add_argument('--fp16', action='store_true', default=False,
+                        help='export models in FP16 precision to reduce size')
 
     args = parser.parse_args()
-    result = export_lstm_g2p_to_onnx(args.ckpt_path, args.onnx_dir, args.config_path)
+    result = export_lstm_g2p_to_onnx(args.ckpt_path, args.onnx_dir, args.config_path, use_fp16=args.fp16)
