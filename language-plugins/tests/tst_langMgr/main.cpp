@@ -67,7 +67,7 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, cons
     }
 
     // Load LstmG2pInterpreter
-    const auto lstmG2pInterpreterPlugin = mgr.plugin<LangMgr::InferenceInterpreterPlugin>("ai.g2p.LstmG2pInference");
+    const auto lstmG2pInterpreterPlugin = mgr.plugin<LangMgr::InferenceInterpreterPlugin>("g2p.model.LstmG2pInference");
     if (!lstmG2pInterpreterPlugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load LstmG2p interpreter plugin");
     }

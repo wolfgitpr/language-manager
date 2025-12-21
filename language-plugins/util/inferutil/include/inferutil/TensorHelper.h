@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace LangPlugins::inferutil
+namespace LangPlugins::inferUtil
 {
     template <typename T>
     class TensorHelper {
@@ -71,5 +71,5 @@ namespace LangPlugins::inferutil
         T *_current;
         const T *_end;
     };
-} // namespace LangPlugins::inferutil
+} // namespace LangPlugins::inferUtil
 #endif // LANGPLUGINS_INFERUTIL_TENSORHELPER_H

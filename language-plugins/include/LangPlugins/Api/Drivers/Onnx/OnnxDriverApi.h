@@ -1,5 +1,5 @@
-#ifndef DSINFER_API_ONNX_ONNXDRIVERAPI_H
-#define DSINFER_API_ONNX_ONNXDRIVERAPI_H
+#ifndef LANGPLG_API_ONNX_ONNXDRIVERAPI_H
+#define LANGPLG_API_ONNX_ONNXDRIVERAPI_H
 
 #include <filesystem>
 #include <map>
@@ -25,7 +25,7 @@ namespace LangPlugins::Api::Onnx
 
     class DriverInitArgs : public InferenceDriverInitArgs {
     public:
-        inline DriverInitArgs() : InferenceDriverInitArgs(API_NAME, API_VERSION) {}
+        DriverInitArgs() : InferenceDriverInitArgs(API_NAME, API_VERSION) {}
 
         /// Load from progress
         bool loadFromProgress = false;
@@ -42,7 +42,7 @@ namespace LangPlugins::Api::Onnx
 
     class SessionOpenArgs : public InferenceSessionOpenArgs {
     public:
-        inline SessionOpenArgs() : InferenceSessionOpenArgs(API_NAME, API_VERSION) {}
+        SessionOpenArgs() : InferenceSessionOpenArgs(API_NAME, API_VERSION) {}
 
         /// Whether to force the use of the CPU for the session.
         bool useCpu = false;
@@ -50,7 +50,7 @@ namespace LangPlugins::Api::Onnx
 
     class SessionStartInput : public InferenceSessionStartInput {
     public:
-        inline SessionStartInput() : InferenceSessionStartInput(API_NAME, API_VERSION) {}
+        SessionStartInput() : InferenceSessionStartInput(API_NAME, API_VERSION) {}
 
         /// The input port names and the input tensors.
         std::map<std::string, LangMgr::NO<ITensor>> inputs;
@@ -61,11 +61,11 @@ namespace LangPlugins::Api::Onnx
 
     class SessionResult : public InferenceSessionResult {
     public:
-        inline SessionResult() : InferenceSessionResult(API_NAME, API_VERSION) {}
+        SessionResult() : InferenceSessionResult(API_NAME, API_VERSION) {}
 
         std::map<std::string, LangMgr::NO<ITensor>> outputs;
     };
 
 } // namespace LangPlugins::Api::Onnx
 
-#endif // DSINFER_API_ONNX_ONNXDRIVERAPI_H
+#endif // LANGPLG_API_ONNX_ONNXDRIVERAPI_H

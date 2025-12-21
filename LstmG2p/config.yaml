@@ -1,4 +1,4 @@
-model_name: LSTM_G2P
+model_name: LSTM_G2P1
 
 data:
   dict_type: 'cmudict'

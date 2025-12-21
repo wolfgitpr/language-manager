@@ -28,7 +28,7 @@ namespace LangPlugins {
     LangMgr::Expected<void> OnnxSession::open(const std::filesystem::path &path,
                                           const LangMgr::NO<InferenceSessionOpenArgs> &args) {
         __stdc_impl_t;
-        auto openArgs = args.as<Api::Onnx::SessionOpenArgs>();
+        const auto openArgs = args.as<Api::Onnx::SessionOpenArgs>();
         if (!openArgs) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidArgument,

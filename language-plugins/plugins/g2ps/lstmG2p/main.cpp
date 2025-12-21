@@ -9,7 +9,7 @@ namespace LangPlugins
     public:
         LstmG2pInterpreterPlugin() = default;
 
-        const char *key() const override { return "ai.g2p.LstmG2pInference"; }
+        const char *key() const override { return "g2p.model.LstmG2pInference"; }
 
         LangMgr::NO<LangMgr::InferenceInterpreter> create() override {
             return LangMgr::NO<LstmG2pInterpreter>::create();

@@ -7,12 +7,11 @@ namespace LangMgr
 {
 
     class InferenceSpec;
-
     class LanguageManager;
 
     class InferenceInitArgs : public TaskInitArgs {
     public:
-        InferenceInitArgs(std::string name) : TaskInitArgs(std::move(name)) {}
+        explicit InferenceInitArgs(std::string name) : TaskInitArgs(std::move(name)) {}
 
         /// The intermediate output can be stored here in the form of an \c NamedObject for later
         /// use.
@@ -22,11 +21,10 @@ namespace LangMgr
     class LANGMGR_EXPORT Inference : public ITask {
     public:
         explicit Inference(const InferenceSpec *spec);
-        ~Inference();
+        ~Inference() override;
 
-    public:
         const InferenceSpec *spec() const;
-        LanguageManager *SU() const;
+        LanguageManager *MGR() const;
 
     protected:
         class Impl;

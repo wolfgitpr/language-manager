@@ -5,7 +5,7 @@
 #include <LangMgr/Tool/Inference.h>
 #include <LangPlugins/Inference/InferenceDriver.h>
 
-namespace LangPlugins::inferutil
+namespace LangPlugins::inferUtil
 {
     LangMgr::Expected<LangMgr::NO<InferenceDriver>> getInferenceDriver(const LangMgr::Inference *obj);
 }

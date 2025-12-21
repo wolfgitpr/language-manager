@@ -23,12 +23,10 @@ namespace LangMgr
         PluginFactory();
         virtual ~PluginFactory();
 
-    public:
         static std::vector<std::string> staticPluginSets();
         static std::vector<StaticPlugin> staticPlugins(const char *pluginSet);
         static std::vector<Plugin *> staticInstances(const char *pluginSet);
 
-    public:
         void addRuntimePlugin(Plugin *plugin);
         std::vector<Plugin *> runtimePlugins() const;
 
@@ -36,11 +34,10 @@ namespace LangMgr
         void setPluginPaths(const char *iid, stdc::array_view<std::filesystem::path> paths);
         std::vector<std::filesystem::path> pluginPaths(const char *iid) const;
 
-    public:
         Plugin *plugin(const char *iid, const char *key) const;
 
         template <class T>
-        inline T *plugin(const char *key) const;
+        T *plugin(const char *key) const;
 
     protected:
         class Impl;
@@ -52,8 +49,8 @@ namespace LangMgr
     };
 
     template <class T>
-    inline T *PluginFactory::plugin(const char *key) const {
-        static_assert(std::is_base_of<Plugin, T>::value, "T should inherit from srt::Plugin");
+    T *PluginFactory::plugin(const char *key) const {
+        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from srt::Plugin");
         return static_cast<T *>(plugin(reinterpret_cast<T *>(0)->T::iid(), key));
     }
 

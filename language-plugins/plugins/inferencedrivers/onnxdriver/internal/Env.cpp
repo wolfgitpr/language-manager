@@ -1,11 +1,11 @@
 #include "Env.h"
 
-#include <stdexcept>
 #include <mutex>
 
-namespace LangPlugins::onnxdriver {
+namespace LangPlugins::onnxdriver
+{
 
-    void Env::setDeviceConfig(const DeviceConfig& config) {
+    void Env::setDeviceConfig(const DeviceConfig &config) {
         std::unique_lock lock(s_mutex);
         s_deviceConfig = config;
     }
@@ -15,7 +15,5 @@ namespace LangPlugins::onnxdriver {
         return s_deviceConfig;
     }
 
-    int64_t Env::nextId() {
-        return ++s_idCounter;
-    }
+    int64_t Env::nextId() { return ++s_idCounter; }
 } // namespace LangPlugins::onnxdriver

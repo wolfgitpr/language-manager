@@ -1,5 +1,5 @@
 // DO NOT include this file directly.
-// Include <inferutil/Parser.h> instead.
+// Include <inferUtil/Parser.h> instead.
 
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 #define LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
@@ -17,30 +17,8 @@
 #include <stdcorelib/str.h>
 #include <synthrt/Support/JSON.h>
 
-namespace LangPlugins::inferutil
+namespace LangPlugins::inferUtil
 {
-
-    namespace detail
-    {
-        template <typename Container>
-        void insertParamHelper(Container &container, const ParamTag &param) {
-            if constexpr (std::is_same_v<Container, std::set<ParamTag>>) {
-                container.insert(param);
-            } else if constexpr (std::is_same_v<Container, std::vector<ParamTag>>) {
-                container.push_back(param);
-            } else {
-                static_assert(std::is_same_v<Container, void>,
-                              "insert_param only supports std::set<ParamTag> "
-                              "and std::vector<ParamTag>");
-            }
-        }
-
-        template <typename Container>
-        bool tryFindAndInsertParameters(std::string_view key, Container &out) {
-            return tryFindAndInsertVarianceParameters(key, out) || tryFindAndInsertTransitionParameters(key, out);
-        }
-    } // namespace detail
-
     inline void ConfigurationParser::parse_bool_optional(bool &out, const std::string &fieldName) {
         const auto &config = *pConfig;
 
@@ -235,6 +213,6 @@ namespace LangPlugins::inferutil
             collectError("string field \"" + fieldName + "\" is missing");
         }
     }
-} // namespace LangPlugins::inferutil
+} // namespace LangPlugins::inferUtil
 
 #endif // LANGPLUGINS_INFERUTIL_PARSER_IMPL_H

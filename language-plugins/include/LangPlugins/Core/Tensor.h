@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -12,11 +11,11 @@
 #include <LangMgr/Core/NamedObject.h>
 #include <LangMgr/Support/Expected.h>
 
-#include <LangPlugins/Support/AlignedAllocator.h>
 #include <LangPlugins/LangPluginsGlobal.h>
+#include <LangPlugins/Support/AlignedAllocator.h>
 
-namespace LangPlugins {
-
+namespace LangPlugins
+{
     /// ITensor - Tensor-like object interface.
     class ITensor : public LangMgr::NamedObject {
     public:
@@ -30,7 +29,7 @@ namespace LangPlugins {
             // LANGPLUGINS_TENSOR_REGISTER_DATATYPE(_CppType, _EnumType) macro (see below)
         };
 
-        virtual ~ITensor() = default;
+        ~ITensor() override = default;
 
         /// Get the tensor backend identifier.
         virtual std::string backend() const = 0;
@@ -92,11 +91,11 @@ namespace LangPlugins {
 
 
 /// Macro to register a C++ type with the DataType enum.
-#define LANGPLUGINS_TENSOR_REGISTER_DATATYPE(_CppType, _EnumType)                                      \
-    template <>                                                                                    \
-    struct tensor_traits<_CppType> {                                                               \
-        static constexpr bool is_valid = true;                                                     \
-        static constexpr ITensor::DataType data_type = ITensor::DataType::_EnumType;               \
+#define LANGPLUGINS_TENSOR_REGISTER_DATATYPE(_CppType, _EnumType)                                                      \
+    template <>                                                                                                        \
+    struct tensor_traits<_CppType> {                                                                                   \
+        static constexpr bool is_valid = true;                                                                         \
+        static constexpr ITensor::DataType data_type = ITensor::DataType::_EnumType;                                   \
     };
 
     // Register ITensor supported data types here. Must match ITensor::DataType enums
@@ -109,8 +108,7 @@ namespace LangPlugins {
     template <typename T>
     const T *ITensor::data() const {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
         if (tensor_traits<T>::data_type != dataType()) {
             return nullptr;
         }
@@ -120,8 +118,7 @@ namespace LangPlugins {
     template <typename T>
     T *ITensor::mutableData() {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
         if (tensor_traits<T>::data_type != dataType()) {
             return nullptr;
         }
@@ -131,8 +128,7 @@ namespace LangPlugins {
     template <typename T>
     stdc::array_view<T> ITensor::view() const {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
         if (tensor_traits<T>::data_type != dataType()) {
             return stdc::array_view<T>();
         }
@@ -154,11 +150,10 @@ namespace LangPlugins {
         using Container = AlignedVector<std::byte>;
 
         /// Tensor backend identifier.
-        static constexpr const char *BACKEND = "tensor";
+        static constexpr auto BACKEND = "tensor";
 
         /// Default constructor, creates an empty/invalid Tensor.
-        inline Tensor() : ITensor(), _dataType(Undefined), _shape{}, _data{} {
-        }
+        Tensor() : ITensor(), _dataType(Undefined) {}
 
         ~Tensor() override = default;
 
@@ -177,8 +172,7 @@ namespace LangPlugins {
         ///         On failure: An error describing the cause of the failure.
         ///
         /// \note The returned tensor is zero-initialized.
-        static LangMgr::Expected<LangMgr::NO<Tensor>> create(DataType dataType,
-                                                     const std::vector<int64_t> &shape);
+        static LangMgr::Expected<LangMgr::NO<Tensor>> create(DataType dataType, const std::vector<int64_t> &shape);
 
         /// \brief Create a tensor from raw byte data.
         ///
@@ -196,9 +190,8 @@ namespace LangPlugins {
         /// \pre `data.size()` must equal the number of bytes required by `shape` and `dataType`.
         /// \post On success, the returned tensor owns its own copy of the data.
         ///       The original data is not modified.
-        static LangMgr::Expected<LangMgr::NO<Tensor>> createFromRawData(DataType dataType,
-                                                                const std::vector<int64_t> &shape,
-                                                                const Container &data);
+        static LangMgr::Expected<LangMgr::NO<Tensor>>
+        createFromRawData(DataType dataType, const std::vector<int64_t> &shape, const Container &data);
 
         /// \brief Create a tensor from a raw byte view.
         ///
@@ -216,9 +209,9 @@ namespace LangPlugins {
         /// \pre `data.size()` must equal the number of bytes required by `shape` and `dataType`.
         /// \post On success, the returned tensor owns its own copy of the data.
         ///       The original data is not modified.
-        static LangMgr::Expected<LangMgr::NO<Tensor>>
-            createFromRawView(DataType dataType, const std::vector<int64_t> &shape,
-                              const stdc::array_view<std::byte> &data);
+        static LangMgr::Expected<LangMgr::NO<Tensor>> createFromRawView(DataType dataType,
+                                                                        const std::vector<int64_t> &shape,
+                                                                        const stdc::array_view<std::byte> &data);
 
         /// \brief Create a tensor from an rvalue reference to raw byte data.
         ///
@@ -236,9 +229,8 @@ namespace LangPlugins {
         /// \pre `data.size()` must equal the number of bytes required by `shape` and `dataType`.
         /// \post On success, the returned tensor owns the data;
         ///       `data` may be left in a valid but unspecified state.
-        static LangMgr::Expected<LangMgr::NO<Tensor>> createFromRawData(DataType dataType,
-                                                                const std::vector<int64_t> &shape,
-                                                                Container &&data);
+        static LangMgr::Expected<LangMgr::NO<Tensor>>
+        createFromRawData(DataType dataType, const std::vector<int64_t> &shape, Container &&data);
         /// \brief Create a tensor from a typed array view.
         ///
         /// \tparam T Data type of the elements in the input view.
@@ -255,7 +247,7 @@ namespace LangPlugins {
         ///       The original data is not modified.
         template <typename T>
         static LangMgr::Expected<LangMgr::NO<Tensor>> createFromView(const std::vector<int64_t> &shape,
-                                                             const stdc::array_view<T> &data);
+                                                                     const stdc::array_view<T> &data);
 
         /// \brief Create a tensor with a single value, optionally as a zero-dimension tensor
         /// (scalar).
@@ -283,8 +275,7 @@ namespace LangPlugins {
         /// \return On success: A new Tensor wrapped in a NamedObject.
         ///         On failure: An error describing the cause of the failure.
         template <typename T>
-        static LangMgr::Expected<LangMgr::NO<Tensor>> createFilled(const std::vector<int64_t> &shape,
-                                                           T value);
+        static LangMgr::Expected<LangMgr::NO<Tensor>> createFilled(const std::vector<int64_t> &shape, T value);
 
         /// \copydoc ITensor::backend
         std::string backend() const override;
@@ -323,9 +314,8 @@ namespace LangPlugins {
         Container _data;
     };
 
-    inline Tensor::Tensor(Tensor &&other) noexcept
-        : ITensor(), _dataType(other._dataType), _shape(std::move(other._shape)),
-          _data(std::move(other._data)) {
+    inline Tensor::Tensor(Tensor &&other) noexcept :
+        ITensor(), _dataType(other._dataType), _shape(std::move(other._shape)), _data(std::move(other._data)) {
         other._dataType = Undefined;
     }
 
@@ -344,38 +334,33 @@ namespace LangPlugins {
     // Inline template implementations
     ////////////////////////////////////////////////////////////////////////////////
     template <typename T>
-    inline LangMgr::Expected<LangMgr::NO<Tensor>> Tensor::createFromView(const std::vector<int64_t> &shape,
-                                                                 const stdc::array_view<T> &data) {
+    LangMgr::Expected<LangMgr::NO<Tensor>> Tensor::createFromView(const std::vector<int64_t> &shape,
+                                                                  const stdc::array_view<T> &data) {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
 
-        stdc::array_view<std::byte> rawView{reinterpret_cast<const std::byte *>(data.data()),
-                                            data.size() * sizeof(T)};
+        const stdc::array_view<std::byte> rawView{reinterpret_cast<const std::byte *>(data.data()),
+                                                  data.size() * sizeof(T)};
         return createFromRawView(tensor_traits<T>::data_type, shape, rawView);
     }
 
     template <typename T>
-    inline LangMgr::Expected<LangMgr::NO<Tensor>> Tensor::createScalar(T value, bool zeroDimensions) {
+    LangMgr::Expected<LangMgr::NO<Tensor>> Tensor::createScalar(T value, const bool zeroDimensions) {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
 
         Container data(sizeof(T));
         *reinterpret_cast<T *>(data.data()) = value;
 
         return createFromRawData(tensor_traits<T>::data_type,
-                                 zeroDimensions ? std::vector<int64_t>{} : std::vector<int64_t>{1},
-                                 std::move(data));
+                                 zeroDimensions ? std::vector<int64_t>{} : std::vector<int64_t>{1}, std::move(data));
     }
 
     template <typename T>
-    inline LangMgr::Expected<LangMgr::NO<Tensor>> Tensor::createFilled(const std::vector<int64_t> &shape,
-                                                               T value) {
+    LangMgr::Expected<LangMgr::NO<Tensor>> Tensor::createFilled(const std::vector<int64_t> &shape, T value) {
 
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
 
         auto exp = create(tensor_traits<T>::data_type, shape);
         if (!exp) {
@@ -387,6 +372,6 @@ namespace LangPlugins {
         return tensor;
     }
 
-}
+} // namespace LangPlugins
 
 #endif // LANGPLUGINS_TENSOR_H

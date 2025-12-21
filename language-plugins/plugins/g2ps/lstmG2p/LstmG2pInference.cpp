@@ -54,14 +54,12 @@ namespace LangPlugins
                 LangMgr::Error::InvalidArgument,
                 stdc::formatN(R"(invalid LstmG2p task init args name: expected "%1", got "%2")", Lstm::API_NAME, name));
         }
-        auto LstmG2pArgs = args.as<Lstm::LstmG2pInitArgs>();
-
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        if (auto res = inferutil::getInferenceDriver(this); res) {
+        if (auto res = inferUtil::getInferenceDriver(this); res) {
             impl.driver = res.take();
         } else {
             setState(Failed);
@@ -196,7 +194,7 @@ namespace LangPlugins
 
         // Decode phonemes
         auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), config);
-        if (!phonemes) {
+        if (phonemes->empty()) {
             setState(Failed);
             return phonemes.takeError();
         }

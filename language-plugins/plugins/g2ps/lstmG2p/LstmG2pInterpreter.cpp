@@ -28,7 +28,7 @@ namespace LangPlugins
 
         // Collect all the errors and return to user
 
-        if (const inferutil::ErrorCollector ec; ec.hasErrors()) {
+        if (const inferUtil::ErrorCollector ec; ec.hasErrors()) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidFormat,
                 ec.getErrorMessage("error parsing duration schema"),
@@ -51,8 +51,8 @@ namespace LangPlugins
         auto result = LangMgr::NO<Lstm::LstmG2pConfiguration>::create();
 
         // Collect all the errors and return to user
-        inferutil::ErrorCollector ec;
-        inferutil::ConfigurationParser parser(spec, &ec);
+        inferUtil::ErrorCollector ec;
+        inferUtil::ConfigurationParser parser(spec, &ec);
 
         // [REQUIRED] encoder, path (json value is string)
         {
@@ -104,8 +104,8 @@ namespace LangPlugins
         auto result = LangMgr::NO<Lstm::LstmG2pImportOptions>::create();
 
         // Collect all the errors and return to user
-        inferutil::ErrorCollector ec;
-        inferutil::ImportOptionsParser parser(spec, &ec, obj);
+        inferUtil::ErrorCollector ec;
+        inferUtil::ImportOptionsParser parser(spec, &ec, obj);
 
         // [REQUIRED] encoder, path (json value is string)
         {

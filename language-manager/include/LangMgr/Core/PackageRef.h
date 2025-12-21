@@ -23,14 +23,12 @@ namespace LangMgr
         stdc::VersionNumber version;
         bool required;
 
-        inline PackageDependency(bool required = true) : required(required) {}
+        explicit PackageDependency(const bool required = true) : required(required) {}
 
-        inline PackageDependency(std::string id, stdc::VersionNumber version, bool required = true) :
+        PackageDependency(std::string id, const stdc::VersionNumber version, const bool required = true) :
             id(std::move(id)), version(version), required(required) {}
 
-        inline bool operator==(const PackageDependency &other) const {
-            return id == other.id && version == other.version;
-        }
+        bool operator==(const PackageDependency &other) const { return id == other.id && version == other.version; }
 
         LANGMGR_EXPORT static Expected<PackageDependency> fromJsonValue(const JsonValue &val);
     };
@@ -46,8 +44,7 @@ namespace LangMgr
         PackageRef();
         ~PackageRef();
 
-    public:
-        inline bool isValid() const { return SU() != nullptr; }
+        bool isValid() const { return SU() != nullptr; }
 
         /// Close the package or reduce its reference count in \c LanguageManager. When all \c PackageRef
         /// instances opened using \c LanguageManager::open are closed, its shared internal data will be
@@ -74,9 +71,8 @@ namespace LangMgr
 
         /// Loader-specific
         const std::filesystem::path &path() const;
-        stdc::array_view<PackageDependency> dependencies() const;
+        stdc::array_view<PackageDependency> dependencies();
 
-    public:
         /// The error will be set if the package is not opened or loaded correctly.
         Error error() const;
 
@@ -106,11 +102,11 @@ namespace LangMgr
     public:
         ScopedPackageRef() = default;
 
-        inline ScopedPackageRef(PackageRef &&RHS) : PackageRef() { std::swap(_data, RHS._data); }
+        explicit ScopedPackageRef(PackageRef &&RHS) { std::swap(_data, RHS._data); }
 
-        inline ~ScopedPackageRef() { forceClose(); }
+        ~ScopedPackageRef() { forceClose(); }
 
-        inline ScopedPackageRef &operator=(PackageRef &&RHS) {
+        ScopedPackageRef &operator=(PackageRef &&RHS) {
             if (this != &RHS) {
                 forceClose();
                 std::swap(_data, RHS._data);

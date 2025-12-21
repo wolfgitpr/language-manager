@@ -142,7 +142,7 @@ class LstmG2pOnnxExporter:
                     "encoder": "encoder.onnx",
                     "decoder": "decoder.onnx",
                     "charVocab": "char.json",
-                    "phonemeVocab": "phoneme.json"
+                    "phonemeVocab": "phonemes.json"
                 }
             }
             json.dump(config_json, f, indent=4)

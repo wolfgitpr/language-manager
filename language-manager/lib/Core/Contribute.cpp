@@ -38,22 +38,20 @@ namespace LangMgr
         }
 
         ContribLocator result;
-        size_t slashPos = token.find('/');
-        if (slashPos != std::string::npos) {
+        if (const size_t slashPos = token.find('/'); slashPos != std::string::npos) {
             // Case: id/sid or id[version]/sid
             auto leftPart = token.substr(0, slashPos);
-            auto rightPart = token.substr(slashPos + 1);
+            const auto rightPart = token.substr(slashPos + 1);
             if (!isValidLocator(rightPart)) {
                 return {};
             }
             result._id = rightPart;
 
-            size_t openBracket = leftPart.find('[');
-            if (openBracket != std::string::npos) {
+            if (const size_t openBracket = leftPart.find('['); openBracket != std::string::npos) {
                 if (leftPart.back() != ']') {
                     return {};
                 }
-                auto package = leftPart.substr(0, openBracket);
+                const auto package = leftPart.substr(0, openBracket);
                 if (!isValidLocator(package)) {
                     return {};
                 }
@@ -131,25 +129,27 @@ namespace LangMgr
 
     ContribSpec::ContribSpec(std::string category) : _impl(new Impl(std::move(category))) {}
 
+    ContribCategory::Impl::~Impl() {}
+
     std::vector<ContribSpec *> ContribCategory::Impl::findContributes(const ContribLocator &loc) const {
-        std::shared_lock<std::shared_mutex> lock(su_mtx());
+        std::shared_lock lock(su_mtx());
         if (loc.package().empty() || loc.version().isEmpty()) {
             return {};
         }
-        auto it = indexes.find(loc.package());
+        const auto it = indexes.find(loc.package());
         if (it == indexes.end()) {
             return {};
         }
         const auto &versionMap = it->second;
 
-        auto it2 = versionMap.find(loc.version());
+        const auto it2 = versionMap.find(loc.version());
         if (it2 == versionMap.end()) {
             return {};
         }
         const auto &inferenceMap = it2->second;
 
         if (!loc.id().empty()) {
-            auto it3 = inferenceMap.find(loc.id());
+            const auto it3 = inferenceMap.find(loc.id());
             if (it3 == inferenceMap.end()) {
                 return {};
             }
@@ -158,8 +158,8 @@ namespace LangMgr
 
         std::vector<ContribSpec *> res;
         res.reserve(inferenceMap.size());
-        for (const auto &pair : inferenceMap) {
-            res.push_back(*pair.second);
+        for (const auto &[fst, snd] : inferenceMap) {
+            res.push_back(*snd);
         }
         return res;
     }
@@ -176,16 +176,16 @@ namespace LangMgr
         return impl.su;
     }
 
-    Expected<void> ContribCategory::loadSpec(ContribSpec *spec, ContribSpec::State state) {
+    Expected<void> ContribCategory::loadSpec(ContribSpec *spec, const ContribSpec::State state) {
         __stdc_impl_t;
 
-        auto spec_impl = spec->_impl.get();
+        const auto spec_impl = spec->_impl.get();
         switch (state) {
         case ContribSpec::Initialized:
             {
-                std::unique_lock<std::shared_mutex> lock(impl.su_mtx());
-                auto lib = spec_impl->package;
-                auto it = impl.contributes.insert(impl.contributes.end(), spec);
+                std::unique_lock lock(impl.su_mtx());
+                const auto lib = spec_impl->package;
+                const auto it = impl.contributes.insert(impl.contributes.end(), spec);
                 impl.indexes[lib->id][lib->version][spec_impl->id] = it;
                 return Expected<void>();
             }
@@ -198,19 +198,19 @@ namespace LangMgr
 
         case ContribSpec::Deleted:
             {
-                std::unique_lock<std::shared_mutex> lock(impl.su_mtx());
-                auto lib = spec_impl->package;
-                auto it = impl.indexes.find(lib->id);
+                std::unique_lock lock(impl.su_mtx());
+                const auto lib = spec_impl->package;
+                const auto it = impl.indexes.find(lib->id);
                 if (it == impl.indexes.end()) {
                     return Expected<void>();
                 }
                 auto &versionMap = it->second;
-                auto it2 = versionMap.find(lib->version);
+                const auto it2 = versionMap.find(lib->version);
                 if (it2 == versionMap.end()) {
                     return Expected<void>();
                 }
                 auto &inferenceMap = it2->second;
-                auto it3 = inferenceMap.find(spec_impl->id);
+                const auto it3 = inferenceMap.find(spec_impl->id);
                 if (it3 == inferenceMap.end()) {
                     return Expected<void>();
                 }
@@ -228,7 +228,6 @@ namespace LangMgr
             break;
         }
         std::abort();
-        return Expected<void>();
     }
 
     std::vector<ContribSpec *> ContribCategory::find(const ContribLocator &loc) const {

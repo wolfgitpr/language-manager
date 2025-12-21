@@ -14,7 +14,7 @@ namespace LangPlugins::Api::LstmG2p::L1
 {
 
     constexpr char API_NAME[] = "lstmG2p";
-    constexpr char API_CLASS[] = "ai.svs.LstmG2pInference";
+    constexpr char API_CLASS[] = "g2p.model.LstmG2pInference";
     constexpr int API_LEVEL = 1;
 
 

@@ -1,23 +1,21 @@
-#ifndef DSINFER_ONNXDRIVER_SESSIONIMAGE_P_H
-#define DSINFER_ONNXDRIVER_SESSIONIMAGE_P_H
+#ifndef LANGMGR_ONNXDRIVER_SESSIONIMAGE_P_H
+#define LANGMGR_ONNXDRIVER_SESSIONIMAGE_P_H
 
 #include <filesystem>
 
-#include <LangMgr/Support/Expected.h>
 
 #include <onnxruntime_cxx_api.h>
 
-namespace LangPlugins::onnxdriver {
+namespace LangPlugins::onnxdriver
+{
 
     class SessionImage {
     public:
         SessionImage();
         ~SessionImage();
 
-        bool open(const std::filesystem::path &onnxPath, int hints,
-                  std::string *errorMessage = nullptr);
+        bool open(const std::filesystem::path &onnxPath, int hints, std::string *errorMessage = nullptr);
 
-    public:
         std::vector<std::string> inputNames;
         std::vector<std::string> outputNames;
 
@@ -25,6 +23,6 @@ namespace LangPlugins::onnxdriver {
         Ort::Session session;
     };
 
-}
+} // namespace LangPlugins::onnxdriver
 
-#endif // DSINFER_ONNXDRIVER_SESSIONIMAGE_P_H
+#endif // LANGMGR_ONNXDRIVER_SESSIONIMAGE_P_H

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace LangPlugins::inferutil
+namespace LangPlugins::inferUtil
 {
     class ErrorCollector {
     public:
@@ -66,6 +66,6 @@ namespace LangPlugins::inferutil
 
         return result;
     }
-} // namespace LangPlugins::inferutil
+} // namespace LangPlugins::inferUtil
 
 #endif // LANGPLUGINS_INFERUTIL_ERRORCOLLECTOR_H

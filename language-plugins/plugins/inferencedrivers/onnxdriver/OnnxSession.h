@@ -1,27 +1,27 @@
-#ifndef DSINFER_ONNXSESSION_H
-#define DSINFER_ONNXSESSION_H
+#ifndef LANGMGR_ONNXSESSION_H
+#define LANGMGR_ONNXSESSION_H
 
 #include <LangPlugins/Inference/InferenceSession.h>
 
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     class OnnxSession : public InferenceSession {
     public:
         OnnxSession();
-        ~OnnxSession();
+        ~OnnxSession() override;
 
-    public:
         LangMgr::Expected<void> open(const std::filesystem::path &path,
-                                 const LangMgr::NO<InferenceSessionOpenArgs> &args) override;
+                                     const LangMgr::NO<InferenceSessionOpenArgs> &args) override;
         LangMgr::Expected<void> close() override;
         bool isOpen() const override;
 
         int64_t id() const override;
 
-    public:
-        LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> start(const LangMgr::NO<LangMgr::TaskStartInput> &input) override;
+        LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>>
+        start(const LangMgr::NO<LangMgr::TaskStartInput> &input) override;
         LangMgr::Expected<void> startAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
-                                       const StartAsyncCallback &callback) override;
+                                           const StartAsyncCallback &callback) override;
         LangMgr::NO<LangMgr::TaskResult> result() const override;
         bool stop() override;
 
@@ -32,6 +32,6 @@ namespace LangPlugins {
         friend class OnnxTask;
     };
 
-}
+} // namespace LangPlugins
 
-#endif // DSINFER_ONNXSESSION_H
+#endif // LANGMGR_ONNXSESSION_H

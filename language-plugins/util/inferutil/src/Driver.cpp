@@ -5,7 +5,7 @@
 #include <LangMgr/Tool/InferenceContrib.h>
 #include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
 
-namespace LangPlugins::inferutil
+namespace LangPlugins::inferUtil
 {
     LangMgr::Expected<LangMgr::NO<InferenceDriver>> getInferenceDriver(const LangMgr::Inference *obj) {
         namespace Onnx = Api::Onnx;
@@ -38,4 +38,4 @@ namespace LangPlugins::inferutil
 
         return onnxDriver;
     }
-} // namespace LangPlugins::inferutil
+} // namespace LangPlugins::inferUtil

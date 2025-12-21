@@ -23,7 +23,6 @@ namespace LangMgr
         explicit PackageData(LanguageManager *su) : su(su) {}
         ~PackageData();
 
-    public:
         Expected<void> parse(const std::filesystem::path &dir,
                              const std::map<std::string, ContribCategory *, std::less<>> &categories,
                              llvm::SmallVectorImpl<ContribSpec *> *outContributes);

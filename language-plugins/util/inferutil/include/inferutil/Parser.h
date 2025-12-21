@@ -5,10 +5,9 @@
 #include <vector>
 
 #include <LangMgr/Tool/InferenceContrib.h>
-#include <LangPlugins/Core/ParamTag.h>
 #include <inferutil/ErrorCollector.h>
 
-namespace LangPlugins::inferutil
+namespace LangPlugins::inferUtil
 {
     enum class ParameterType {
         Variance,
@@ -90,7 +89,7 @@ namespace LangPlugins::inferutil
         ErrorCollector *ec;
         const LangMgr::JsonObject *pOptions;
     };
-} // namespace LangPlugins::inferutil
+} // namespace LangPlugins::inferUtil
 
 #include "detail/Parser_impl.h"
 

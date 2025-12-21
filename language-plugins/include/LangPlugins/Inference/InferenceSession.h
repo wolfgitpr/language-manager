@@ -6,24 +6,21 @@
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Task/ITask.h>
 
-#include <dsinfer/dsinfer_global.h>
-
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     class InferenceSessionOpenArgs : public LangMgr::NamedObject {
     public:
-        inline InferenceSessionOpenArgs(std::string name, int version)
-            : LangMgr::NamedObject(std::move(name)), version(version) {
-        }
+        InferenceSessionOpenArgs(std::string name, const int version) :
+            NamedObject(std::move(name)), version(version) {}
 
         int version;
     };
 
     class InferenceSessionInitArgs : public LangMgr::TaskInitArgs {
     public:
-        inline InferenceSessionInitArgs(std::string name, int version)
-            : LangMgr::TaskInitArgs(std::move(name)), version(version) {
-        }
+        InferenceSessionInitArgs(std::string name, const int version) :
+            TaskInitArgs(std::move(name)), version(version) {}
 
         int version;
     };
@@ -31,18 +28,15 @@ namespace LangPlugins {
 
     class InferenceSessionStartInput : public LangMgr::TaskStartInput {
     public:
-        inline InferenceSessionStartInput(std::string name, int version)
-            : LangMgr::TaskStartInput(std::move(name)), version(version) {
-        }
+        InferenceSessionStartInput(std::string name, const int version) :
+            TaskStartInput(std::move(name)), version(version) {}
 
         int version;
     };
 
     class InferenceSessionResult : public LangMgr::TaskResult {
     public:
-        inline InferenceSessionResult(std::string name, int version)
-            : LangMgr::TaskResult(std::move(name)), version(version) {
-        }
+        InferenceSessionResult(std::string name, const int version) : TaskResult(std::move(name)), version(version) {}
 
         int version;
     };
@@ -51,13 +45,13 @@ namespace LangPlugins {
     class InferenceSession : public LangMgr::ITask {
     public:
         virtual LangMgr::Expected<void> open(const std::filesystem::path &path,
-                                         const LangMgr::NO<InferenceSessionOpenArgs> &args) = 0;
+                                             const LangMgr::NO<InferenceSessionOpenArgs> &args) = 0;
         virtual LangMgr::Expected<void> close() = 0;
         virtual bool isOpen() const = 0;
 
         virtual int64_t id() const = 0;
     };
 
-}
+} // namespace LangPlugins
 
 #endif // DSINFER_INFERENCESESSION_H

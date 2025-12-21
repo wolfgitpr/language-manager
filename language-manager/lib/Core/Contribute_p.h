@@ -22,12 +22,10 @@ namespace LangMgr
         explicit Impl(std::string category) : category(std::move(category)), state(Invalid) {}
         virtual ~Impl() = default;
 
-    public:
         virtual Expected<void> read(const std::filesystem::path &basePath, const JsonObject &obj) {
             return Error(Error::NotImplemented);
         }
 
-    public:
         std::string category;
         std::string id;
         stdc::VersionNumber fmtVersion;
@@ -40,9 +38,8 @@ namespace LangMgr
     public:
         explicit Impl(ContribCategory *decl, std::string name, LanguageManager *su) :
             ObjectPool::Impl(decl), name(std::move(name)), su(su) {}
-        virtual ~Impl() = default;
+        ~Impl() override;
 
-    public:
         std::string name;
         LanguageManager *su;
 
@@ -51,9 +48,7 @@ namespace LangMgr
                  std::unordered_map<stdc::VersionNumber, std::map<std::string, decltype(contributes)::iterator>>>
             indexes;
 
-        inline std::shared_mutex &su_mtx() const {
-            return static_cast<LanguageManager::Impl *>(su->_impl.get())->su_mtx;
-        }
+        std::shared_mutex &su_mtx() const { return static_cast<LanguageManager::Impl *>(su->_impl.get())->su_mtx; }
 
         std::vector<ContribSpec *> findContributes(const ContribLocator &loc) const;
     };

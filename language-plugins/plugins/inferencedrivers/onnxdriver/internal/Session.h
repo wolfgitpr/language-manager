@@ -1,17 +1,16 @@
-#ifndef DSINFER_ONNXDRIVER_SESSION_H
-#define DSINFER_ONNXDRIVER_SESSION_H
+#ifndef LANGMGR_ONNXDRIVER_SESSION_H
+#define LANGMGR_ONNXDRIVER_SESSION_H
 
-#include <map>
-#include <memory>
 #include <filesystem>
-#include <functional>
+#include <memory>
 
 #include <LangMgr/Support/Expected.h>
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
 #include <LangMgr/Task/ITask.h>
+#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
 
 
-namespace LangPlugins::onnxdriver {
+namespace LangPlugins::onnxdriver
+{
 
     class Session {
     public:
@@ -29,15 +28,16 @@ namespace LangPlugins::onnxdriver {
         Session(Session &&other) noexcept;
         Session &operator=(Session &&other) noexcept;
 
-    public:
-        LangMgr::Expected<void> open(const std::filesystem::path &path, const LangMgr::NO<Api::Onnx::SessionOpenArgs> &args);
+        LangMgr::Expected<void> open(const std::filesystem::path &path,
+                                     const LangMgr::NO<Api::Onnx::SessionOpenArgs> &args);
         LangMgr::Expected<void> close();
 
         const std::vector<std::string> &inputNames() const;
         const std::vector<std::string> &outputNames() const;
 
         LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> run(const LangMgr::NO<LangMgr::TaskStartInput> &input);
-        LangMgr::Expected<void> runAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input, const LangMgr::ITask::StartAsyncCallback &callback);
+        LangMgr::Expected<void> runAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
+                                         const LangMgr::ITask::StartAsyncCallback &callback);
 
         void terminate();
 
@@ -51,6 +51,6 @@ namespace LangPlugins::onnxdriver {
         std::unique_ptr<Impl> _impl;
     };
 
-}
+} // namespace LangPlugins::onnxdriver
 
-#endif // DSINFER_ONNXDRIVER_SESSION_H
+#endif // LANGMGR_ONNXDRIVER_SESSION_H

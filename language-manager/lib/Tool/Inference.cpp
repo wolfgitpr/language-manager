@@ -24,7 +24,7 @@ namespace LangMgr
         return impl.spec;
     }
 
-    LanguageManager *Inference::SU() const {
+    LanguageManager *Inference::MGR() const {
         __stdc_impl_t;
         return impl.spec->SU();
     }

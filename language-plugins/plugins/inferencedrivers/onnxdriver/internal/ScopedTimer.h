@@ -1,5 +1,5 @@
-#ifndef DSINFER_ONNXDRIVER_SCOPEDTIMER_H
-#define DSINFER_ONNXDRIVER_SCOPEDTIMER_H
+#ifndef LANGMGR_ONNXDRIVER_SCOPEDTIMER_H
+#define LANGMGR_ONNXDRIVER_SCOPEDTIMER_H
 
 #include <chrono>
 #include <functional>
@@ -10,7 +10,7 @@ namespace LangPlugins::onnxdriver {
         using duration_t = std::chrono::duration<double>; // seconds
         using callback_t = std::function<void(const duration_t &)>;
 
-        explicit ScopedTimer(callback_t callback, bool activated = true)
+        explicit ScopedTimer(callback_t callback, const bool activated = true)
             : m_isActive(activated), m_callback(std::move(callback)), m_timeStart(std::chrono::steady_clock::now()) {
         }
 

@@ -1,5 +1,5 @@
-#ifndef DSINFER_ONNXDRIVER_LOGGER_H
-#define DSINFER_ONNXDRIVER_LOGGER_H
+#ifndef LANGMGR_ONNXDRIVER_LOGGER_H
+#define LANGMGR_ONNXDRIVER_LOGGER_H
 
 #include <LangMgr/Support/Logging.h>
 
@@ -9,4 +9,4 @@ namespace LangPlugins::onnxdriver {
 
 }
 
-#endif // DSINFER_ONNXDRIVER_LOGGER_H
+#endif // LANGMGR_ONNXDRIVER_LOGGER_H

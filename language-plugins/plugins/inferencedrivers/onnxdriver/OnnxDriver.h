@@ -1,5 +1,5 @@
-#ifndef DSINFER_ONNXDRIVER_H
-#define DSINFER_ONNXDRIVER_H
+#ifndef LANGMGR_ONNXDRIVER_H
+#define LANGMGR_ONNXDRIVER_H
 
 #include <filesystem>
 
@@ -13,7 +13,6 @@ namespace LangPlugins
         OnnxDriver();
         ~OnnxDriver() override;
 
-    public:
         std::string arch() const override;
         std::string backend() const override;
 
@@ -28,4 +27,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-#endif // DSINFER_ONNXDRIVER_H
+#endif // LANGMGR_ONNXDRIVER_H

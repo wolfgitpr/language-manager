@@ -1,5 +1,5 @@
-#ifndef DSINFER_ONNXDRIVER_ENV_H
-#define DSINFER_ONNXDRIVER_ENV_H
+#ifndef LANGMGR_ONNXDRIVER_ENV_H
+#define LANGMGR_ONNXDRIVER_ENV_H
 
 #include <atomic>
 #include <shared_mutex>
@@ -12,7 +12,7 @@ namespace LangPlugins::onnxdriver {
         struct DeviceConfig {
             DeviceConfig() : ep(Api::Onnx::CPUExecutionProvider), deviceIndex(-1) {
             }
-            DeviceConfig(Api::Onnx::ExecutionProvider provider, int index)
+            DeviceConfig(const Api::Onnx::ExecutionProvider provider, const int index)
                 : ep(provider), deviceIndex(index) {
             }
 
@@ -33,4 +33,4 @@ namespace LangPlugins::onnxdriver {
 
 } // namespace LangPlugins::onnxdriver
 
-#endif // DSINFER_ONNXDRIVER_ENV_H
+#endif // LANGMGR_ONNXDRIVER_ENV_H
