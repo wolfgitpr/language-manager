@@ -47,32 +47,31 @@ namespace LangPlugins
             };
         }
 
-        const auto &config = spec->manifestConfiguration();
         auto result = LangMgr::NO<Lstm::LstmG2pConfiguration>::create();
 
         // Collect all the errors and return to user
         inferUtil::ErrorCollector ec;
         inferUtil::ConfigurationParser parser(spec, &ec);
 
-        // [REQUIRED] encoder, path (json value is string)
+        // [REQUIRED] encoder, path (JSON value is string)
         {
             static_assert(std::is_same_v<decltype(result->encoder), std::filesystem::path>);
             parser.parse_path_required(result->encoder, "encoder");
         } // encoder
 
-        // [REQUIRED] predictor, path (json value is string)
+        // [REQUIRED] predictor, path (JSON value is string)
         {
             static_assert(std::is_same_v<decltype(result->decoder), std::filesystem::path>);
             parser.parse_path_required(result->decoder, "decoder");
         } // predictor
 
-        // chars, load file (json value is string of file path)
+        // chars, load file (JSON value is string of file path)
         {
             static_assert(std::is_same_v<decltype(result->charVocab), std::map<std::string, int>>);
             parser.parse_phonemes(result->charVocab, "charVocab");
         } // chars
 
-        // phonemes, load file (json value is string of file path)
+        // phonemes, load file (JSON value is string of file path)
         {
             static_assert(std::is_same_v<decltype(result->phonemeVocab), std::map<std::string, int>>);
             parser.parse_phonemes(result->phonemeVocab, "phonemeVocab");
@@ -94,19 +93,7 @@ namespace LangPlugins
     LangMgr::Expected<LangMgr::NO<LangMgr::InferenceImportOptions>>
     LstmG2pInterpreter::createImportOptions(const LangMgr::InferenceSpec *spec,
                                             const LangMgr::JsonValue &options) const {
-        if (!options.isObject()) {
-            return LangMgr::Error{
-                LangMgr::Error::InvalidFormat,
-                "error parsing duration import options: import options JSON should be an object",
-            };
-        }
-        const auto &obj = options.toObject();
-        auto result = LangMgr::NO<Lstm::LstmG2pImportOptions>::create();
-
-        // Collect all the errors and return to user
-        inferUtil::ErrorCollector ec;
-        inferUtil::ImportOptionsParser parser(spec, &ec, obj);
-        return result;
+        return LangMgr::NO<Lstm::LstmG2pImportOptions>::create();
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>

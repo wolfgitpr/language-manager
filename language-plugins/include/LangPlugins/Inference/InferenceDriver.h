@@ -15,7 +15,7 @@ namespace LangPlugins
 
     class InferenceSession;
 
-    /// InferenceDriver - DiffSinger inference driver interface.
+    /// InferenceDriver - G2p inference driver interface.
     ///
     /// \note An instance of \c InferenceDriver needs to be added to the \c InferenceCategory with
     /// the ID "g2pOnnxDriver" before it can be called by the inference interpreters.
@@ -31,7 +31,7 @@ namespace LangPlugins
     public:
         ~InferenceDriver() override;
 
-        /// Related singer arch.
+        /// Related g2p arch.
         virtual std::string arch() const = 0;
 
         /// Driver backend identifier.

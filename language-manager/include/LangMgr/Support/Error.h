@@ -22,6 +22,7 @@ namespace LangMgr
             InvalidArgument,
             NotImplemented,
             SessionError,
+            InterpreterNotFound,
         };
 
         inline Error() : Error(NoError) {}

@@ -12,9 +12,9 @@
 #include <fstream>
 #include <utility>
 
+#include <LangMgr/Support/JSON.h>
 #include <stdcorelib/path.h>
 #include <stdcorelib/str.h>
-#include <synthrt/Support/JSON.h>
 
 namespace LangPlugins::inferUtil
 {
@@ -135,6 +135,74 @@ namespace LangPlugins::inferUtil
             }
         } else {
             collectError("string field \"phonemes\" is missing");
+        }
+    }
+
+    inline void ConfigurationParser::parse_verify_required(std::vector<Api::TemplateG2p::L1::VerifyEntry> &out,
+                                                           const std::string &fieldName) {
+        const auto &config = *pConfig;
+
+        if (const auto it = config.find(fieldName); it != config.end()) {
+            if (!it->second.isArray()) {
+                collectError("array field \"" + fieldName + "\" type mismatch");
+            } else {
+                const auto &arr = it->second.toArray();
+                out.clear();
+                out.reserve(arr.size());
+
+                for (size_t i = 0; i < arr.size(); ++i) {
+                    const auto &item = arr[i];
+                    if (!item.isObject()) {
+                        collectError("verify entry #" + std::to_string(i) + " must be an object");
+                        continue;
+                    }
+
+                    const auto &obj = item.toObject();
+                    Api::TemplateG2p::L1::VerifyEntry entry;
+
+                    if (const auto typeIt = obj.find("type"); typeIt != obj.end()) {
+                        if (typeIt->second.isString()) {
+                            entry.type = typeIt->second.toString();
+                        } else {
+                            collectError("verify entry #" + std::to_string(i) + " field \"type\" must be string");
+                            continue;
+                        }
+                    } else {
+                        collectError("verify entry #" + std::to_string(i) + " missing required field \"type\"");
+                        continue;
+                    }
+
+                    if (const auto valueIt = obj.find("value"); valueIt != obj.end()) {
+                        const auto &valueArr = valueIt->second.toArray();
+                        std::string combined;
+                        for (size_t j = 0; j < valueArr.size(); ++j) {
+                            if (valueArr[j].isString())
+                                entry.value.push_back(valueArr[j].toString());
+                            else
+                                collectError("verify entry #" + std::to_string(i) + " array value #" +
+                                             std::to_string(j) + " must be string");
+                        }
+                    } else {
+                        collectError("verify entry #" + std::to_string(i) + " missing required field \"value\"");
+                        continue;
+                    }
+
+                    if (const auto modeIt = obj.find("mode"); modeIt != obj.end()) {
+                        if (modeIt->second.isString()) {
+                            entry.mode = modeIt->second.toString();
+                        } else {
+                            collectError("verify entry #" + std::to_string(i) + " field \"mode\" must be string");
+                            continue;
+                        }
+                    } else {
+                        collectError("verify entry #" + std::to_string(i) + " missing required field \"mode\"");
+                        continue;
+                    }
+                    out.push_back(std::move(entry));
+                }
+            }
+        } else {
+            collectError("array field \"" + fieldName + "\" is missing");
         }
     }
 

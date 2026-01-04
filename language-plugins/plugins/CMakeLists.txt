@@ -1,3 +1,4 @@
 add_subdirectory(inferencedrivers)
 add_subdirectory(g2ps)
+add_subdirectory(g2pProviders)
 add_subdirectory(spliters)

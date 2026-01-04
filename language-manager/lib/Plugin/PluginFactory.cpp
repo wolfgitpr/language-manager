@@ -42,8 +42,8 @@ namespace LangMgr
 
     PluginFactory::Impl::~Impl() {
         // Unload all libraries
-        for (const auto &item : std::as_const(libraryInstances)) {
-            delete item.second;
+        for (const auto &[fst, snd] : std::as_const(libraryInstances)) {
+            delete snd;
         }
     }
 
@@ -119,7 +119,7 @@ namespace LangMgr
                 }
 
                 using PluginGetter = Plugin *(*)();
-                const auto getter = reinterpret_cast<PluginGetter>(so.resolve("synthrt_plugin_instance"));
+                const auto getter = reinterpret_cast<PluginGetter>(so.resolve("langMgr_plugin_instance"));
                 if (!getter) {
                     std::cerr << "Failed to resolve plugin instance function in: " << dllPath << std::endl;
                     continue;
@@ -129,9 +129,12 @@ namespace LangMgr
                     !plugins.insert(std::make_pair(plugin->key(), plugin)).second) {
                     std::cerr << "Failed to load plugin or IID mismatch: " << dllPath << std::endl;
                     continue;
+                } else {
+                    std::cout << "Successfully loaded plugin: " << pluginDir << " (target: " << target << ")"
+                              << std::endl;
+                    std::cout << "iid: " << iid << "; key: " << plugin->key() << std::endl << std::endl;
                 }
                 libraryInstances[dllPath] = new stdc::SharedLibrary(std::move(so));
-                std::cout << "Successfully loaded plugin: " << pluginDir << " (target: " << target << ")" << std::endl;
             }
         }
 

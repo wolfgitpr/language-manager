@@ -28,7 +28,7 @@ namespace LangMgr
     public:
         using PluginInstanceFunction = Plugin *(*)();
 
-        constexpr StaticPlugin(PluginInstanceFunction i) : instance(i) {}
+        explicit constexpr StaticPlugin(const PluginInstanceFunction i) : instance(i) {}
 
         PluginInstanceFunction instance = nullptr;
 
@@ -38,13 +38,13 @@ namespace LangMgr
 
 } // namespace LangMgr
 
-#define LANGMGR_EXPORT_PLUGIN(PLUGIN_NAME)                                                                            \
-    extern "C" STDCORELIB_DECL_EXPORT LangMgr::Plugin *synthrt_plugin_instance() {                                     \
+#define LANGMGR_EXPORT_PLUGIN(PLUGIN_NAME)                                                                             \
+    extern "C" STDCORELIB_DECL_EXPORT LangMgr::Plugin *langMgr_plugin_instance() {                                     \
         static PLUGIN_NAME _instance;                                                                                  \
         return &_instance;                                                                                             \
     }
 
-#define LANGMGR_EXPORT_STATIC_PLUGIN(PLUGIN_NAME, PLUGIN_SET)                                                         \
+#define LANGMGR_EXPORT_STATIC_PLUGIN(PLUGIN_NAME, PLUGIN_SET)                                                          \
     struct initializer {                                                                                               \
         initializer() {                                                                                                \
             LangMgr::StaticPlugin::registerStaticPlugin(PLUGIN_SET,                                                    \

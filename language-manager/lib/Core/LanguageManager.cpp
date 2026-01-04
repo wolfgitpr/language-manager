@@ -586,24 +586,24 @@ namespace LangMgr
         impl.defaultTaggerOrder = order;
     }
 
-    std::vector<LangNote> LanguageManager::split(const std::string &input,
+    std::vector<TaggerRes> LanguageManager::split(const std::string &input,
                                                  const std::vector<std::string> &priorityTaggerIds) const {
         __stdc_impl_t;
         // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
-        // std::vector result = {LangNote(utf8strToU32str(input))};
+        // std::vector result = {TaggerRes(utf8strToU32str(input))};
         // for (const auto &tagger : taggersList)
         //     result = tagger->start(result);
         // return result;
         return {};
     }
 
-    void LanguageManager::convert(const std::vector<LangNote *> &input) const {
+    void LanguageManager::convert(const std::vector<TaggerRes *> &input) const {
         // __stdc_impl_t;
         // std::map<std::string, std::vector<int>> indexMap;
         // std::map<std::string, std::vector<std::u32string>> lyricMap;
         //
         // for (int i = 0; i < input.size(); ++i) {
-        //     const LangNote *note = input.at(i);
+        //     const TaggerRes *note = input.at(i);
         //     indexMap[note->g2pId].push_back(i);
         //     lyricMap[note->g2pId].push_back(note->lyric);
         // }
@@ -631,9 +631,9 @@ namespace LangMgr
                                                   const std::vector<std::string> &reservedTokens) const {
         // __stdc_impl_t;
         // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
-        // std::vector<LangNote *> inputNote;
+        // std::vector<TaggerRes *> inputNote;
         // for (const auto &lyric : input) {
-        //     inputNote.push_back(new LangNote(utf8strToU32str(lyric)));
+        //     inputNote.push_back(new TaggerRes(utf8strToU32str(lyric)));
         // }
         //
         // for (const auto &tagger : taggersList)

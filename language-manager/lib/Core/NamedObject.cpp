@@ -135,9 +135,9 @@ namespace LangMgr
         return it->second.values();
     }
 
-    NO<NamedObject> ObjectPool::getFirstObject(std::string_view id) const {
+    NO<NamedObject> ObjectPool::getFirstObject(const std::string_view id) const {
         __stdc_impl_t;
-        auto it = impl.objects.find(id);
+        const auto it = impl.objects.find(id);
         if (it == impl.objects.end()) {
             return {};
         }

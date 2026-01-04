@@ -120,9 +120,9 @@ namespace LangMgr
         return PackageRef(impl.package);
     }
 
-    LanguageManager *ContribSpec::SU() const {
+    LanguageManager *ContribSpec::Mgr() const {
         __stdc_impl_t;
-        return impl.package->su;
+        return impl.package->mgr;
     }
 
     ContribSpec::ContribSpec(Impl &impl) : _impl(&impl) {}
@@ -173,7 +173,7 @@ namespace LangMgr
 
     LanguageManager *ContribCategory::Mgr() const {
         __stdc_impl_t;
-        return impl.su;
+        return impl.mgr;
     }
 
     Expected<void> ContribCategory::loadSpec(ContribSpec *spec, const ContribSpec::State state) {

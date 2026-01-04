@@ -44,7 +44,7 @@ namespace LangMgr
         PackageRef();
         ~PackageRef();
 
-        bool isValid() const { return SU() != nullptr; }
+        bool isValid() const { return Mgr() != nullptr; }
 
         /// Close the package or reduce its reference count in \c LanguageManager. When all \c PackageRef
         /// instances opened using \c LanguageManager::open are closed, its shared internal data will be
@@ -63,15 +63,12 @@ namespace LangMgr
         const std::filesystem::path &readme() const;
         const std::string &url() const;
 
-        /// Supported contribute categories:
-        /// - \c singer:     Singer declaration
-        /// - \c inference:  Inference model metadata
         std::vector<ContribSpec *> contributes(const std::string_view &category) const;
         ContribSpec *contribute(const std::string_view &category, const std::string_view &id) const;
 
         /// Loader-specific
         const std::filesystem::path &path() const;
-        stdc::array_view<PackageDependency> dependencies();
+        stdc::array_view<PackageDependency> dependencies() const;
 
         /// The error will be set if the package is not opened or loaded correctly.
         Error error() const;
@@ -84,7 +81,7 @@ namespace LangMgr
         bool isLoaded() const;
 
         /// Returns the \c LanguageManager instance that loaded this package.
-        LanguageManager *SU() const;
+        LanguageManager *Mgr() const;
 
     private:
         explicit PackageRef(PackageData *data) : _data(data) {}

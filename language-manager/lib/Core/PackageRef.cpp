@@ -341,10 +341,10 @@ namespace LangMgr
     PackageRef::~PackageRef() = default;
 
     bool PackageRef::close() {
-        if (!_data->su) {
+        if (!_data->mgr) {
             return true;
         }
-        if (!static_cast<LanguageManager::Impl *>(_data->su->_impl.get())->close(_data)) {
+        if (!static_cast<LanguageManager::Impl *>(_data->mgr->_impl.get())->close(_data)) {
             return false;
         }
         _data = &staticEmptyPackageData();
@@ -400,13 +400,13 @@ namespace LangMgr
 
     const std::filesystem::path &PackageRef::path() const { return _data->path; }
 
-    stdc::array_view<PackageDependency> PackageRef::dependencies() { return _data->dependencies; }
+    stdc::array_view<PackageDependency> PackageRef::dependencies() const { return _data->dependencies; }
 
     Error PackageRef::error() const { return _data->err; }
 
     bool PackageRef::isLoaded() const { return _data->loaded; }
 
-    LanguageManager *PackageRef::SU() const { return _data->su; }
+    LanguageManager *PackageRef::Mgr() const { return _data->mgr; }
 
     void ScopedPackageRef::forceClose() {
         if (!close()) {

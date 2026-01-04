@@ -90,7 +90,7 @@ namespace LangMgr
         /// Related package.
         PackageRef parent() const;
         /// Related \c LanguageManager instance.
-        LanguageManager *SU() const;
+        LanguageManager *Mgr() const;
 
     public:
         template <class T>

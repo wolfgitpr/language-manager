@@ -43,9 +43,9 @@ namespace LangMgr
         std::vector<std::string> defaultOrder() const;
         void setDefaultOrder(const std::vector<std::string> &order);
 
-        std::vector<LangNote> split(const std::string &input,
+        std::vector<TaggerRes> split(const std::string &input,
                                     const std::vector<std::string> &priorityTaggerIds = {}) const;
-        void convert(const std::vector<LangNote *> &input) const;
+        void convert(const std::vector<TaggerRes *> &input) const;
 
         std::vector<std::string> tag(const std::vector<std::string> &input,
                                      const std::vector<std::string> &priorityTaggerIds = {},

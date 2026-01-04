@@ -18,7 +18,7 @@ namespace LangMgr {
         virtual Expected<NO<InferenceConfiguration>>
             createConfiguration(const InferenceSpec *spec) const = 0;
 
-        /// Called when \c SingerSpec loads.
+        /// Called when \c G2pSpec loads.
         virtual Expected<NO<InferenceImportOptions>>
             createImportOptions(const InferenceSpec *spec, const JsonValue &options) const = 0;
 

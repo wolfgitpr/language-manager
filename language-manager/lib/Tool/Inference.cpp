@@ -26,7 +26,7 @@ namespace LangMgr
 
     LanguageManager *Inference::MGR() const {
         __stdc_impl_t;
-        return impl.spec->SU();
+        return impl.spec->Mgr();
     }
 
 } // namespace LangMgr

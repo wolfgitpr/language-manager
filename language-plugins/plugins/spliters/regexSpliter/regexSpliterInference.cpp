@@ -70,9 +70,8 @@ namespace LangPlugins
         impl.RegexOptions.set_max_mem(8 << 20); // 8MB
 
         impl.regex_ = std::make_unique<RE2>(config->regexStr, impl.RegexOptions);
-        if (!impl.regex_->ok()) {
+        if (!impl.regex_->ok())
             throw std::runtime_error("Invalid regex: " + impl.regex_->error());
-        }
 
         // Initialize inference state
         setState(Idle);

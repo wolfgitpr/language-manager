@@ -45,7 +45,7 @@ else ()
 endif ()
 
 # Copy onnxruntime shared libraries
-qm_add_copy_command(${PROJECT_NAME} SKIP_BUILD
+qm_add_copy_command(onnxdriver # SKIP_INSTALL
         SOURCES ${_ort_default_lib_files}
         DESTINATION runtimes/onnx/default
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
@@ -59,7 +59,7 @@ if (EXISTS ${_onnxruntime_cuda_dir} AND IS_DIRECTORY ${_onnxruntime_cuda_dir})
     endif ()
 
     if (NOT APPLE)
-        qm_add_copy_command(${PROJECT_NAME} SKIP_BUILD
+        qm_add_copy_command(onnxdriver  # SKIP_INSTALL
                 SOURCES ${_ort_cuda_lib_files}
                 DESTINATION runtimes/onnx/cuda
                 INSTALL_DIR ${CMAKE_INSTALL_PREFIX}

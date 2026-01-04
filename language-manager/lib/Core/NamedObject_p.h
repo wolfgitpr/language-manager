@@ -25,7 +25,7 @@ namespace LangMgr {
     public:
         explicit Impl(ObjectPool *decl) : NamedObject::Impl(decl) {
         }
-        virtual ~Impl();
+        ~Impl() override;
 
         std::map<std::string, stdc::linked_map<const NamedObject *, NO<NamedObject>>, std::less<>>
             objects;

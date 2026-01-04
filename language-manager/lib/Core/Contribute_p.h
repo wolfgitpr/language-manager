@@ -36,19 +36,19 @@ namespace LangMgr
 
     class ContribCategory::Impl : public ObjectPool::Impl {
     public:
-        explicit Impl(ContribCategory *decl, std::string name, LanguageManager *su) :
-            ObjectPool::Impl(decl), name(std::move(name)), su(su) {}
+        explicit Impl(ContribCategory *decl, std::string name, LanguageManager *mgr) :
+            ObjectPool::Impl(decl), name(std::move(name)), mgr(mgr) {}
         ~Impl() override;
 
         std::string name;
-        LanguageManager *su;
+        LanguageManager *mgr;
 
         std::list<ContribSpec *> contributes;
         std::map<std::string,
                  std::unordered_map<stdc::VersionNumber, std::map<std::string, decltype(contributes)::iterator>>>
             indexes;
 
-        std::shared_mutex &su_mtx() const { return static_cast<LanguageManager::Impl *>(su->_impl.get())->su_mtx; }
+        std::shared_mutex &su_mtx() const { return static_cast<LanguageManager::Impl *>(mgr->_impl.get())->su_mtx; }
 
         std::vector<ContribSpec *> findContributes(const ContribLocator &loc) const;
     };

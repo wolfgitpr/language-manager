@@ -510,12 +510,6 @@ macro(_cur_add_library_internal _target _type)
 endmacro()
 
 macro(_cur_add_desc_internal _target _plugin_dir)
-    set(options SYNC_INCLUDE NO_SYNC_INCLUDE NO_WIN_RC NO_EXPORT NO_INSTALL QT_AUTOGEN GEN_DESC NO_INSTALL_DESC)
-    set(oneValueArgs SYNC_INCLUDE_PREFIX PREFIX RC_NAME RC_DESCRIPTION RC_COPYRIGHT
-            VERSION TEMPLATE_NAME OUTPUT_NAME)
-    set(multiValueArgs SYNC_INCLUDE_OPTIONS EXTRA_VARS)
-    cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
     # Set default values
     qm_set_value(_version FUNC_VERSION ${_CUR_VERSION})
     qm_set_value(_output_name FUNC_OUTPUT_NAME "desc.json")
@@ -535,6 +529,10 @@ macro(_cur_add_desc_internal _target _plugin_dir)
     else ()
         # Target variables
         set(_target_name ${_target}${CMAKE_SHARED_LIBRARY_SUFFIX})
+        if (WIN32 AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(_target_name "${_target}d${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        endif ()
+
         set(_plugin_name ${_CUR_INSTALL_NAME})
         string(TIMESTAMP _timestamp "%Y-%m-%dT%H:%M:%SZ")
 

@@ -7,6 +7,8 @@
 #include <LangMgr/Tool/InferenceContrib.h>
 #include <inferutil/ErrorCollector.h>
 
+#include "LangPlugins/Api/Inferences/TemplateG2p/1/TemplateG2pL1.h"
+
 namespace LangPlugins::inferUtil
 {
     enum class ParameterType {
@@ -29,6 +31,8 @@ namespace LangPlugins::inferUtil
         inline void parse_string_required(std::string &out, const std::string &fieldName);
         inline void parse_path_required(std::filesystem::path &out, const std::string &fieldName);
         inline void parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName);
+        inline void parse_verify_required(std::vector<Api::TemplateG2p::L1::VerifyEntry> &out,
+                                          const std::string &fieldName);
 
         template <typename T>
         void collectError(T &&msg) {

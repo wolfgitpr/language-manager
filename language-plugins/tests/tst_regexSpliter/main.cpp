@@ -58,26 +58,35 @@ int main() {
         return -1;
     }
 
-    const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package\spliter-cmn)");
+    const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package)");
 
     LangMgr::InferenceSpec *spliterSpec = nullptr;
-    LangMgr::ScopedPackageRef pkg;
-    if (auto exp = langMgr.open(modelBasePath, false); !exp) {
-        std::cerr << "failed to open model package: " << exp.error().message() << std::endl;
-        return -1;
-    } else {
-        pkg = exp.take();
-        const auto regexSpliterG2pContrib = pkg.contributes("inference");
-        if (regexSpliterG2pContrib.empty()) {
-            std::cerr << "no inference contributions found in package" << std::endl;
-            return -1;
+    std::vector<LangMgr::PackageRef> pkgs;
+
+    auto loadPackage = [&](const std::filesystem::path &path)
+    {
+        if (auto exp = langMgr.open(path, false); !exp) {
+            std::cerr << "failed to open model package: " << exp.error().message() << std::endl;
+            return false;
+        } else {
+            const auto pkg = exp.take();
+            pkgs.push_back(pkg);
+            const auto regexSpliterG2pContrib = pkg.contributes("inference");
+            if (regexSpliterG2pContrib.empty()) {
+                std::cerr << "no inference contributions found in package" << std::endl;
+                return false;
+            }
+            spliterSpec = dynamic_cast<LangMgr::InferenceSpec *>(regexSpliterG2pContrib.front());
+            if (!spliterSpec) {
+                std::cerr << "failed to cast to InferenceSpec" << std::endl;
+                return false;
+            }
         }
-        spliterSpec = dynamic_cast<LangMgr::InferenceSpec *>(regexSpliterG2pContrib.front());
-        if (!spliterSpec) {
-            std::cerr << "failed to cast to InferenceSpec" << std::endl;
-            return -1;
-        }
-    }
+        return true;
+    };
+
+    // loadPackage(modelBasePath / "spliter-cmn");
+    loadPackage(modelBasePath / "spliter-num");
 
     const auto &inferenceCategory = *langMgr.category("inference");
     const auto regexSpliterInterpreter =
@@ -110,7 +119,6 @@ int main() {
     auto inference = inferenceExp.take();
 
     auto initArgs = LangMgr::NO<LangPlugins::Api::RegexSpliter::L1::RegexSpliterInitArgs>::create();
-    initArgs->runtimeOptions = runtimeOptions;
 
     if (auto exp = inference->initialize(initArgs); !exp) {
         std::cerr << "failed to initialize inference: " << exp.error().message() << std::endl;

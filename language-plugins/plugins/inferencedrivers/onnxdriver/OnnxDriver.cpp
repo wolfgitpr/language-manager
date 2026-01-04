@@ -174,7 +174,6 @@ namespace LangPlugins
     OnnxDriver::~OnnxDriver() {}
 
     std::string OnnxDriver::arch() const {
-        // TODO: arch
         return "onnx";
     }
 
