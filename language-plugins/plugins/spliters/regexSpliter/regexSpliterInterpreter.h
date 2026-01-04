@@ -1,14 +1,14 @@
-#ifndef LANGPLUGINS_LSTMG2PINTERPRETER_H
-#define LANGPLUGINS_LSTMG2PINTERPRETER_H
+#ifndef LANGPLUGINS_REGEXSPLITERINTERPRETER_H
+#define LANGPLUGINS_REGEXSPLITERINTERPRETER_H
 
 #include <LangMgr/Tool/InferenceInterpreter.h>
 
 namespace LangPlugins
 {
-    class LstmG2pInterpreter : public LangMgr::InferenceInterpreter {
+    class RegexSpliterInterpreter : public LangMgr::InferenceInterpreter {
     public:
-        LstmG2pInterpreter();
-        ~LstmG2pInterpreter() override;
+        RegexSpliterInterpreter();
+        ~RegexSpliterInterpreter() override;
 
         int apiLevel() const override;
         LangMgr::Expected<LangMgr::NO<LangMgr::InferenceSchema>>
@@ -25,4 +25,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-#endif // LANGPLUGINS_LSTMG2PINTERPRETER_H
+#endif // LANGPLUGINS_REGEXSPLITERINTERPRETER_H

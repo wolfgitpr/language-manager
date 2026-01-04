@@ -2,7 +2,10 @@
 #include "PluginFactory_p.h"
 
 #include <cstring>
+#include <fstream>
+#include <iostream>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <utility>
 
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
@@ -44,39 +47,91 @@ namespace LangMgr
         }
     }
 
+    // Helper function to parse desc.json
+    struct PluginDesc {
+        std::string target;
+        bool valid = false;
+    };
+
+    PluginDesc parsePluginDesc(const fs::path &descPath) {
+        PluginDesc desc;
+
+        try {
+            std::ifstream file(descPath);
+            if (!file.is_open()) {
+                return desc;
+            }
+
+            nlohmann::json json;
+            file >> json;
+
+            if (json.contains("target") && json["target"].is_string()) {
+                desc.target = json["target"].get<std::string>();
+                desc.valid = true;
+            }
+        }
+        catch (const std::exception &e) {
+            std::cerr << "Failed to parse plugin desc.json: " << descPath << ", error: " << e.what() << std::endl;
+        }
+
+        return desc;
+    }
+
     void PluginFactory::Impl::scanPlugins(const char *iid) const {
         auto &plugins = allPlugins[iid];
+
+        // Add runtime plugins
         for (const auto &plugin : runtimePlugins) {
             if (strcmp(iid, plugin->iid()) == 0) {
                 std::ignore = plugins.insert(std::make_pair(plugin->key(), plugin));
             }
         }
 
-        if (const auto it = pluginPaths.find(iid); it != pluginPaths.end()) {
-            for (const auto &pluginPath : it->second) {
-                for (const auto &entry : fs::directory_iterator(pluginPath)) {
-                    const auto &entryPath = fs::canonical(entry.path());
-                    if (libraryInstances.count(entryPath) || !stdc::SharedLibrary::isLibrary(entryPath)) {
-                        continue;
-                    }
+        if (const auto it = pluginDirs.find(iid); it != pluginDirs.end()) {
+            for (const auto &pluginDir : it->second) {
+                fs::path descPath = pluginDir / "desc.json";
+                if (!fs::exists(descPath))
+                    continue;
 
-                    stdc::SharedLibrary so;
-                    if (!so.open(entryPath)) {
-                        continue;
-                    }
-
-                    using PluginGetter = Plugin *(*)();
-                    const auto getter = reinterpret_cast<PluginGetter>(so.resolve("synthrt_plugin_instance"));
-                    if (!getter) {
-                        continue;
-                    }
-
-                    if (auto plugin = getter(); !plugin || strcmp(iid, plugin->iid()) != 0 ||
-                        !plugins.insert(std::make_pair(plugin->key(), plugin)).second) {
-                        continue;
-                    }
-                    libraryInstances[entryPath] = new stdc::SharedLibrary(std::move(so));
+                // Parse desc.json
+                auto [target, valid] = parsePluginDesc(descPath);
+                if (!valid) {
+                    std::cerr << "Invalid desc.json in: " << pluginDir << std::endl;
+                    continue;
                 }
+
+                // Construct dll path
+                fs::path dllPath = pluginDir / target;
+                if (!fs::exists(dllPath)) {
+                    std::cerr << "Plugin dll not found: " << dllPath << std::endl;
+                    continue;
+                }
+
+                // Check if already loaded
+                if (libraryInstances.count(dllPath) || !stdc::SharedLibrary::isLibrary(dllPath))
+                    continue;
+
+                stdc::SharedLibrary so;
+                stdc::SharedLibrary::setLibraryPath(pluginDir);
+                if (!so.open(dllPath)) {
+                    std::cout << "path: " << dllPath << "\nerror: " << so.lastError() << std::endl;
+                    continue;
+                }
+
+                using PluginGetter = Plugin *(*)();
+                const auto getter = reinterpret_cast<PluginGetter>(so.resolve("synthrt_plugin_instance"));
+                if (!getter) {
+                    std::cerr << "Failed to resolve plugin instance function in: " << dllPath << std::endl;
+                    continue;
+                }
+
+                if (auto plugin = getter(); !plugin || strcmp(iid, plugin->iid()) != 0 ||
+                    !plugins.insert(std::make_pair(plugin->key(), plugin)).second) {
+                    std::cerr << "Failed to load plugin or IID mismatch: " << dllPath << std::endl;
+                    continue;
+                }
+                libraryInstances[dllPath] = new stdc::SharedLibrary(std::move(so));
+                std::cout << "Successfully loaded plugin: " << pluginDir << " (target: " << target << ")" << std::endl;
             }
         }
 
@@ -140,26 +195,64 @@ namespace LangMgr
         if (!fs::is_directory(path)) {
             return;
         }
+
         std::unique_lock lock(impl.plugins_mtx);
-        impl.pluginPaths[iid].push_back(fs::canonical(path));
+        const fs::path canonicalPath = fs::canonical(path);
+
+        // Scan subdirectories for plugins
+        for (const auto &entry : fs::directory_iterator(canonicalPath)) {
+            if (!entry.is_directory()) {
+                continue;
+            }
+
+            const auto &pluginDir = fs::canonical(entry.path());
+
+            if (fs::path descPath = pluginDir / "desc.json"; fs::exists(descPath)) {
+                // This is a plugin directory
+                impl.pluginDirs[iid].push_back(pluginDir);
+            }
+        }
+
         impl.pluginsDirty.insert(iid);
     }
 
     void PluginFactory::setPluginPaths(const char *iid, const stdc::array_view<std::filesystem::path> paths) {
         __stdc_impl_t;
         std::unique_lock lock(impl.plugins_mtx);
-        if (paths.empty()) {
-            impl.pluginPaths.erase(iid);
-        } else {
-            llvm::SmallVector<fs::path> realPaths;
-            realPaths.reserve(paths.size());
+
+        // Clear existing paths for this IID
+        impl.pluginDirs.erase(iid);
+
+        if (!paths.empty()) {
+            llvm::SmallVector<fs::path> pluginDirs;
+
             for (const auto &path : paths) {
-                if (fs::is_directory(path)) {
-                    realPaths.push_back(fs::canonical(path));
+                if (!fs::is_directory(path)) {
+                    continue;
+                }
+
+                fs::path canonicalPath = fs::canonical(path);
+
+                // Scan subdirectories for plugins
+                for (const auto &entry : fs::directory_iterator(canonicalPath)) {
+                    if (!entry.is_directory()) {
+                        continue;
+                    }
+
+                    const auto &pluginDir = fs::canonical(entry.path());
+
+                    if (fs::path descPath = pluginDir / "desc.json"; fs::exists(descPath)) {
+                        // This is a plugin directory
+                        pluginDirs.push_back(pluginDir);
+                    }
                 }
             }
-            impl.pluginPaths[iid] = realPaths;
+
+            if (!pluginDirs.empty()) {
+                impl.pluginDirs[iid] = pluginDirs;
+            }
         }
+
         impl.pluginsDirty.insert(iid);
     }
 
@@ -167,8 +260,8 @@ namespace LangMgr
         __stdc_impl_t;
 
         std::shared_lock lock(impl.plugins_mtx);
-        const auto it = impl.pluginPaths.find(iid);
-        if (it == impl.pluginPaths.end()) {
+        const auto it = impl.pluginDirs.find(iid);
+        if (it == impl.pluginDirs.end()) {
             return {};
         }
         return {it->second.begin(), it->second.end()};

@@ -37,7 +37,7 @@
          <name>_add_library
          <name>_add_plugin
          <name>_install
-]] #
+]]
 
 include_guard(DIRECTORY)
 
@@ -74,9 +74,9 @@ set(_CUR_CONFIG_TEMPLATE)
 set(_CUR_TARGET_PREFIX)
 set(_CUR_MACRO_PREFIX)
 
-if(NOT PROJECT_NAME)
+if (NOT PROJECT_NAME)
     message(FATAL_ERROR "PROJECT_NAME not set")
-endif()
+endif ()
 
 # ----------------------------------
 # Variables
@@ -93,37 +93,37 @@ qm_set_value(_CUR_VERSION ${_CUR_PREFIX_UPPER}_VERSION PROJECT_VERSION "0.0.0.0"
 qm_set_value(_CUR_DESCRIPTION ${_CUR_PREFIX_UPPER}_DESCRIPTION PROJECT_DESCRIPTION "${_CUR_NAME}")
 qm_set_value(_CUR_AUTHOR ${_CUR_PREFIX_UPPER}_AUTHOR "${_CUR_NAME} Developers")
 
-if(${_CUR_PREFIX_UPPER}_START_YEAR)
+if (${_CUR_PREFIX_UPPER}_START_YEAR)
     set(_CUR_START_YEAR ${${_CUR_PREFIX_UPPER}_START_YEAR})
-endif()
+endif ()
 
-if(_CUR_START_YEAR)
+if (_CUR_START_YEAR)
     set(_CUR_COPYRIGHT "Copyright (c) ${_CUR_START_YEAR}-${_CUR_BUILD_YEAR} ${_CUR_AUTHOR}")
-else()
+else ()
     set(_CUR_COPYRIGHT "Copyright (c) ${_CUR_BUILD_YEAR} ${_CUR_AUTHOR}")
-endif()
+endif ()
 
 qm_set_value(_CUR_COPYRIGHT ${_CUR_PREFIX_UPPER}_COPYRIGHT "${_CUR_COPYRIGHT}")
 qm_set_value(_CUR_INSTALL_NAME ${_CUR_PREFIX_UPPER}_INSTALL_NAME "${_CUR_NAME}")
 
-if(${_CUR_PREFIX_UPPER}_INCLUDE_DIR)
+if (${_CUR_PREFIX_UPPER}_INCLUDE_DIR)
     set(_CUR_INCLUDE_DIR ${${_CUR_PREFIX_UPPER}_INCLUDE_DIR})
-endif()
+endif ()
 
 qm_set_value(_CUR_BUILD_INCLUDE_DIR ${_CUR_PREFIX_UPPER}_BUILD_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/../etc/include")
 qm_set_value(_CUR_GENERATED_INCLUDE_DIR ${_CUR_PREFIX_UPPER}_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/../include")
 
-if(${_CUR_PREFIX_UPPER}_INSTALL)
+if (${_CUR_PREFIX_UPPER}_INSTALL)
     set(_CUR_INSTALL TRUE)
-endif()
+endif ()
 
-if(${_CUR_PREFIX_UPPER}_BUILD_SHARED)
+if (${_CUR_PREFIX_UPPER}_BUILD_SHARED)
     set(_CUR_BUILD_SHARED TRUE)
-endif()
+endif ()
 
-if(${_CUR_PREFIX_UPPER}_SYNC_INCLUDE)
+if (${_CUR_PREFIX_UPPER}_SYNC_INCLUDE)
     set(_CUR_SYNC_INCLUDE TRUE)
-endif()
+endif ()
 
 qm_set_value(_CUR_CONFIG_TEMPLATE ${_CUR_PREFIX_UPPER}_CONFIG_TEMPLATE "${_CUR_NAME}Config.cmake.in")
 qm_set_value(_CUR_TARGET_PREFIX ${_CUR_PREFIX_UPPER}_TARGET_PREFIX "${_CUR_NAME}")
@@ -132,10 +132,10 @@ qm_set_value(_CUR_MACRO_PREFIX ${_CUR_PREFIX_UPPER}_MACRO_PREFIX "${_CUR_PREFIX}
 # ----------------------------------
 # Prepare
 # ----------------------------------
-if(_CUR_INSTALL)
+if (_CUR_INSTALL)
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
-endif()
+endif ()
 
 # ----------------------------------
 # Declare macros
@@ -157,7 +157,8 @@ endif()
         [QT_AUTOGEN]
         <configure_options...>
     )
-]] #
+]]
+#
 macro(${_CUR_MACRO_PREFIX}_add_executable _target)
     set(options SYNC_INCLUDE NO_SYNC_INCLUDE NO_WIN_RC NO_EXPORT NO_INSTALL QT_AUTOGEN)
     set(oneValueArgs SYNC_INCLUDE_PREFIX RC_NAME RC_DESCRIPTION RC_COPYRIGHT)
@@ -166,73 +167,73 @@ macro(${_CUR_MACRO_PREFIX}_add_executable _target)
 
     add_executable(${_target})
 
-    if(FUNC_QT_AUTOGEN)
+    if (FUNC_QT_AUTOGEN)
         set_target_properties(${_target} PROPERTIES
-            AUTOMOC ON
-            AUTOUIC ON
-            AUTORCC ON
+                AUTOMOC ON
+                AUTOUIC ON
+                AUTORCC ON
         )
-    endif()
+    endif ()
 
     qm_set_value(_rc_name FUNC_RC_NAME ${_CUR_INSTALL_NAME})
     qm_set_value(_rc_description FUNC_RC_DESCRIPTION ${_CUR_DESCRIPTION})
     qm_set_value(_rc_copyright FUNC_RC_COPYRIGHT ${_CUR_COPYRIGHT})
 
-    if(WIN32 AND NOT FUNC_NO_WIN_RC)
+    if (WIN32 AND NOT FUNC_NO_WIN_RC)
         qm_add_win_rc(${_target}
-            NAME ${_rc_name}
-            DESCRIPTION ${_rc_description}
-            COPYRIGHT ${_rc_copyright}
+                NAME ${_rc_name}
+                DESCRIPTION ${_rc_description}
+                COPYRIGHT ${_rc_copyright}
         )
-    endif()
+    endif ()
 
     # Configure target
     qm_configure_target(${_target} ${FUNC_UNPARSED_ARGUMENTS})
 
     # Add include directories
-    if(_CUR_INCLUDE_DIR)
+    if (_CUR_INCLUDE_DIR)
         target_include_directories(${_target} PRIVATE ${_CUR_SOURCE_DIR}/${_CUR_INCLUDE_DIR})
-    endif()
+    endif ()
 
     target_include_directories(${_target} PRIVATE ${_CUR_BUILD_INCLUDE_DIR})
     target_include_directories(${_target} PRIVATE .)
 
     # Library name
-    if(_target MATCHES "^${_CUR_NAME}(.+)")
+    if (_target MATCHES "^${_CUR_NAME}(.+)")
         set(_name ${CMAKE_MATCH_1})
         set_target_properties(${_target} PROPERTIES EXPORT_NAME ${_name})
-    else()
+    else ()
         set(_name ${_target})
-    endif()
+    endif ()
 
     add_executable(${_CUR_INSTALL_NAME}::${_name} ALIAS ${_target})
 
-    if(FUNC_SYNC_INCLUDE_PREFIX)
+    if (FUNC_SYNC_INCLUDE_PREFIX)
         set(_inc_name ${FUNC_SYNC_INCLUDE_PREFIX})
-    else()
+    else ()
         set(_inc_name ${_target})
-    endif()
+    endif ()
 
-    if(_CUR_INSTALL AND NOT FUNC_NO_INSTALL)
-        if(FUNC_NO_EXPORT)
+    if (_CUR_INSTALL AND NOT FUNC_NO_INSTALL)
+        if (FUNC_NO_EXPORT)
             set(_export)
-        else()
+        else ()
             set(_export EXPORT ${_CUR_INSTALL_NAME}Targets)
-        endif()
+        endif ()
 
         install(TARGETS ${_target}
-            ${_export}
-            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL
+                ${_export}
+                RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL
         )
-    endif()
+    endif ()
 
-    if(FUNC_SYNC_INCLUDE OR(_CUR_SYNC_INCLUDE AND NOT FUNC_NO_SYNC_INCLUDE))
+    if (FUNC_SYNC_INCLUDE OR (_CUR_SYNC_INCLUDE AND NOT FUNC_NO_SYNC_INCLUDE))
         # Generate a standard include directory in build directory
         qm_sync_include(. "${_CUR_GENERATED_INCLUDE_DIR}/${_inc_name}" ${_install_options}
-            ${FUNC_SYNC_INCLUDE_OPTIONS} FORCE
+                ${FUNC_SYNC_INCLUDE_OPTIONS} FORCE
         )
         target_include_directories(${_target} PUBLIC ${_CUR_GENERATED_INCLUDE_DIR}>)
-    endif()
+    endif ()
 endmacro()
 
 #[[
@@ -253,32 +254,33 @@ endmacro()
         [QT_AUTOGEN]
         <configure_options...>
     )
-]] #
+]]
+#
 macro(${_CUR_MACRO_PREFIX}_add_library _target)
     set(options SHARED STATIC INTERFACE)
     set(oneValueArgs)
     set(multiValueArgs)
     cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if(FUNC_SHARED)
+    if (FUNC_SHARED)
         set(_type SHARED)
-    elseif(FUNC_STATIC)
+    elseif (FUNC_STATIC)
         set(_type STATIC)
-    elseif(FUNC_INTERFACE)
+    elseif (FUNC_INTERFACE)
         set(_type INTERFACE)
-    elseif(_CUR_BUILD_SHARED)
+    elseif (_CUR_BUILD_SHARED)
         set(_type SHARED)
-    elseif(BUILD_SHARED_LIBS)
+    elseif (BUILD_SHARED_LIBS)
         set(_type SHARED)
-    else()
+    else ()
         set(_type STATIC)
-    endif()
+    endif ()
 
     _cur_add_library_internal(${_target} ${_type} ${FUNC_UNPARSED_ARGUMENTS})
 endmacro()
 
 #[[
-    Add plugin target.
+    Add plugin target with optional description file generation.
 
     <name>_add_plugin(<target> <category>
         [PREFIX <prefix>]
@@ -292,20 +294,28 @@ endmacro()
         [NO_EXPORT]
         [NO_INSTALL]
         [QT_AUTOGEN]
+        [GEN_DESC]                    # Generate description file
+        [VERSION <version>]           # Plugin version (default: ${_CUR_VERSION})
+        [TEMPLATE_NAME <template_name>] # Template file name (default: "plugin_desc.json.in")
+        [OUTPUT_NAME <output_name>]   # Output JSON file name (default: "desc.json")
+        [NO_INSTALL_DESC]             # Don't install description file
+        [EXTRA_VARS <var=value>...]   # Extra variables for template
         <configure_options...>
     )
-]] #
-macro(${_CUR_MACRO_PREFIX}_add_plugin _target _category)
-    set(_plugin_dir plugins/${_CUR_INSTALL_NAME}/${_category})
+]]
+#
+macro(${_CUR_MACRO_PREFIX}_add_plugin _target _category _plugin_folder)
+    set(_plugin_dir plugins/${_CUR_INSTALL_NAME}/${_category}/${_plugin_folder})
     _cur_add_library_internal(${_target} SHARED
-        BUILD_RUNTIME_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
-        BUILD_LIBRARY_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
-        BUILD_ARCHIVE_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
-        INSTALL_RUNTIME_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
-        INSTALL_LIBRARY_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
-        INSTALL_ARCHIVE_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
-        ${ARGN}
+            BUILD_RUNTIME_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
+            BUILD_LIBRARY_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
+            BUILD_ARCHIVE_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
+            INSTALL_RUNTIME_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
+            INSTALL_LIBRARY_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
+            INSTALL_ARCHIVE_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
+            ${ARGN}
     )
+    _cur_add_desc_internal(${_target} ${_plugin_dir} ${ARGN})
 endmacro()
 
 #[[
@@ -315,36 +325,37 @@ endmacro()
         [NO_EXPORT]
         [NO_INCLUDE]
     )
-]] #
+]]
+#
 function(${_CUR_MACRO_PREFIX}_install)
     set(options NO_EXPORT NO_INCLUDE)
     set(oneValueArgs)
     set(multiValueArgs)
     cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if(NOT _CUR_INSTALL)
+    if (NOT _CUR_INSTALL)
         return()
-    endif()
+    endif ()
 
-    if(NOT FUNC_NO_EXPORT)
+    if (NOT FUNC_NO_EXPORT)
         qm_basic_install(
-            NAME ${_CUR_INSTALL_NAME}
-            VERSION ${_CUR_VERSION}
-            INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${_CUR_INSTALL_NAME}
-            CONFIG_TEMPLATE "${_CUR_CONFIG_TEMPLATE}"
-            NAMESPACE ${_CUR_INSTALL_NAME}::
-            EXPORT ${_CUR_INSTALL_NAME}Targets
-            WRITE_CONFIG_OPTIONS NO_CHECK_REQUIRED_COMPONENTS_MACRO
+                NAME ${_CUR_INSTALL_NAME}
+                VERSION ${_CUR_VERSION}
+                INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${_CUR_INSTALL_NAME}
+                CONFIG_TEMPLATE "${_CUR_CONFIG_TEMPLATE}"
+                NAMESPACE ${_CUR_INSTALL_NAME}::
+                EXPORT ${_CUR_INSTALL_NAME}Targets
+                WRITE_CONFIG_OPTIONS NO_CHECK_REQUIRED_COMPONENTS_MACRO
         )
-    endif()
+    endif ()
 
-    if(NOT FUNC_NO_INCLUDE AND _CUR_INCLUDE_DIR)
+    if (NOT FUNC_NO_INCLUDE AND _CUR_INCLUDE_DIR)
         get_filename_component(_dir ${_CUR_INCLUDE_DIR} ABSOLUTE BASE_DIR ${_CUR_SOURCE_DIR})
         install(DIRECTORY ${_dir}/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.hxx"
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+                FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.hxx"
         )
-    endif()
+    endif ()
 endfunction()
 
 # ----------------------------------
@@ -353,39 +364,39 @@ endfunction()
 macro(_cur_add_library_internal _target _type)
     set(options SYNC_INCLUDE NO_SYNC_INCLUDE NO_WIN_RC NO_EXPORT NO_INSTALL QT_AUTOGEN)
     set(oneValueArgs SYNC_INCLUDE_PREFIX PREFIX RC_NAME RC_DESCRIPTION RC_COPYRIGHT
-        BUILD_RUNTIME_DIR BUILD_LIBRARY_DIR BUILD_ARCHIVE_DIR
-        INSTALL_RUNTIME_DIR INSTALL_LIBRARY_DIR INSTALL_ARCHIVE_DIR
+            BUILD_RUNTIME_DIR BUILD_LIBRARY_DIR BUILD_ARCHIVE_DIR
+            INSTALL_RUNTIME_DIR INSTALL_LIBRARY_DIR INSTALL_ARCHIVE_DIR
     )
     set(multiValueArgs SYNC_INCLUDE_OPTIONS)
     cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     add_library(${_target} ${_type})
 
-    if(FUNC_QT_AUTOGEN)
+    if (FUNC_QT_AUTOGEN)
         set_target_properties(${_target} PROPERTIES
-            AUTOMOC ON
-            AUTOUIC ON
-            AUTORCC ON
+                AUTOMOC ON
+                AUTOUIC ON
+                AUTORCC ON
         )
-    endif()
+    endif ()
 
     qm_set_value(_rc_name FUNC_RC_NAME ${_CUR_INSTALL_NAME})
     qm_set_value(_rc_description FUNC_RC_DESCRIPTION ${_CUR_DESCRIPTION})
     qm_set_value(_rc_copyright FUNC_RC_COPYRIGHT ${_CUR_COPYRIGHT})
 
-    if(WIN32 AND NOT FUNC_NO_WIN_RC)
+    if (WIN32 AND NOT FUNC_NO_WIN_RC)
         qm_add_win_rc(${_target}
-            NAME ${_rc_name}
-            DESCRIPTION ${_rc_description}
-            COPYRIGHT ${_rc_copyright}
+                NAME ${_rc_name}
+                DESCRIPTION ${_rc_description}
+                COPYRIGHT ${_rc_copyright}
         )
-    endif()
+    endif ()
 
-    if(FUNC_PREFIX)
+    if (FUNC_PREFIX)
         set(_prefix_option PREFIX ${FUNC_PREFIX})
-    else()
+    else ()
         set(_prefix_option)
-    endif()
+    endif ()
 
     # Set global definitions
     qm_export_defines(${_target} ${_prefix_option})
@@ -395,105 +406,191 @@ macro(_cur_add_library_internal _target _type)
 
     set(_include_scope "PUBLIC")
 
-    if(_type STREQUAL "INTERFACE")
+    if (_type STREQUAL "INTERFACE")
         set(_include_scope INTERFACE)
-    endif()
+    endif ()
 
     # Add include directories
-    if(_CUR_INCLUDE_DIR)
+    if (_CUR_INCLUDE_DIR)
         target_include_directories(${_target} ${_include_scope}
-            $<BUILD_INTERFACE:${_CUR_SOURCE_DIR}/${_CUR_INCLUDE_DIR}>
+                $<BUILD_INTERFACE:${_CUR_SOURCE_DIR}/${_CUR_INCLUDE_DIR}>
         )
-    endif()
+    endif ()
 
-    if(NOT _type STREQUAL "INTERFACE")
+    if (NOT _type STREQUAL "INTERFACE")
         target_include_directories(${_target} PRIVATE ${_CUR_BUILD_INCLUDE_DIR})
         target_include_directories(${_target} PRIVATE .)
-    endif()
+    endif ()
 
     # Library name
-    if(_target MATCHES "^${_CUR_NAME}(.+)")
+    if (_target MATCHES "^${_CUR_NAME}(.+)")
         set(_name ${CMAKE_MATCH_1})
         set_target_properties(${_target} PROPERTIES EXPORT_NAME ${_name})
-    else()
+    else ()
         set(_name ${_target})
-    endif()
+    endif ()
 
     add_library(${_CUR_INSTALL_NAME}::${_name} ALIAS ${_target})
 
     # Build output directories
     set(_build_output_dir_options)
 
-    if(FUNC_BUILD_RUNTIME_DIR)
+    if (FUNC_BUILD_RUNTIME_DIR)
         list(APPEND _build_output_dir_options RUNTIME_OUTPUT_DIRECTORY ${FUNC_BUILD_RUNTIME_DIR})
-    endif()
+    endif ()
 
-    if(FUNC_BUILD_LIBRARY_DIR)
+    if (FUNC_BUILD_LIBRARY_DIR)
         list(APPEND _build_output_dir_options LIBRARY_OUTPUT_DIRECTORY ${FUNC_BUILD_LIBRARY_DIR})
-    endif()
+    endif ()
 
-    if(FUNC_BUILD_ARCHIVE_DIR)
+    if (FUNC_BUILD_ARCHIVE_DIR)
         list(APPEND _build_output_dir_options ARCHIVE_OUTPUT_DIRECTORY ${FUNC_BUILD_ARCHIVE_DIR})
-    endif()
+    endif ()
 
-    if(_build_output_dir_options)
+    if (_build_output_dir_options)
         set_target_properties(${_target} PROPERTIES ${_build_output_dir_options})
-    endif()
+    endif ()
 
-    if(FUNC_SYNC_INCLUDE_PREFIX)
+    if (FUNC_SYNC_INCLUDE_PREFIX)
         set(_inc_name ${FUNC_SYNC_INCLUDE_PREFIX})
-    else()
+    else ()
         set(_inc_name ${_target})
-    endif()
+    endif ()
 
     set(_install_options)
 
-    if(_CUR_INSTALL AND NOT FUNC_NO_INSTALL)
+    if (_CUR_INSTALL AND NOT FUNC_NO_INSTALL)
         # Install directories
         qm_set_value(_install_runtime_dir FUNC_INSTALL_RUNTIME_DIR "${CMAKE_INSTALL_BINDIR}")
         qm_set_value(_install_library_dir FUNC_INSTALL_LIBRARY_DIR "${CMAKE_INSTALL_LIBDIR}")
         qm_set_value(_install_archive_dir FUNC_INSTALL_ARCHIVE_DIR "${CMAKE_INSTALL_LIBDIR}")
 
-        if(FUNC_NO_EXPORT)
+        if (FUNC_NO_EXPORT)
             set(_export)
-        else()
+        else ()
             set(_export
-                EXPORT ${_CUR_INSTALL_NAME}Targets
-                ARCHIVE DESTINATION "${_install_archive_dir}" OPTIONAL
+                    EXPORT ${_CUR_INSTALL_NAME}Targets
+                    ARCHIVE DESTINATION "${_install_archive_dir}" OPTIONAL
             )
-        endif()
+        endif ()
 
         install(TARGETS ${_target}
-            ${_export}
-            RUNTIME DESTINATION "${_install_runtime_dir}" OPTIONAL
-            LIBRARY DESTINATION "${_install_library_dir}" OPTIONAL
+                ${_export}
+                RUNTIME DESTINATION "${_install_runtime_dir}" OPTIONAL
+                LIBRARY DESTINATION "${_install_library_dir}" OPTIONAL
         )
 
         target_include_directories(${_target} INTERFACE
-            "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
         )
 
-        if(_CUR_INCLUDE_DIR)
+        if (_CUR_INCLUDE_DIR)
             target_include_directories(${_target} INTERFACE
-                "$<INSTALL_INTERFACE:${_CUR_INCLUDE_DIR}>"
+                    "$<INSTALL_INTERFACE:${_CUR_INCLUDE_DIR}>"
             )
-        endif()
+        endif ()
 
         set(_install_options
-            INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}/${_CUR_INSTALL_NAME}/${_inc_name}"
+                INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}/${_CUR_INSTALL_NAME}/${_inc_name}"
         )
-    endif()
+    endif ()
 
-    if(FUNC_SYNC_INCLUDE OR(_CUR_SYNC_INCLUDE AND NOT FUNC_NO_SYNC_INCLUDE))
+    if (FUNC_SYNC_INCLUDE OR (_CUR_SYNC_INCLUDE AND NOT FUNC_NO_SYNC_INCLUDE))
         # Generate a standard include directory in build directory
         qm_sync_include(. "${_CUR_GENERATED_INCLUDE_DIR}/${_inc_name}" ${_install_options}
-            ${FUNC_SYNC_INCLUDE_OPTIONS} FORCE
+                ${FUNC_SYNC_INCLUDE_OPTIONS} FORCE
         )
         target_include_directories(${_target} ${_include_scope}
-            "$<BUILD_INTERFACE:${_CUR_GENERATED_INCLUDE_DIR}>"
+                "$<BUILD_INTERFACE:${_CUR_GENERATED_INCLUDE_DIR}>"
         )
         target_include_directories(${_target} INTERFACE
-            "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${_CUR_INSTALL_NAME}>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${_CUR_INSTALL_NAME}>"
         )
-    endif()
+    endif ()
+endmacro()
+
+macro(_cur_add_desc_internal _target _plugin_dir)
+    set(options SYNC_INCLUDE NO_SYNC_INCLUDE NO_WIN_RC NO_EXPORT NO_INSTALL QT_AUTOGEN GEN_DESC NO_INSTALL_DESC)
+    set(oneValueArgs SYNC_INCLUDE_PREFIX PREFIX RC_NAME RC_DESCRIPTION RC_COPYRIGHT
+            VERSION TEMPLATE_NAME OUTPUT_NAME)
+    set(multiValueArgs SYNC_INCLUDE_OPTIONS EXTRA_VARS)
+    cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    # Set default values
+    qm_set_value(_version FUNC_VERSION ${_CUR_VERSION})
+    qm_set_value(_output_name FUNC_OUTPUT_NAME "desc.json")
+    qm_set_value(_template_name FUNC_TEMPLATE_NAME "plugin_desc.json.in")
+
+    # Template file path - look in project root's cmake directory
+    set(_template_file "${PROJECT_ROOT_DIR}/cmake/${_template_name}")
+
+    # Fallback: look in current directory
+    if (NOT EXISTS "${_template_file}")
+        set(_template_file "${CMAKE_CURRENT_SOURCE_DIR}/${_template_name}")
+    endif ()
+
+    # Check if template exists
+    if (NOT EXISTS "${_template_file}")
+        message(WARNING "Template file not found: ${_template_name}. Looking in: ${PROJECT_SOURCE_DIR}/cmake/ and ${CMAKE_CURRENT_SOURCE_DIR}/")
+    else ()
+        # Target variables
+        set(_target_name ${_target}${CMAKE_SHARED_LIBRARY_SUFFIX})
+        set(_plugin_name ${_CUR_INSTALL_NAME})
+        string(TIMESTAMP _timestamp "%Y-%m-%dT%H:%M:%SZ")
+
+        # Set template variables
+        set(PROJECT_VERSION "${_version}")
+        set(PLUGIN_NAME "${_plugin_name}")
+        set(TARGET_NAME "${_target_name}")
+        set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+        set(TIMESTAMP "${_timestamp}")
+        set(PROJECT_DESCRIPTION "${_CUR_DESCRIPTION}")
+        set(PROJECT_AUTHOR "${_CUR_AUTHOR}")
+        set(PROJECT_COPYRIGHT "${_CUR_COPYRIGHT}")
+
+        # Additional project variables
+        set(PROJECT_NAME "${_CUR_NAME}")
+        set(BUILD_YEAR "${_CUR_BUILD_YEAR}")
+        set(PROJECT_START_YEAR "${_CUR_START_YEAR}")
+
+        # Process extra variables
+        foreach (_var_pair ${FUNC_EXTRA_VARS})
+            string(REPLACE "=" ";" _pair_list ${_var_pair})
+            list(GET _pair_list 0 _var_name)
+            list(GET _pair_list 1 _var_value)
+            set(${_var_name} "${_var_value}")
+        endforeach ()
+
+        # Generate JSON file
+        set(_generated_file "${_plugin_dir}/${_output_name}")
+
+        configure_file(
+                "${_template_file}"
+                "${_generated_file}"
+                @ONLY
+        )
+
+        message(STATUS "Generated description file: ${_generated_file} from template: ${_template_file}")
+
+        # Copy to build output directory (same as plugin)
+        add_custom_command(
+                TARGET ${_target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy
+                "${_generated_file}"
+                "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}/${_output_name}"
+                COMMENT "Generating ${_output_name} for ${_target}"
+        )
+
+        # Install description file if requested
+        if (_CUR_INSTALL AND NOT FUNC_NO_INSTALL AND NOT FUNC_NO_INSTALL_DESC)
+            # Install to same directory as plugin
+            install(
+                    FILES ${_generated_file}
+                    DESTINATION "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
+                    RENAME ${_output_name}
+            )
+
+            message(STATUS "Will install ${_output_name} to ${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}")
+        endif ()
+    endif ()
 endmacro()

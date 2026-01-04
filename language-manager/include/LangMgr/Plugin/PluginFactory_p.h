@@ -24,7 +24,7 @@ namespace LangMgr
     public:
         void scanPlugins(const char *iid) const;
 
-        std::map<std::string, llvm::SmallVector<std::filesystem::path>, std::less<>> pluginPaths;
+        std::map<std::string, llvm::SmallVector<std::filesystem::path>, std::less<>> pluginDirs;
         std::unordered_set<Plugin *> runtimePlugins;
         mutable std::map<std::filesystem::path::string_type, stdc::SharedLibrary *, std::less<>> libraryInstances;
         mutable std::unordered_set<std::string> pluginsDirty;

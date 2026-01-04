@@ -26,6 +26,7 @@ namespace LangPlugins::inferUtil
         inline void parse_positive_int_optional(int &out, const std::string &fieldName);
         inline void parse_double_optional(double &out, const std::string &fieldName);
         inline void parse_positive_double_optional(double &out, const std::string &fieldName);
+        inline void parse_string_required(std::string &out, const std::string &fieldName);
         inline void parse_path_required(std::filesystem::path &out, const std::string &fieldName);
         inline void parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName);
 

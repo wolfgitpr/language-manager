@@ -1,17 +1,19 @@
-#include "LanguageEngine_p.h"
 #include "LanguageManager.h"
+#include "LanguageEngine_p.h"
 
 #include <iostream>
 #include <mutex>
+#include <set>
 
 #include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/stlextra/algorithms.h>
 
+
 #include "JSON.h"
-#include "U32Str.h"
 
 #include "Contribute_p.h"
+#include "Inference.h"
 #include "PackageRef_p.h"
 
 namespace fs = std::filesystem;
@@ -31,62 +33,28 @@ namespace LangMgr
     LanguageManager::Impl::~Impl() {
         closeAllLoadedPackages();
         stdc::delete_all(categories);
-
-        for (const auto &[id, factory] : g2ps) {
-            if (factory) {
-                delete factory;
-            }
-        }
-        g2ps.clear();
     }
 
-    std::pair<std::string, std::string> LanguageManager::Impl::extractConfig(const std::string &g2pId) {
-        const auto firstColonIndex = g2pId.find(':');
+    std::vector<NO<Inference>>
+    LanguageManager::Impl::priorityTaggers(const std::vector<std::string> &priorityTaggerIds) const {
+        const std::vector<std::string> order = defaultTaggerOrder;
 
-        if (firstColonIndex == std::string::npos) {
-            return {g2pId, "0"};
-        }
-
-        std::string beforeColon = g2pId.substr(0, firstColonIndex);
-        std::string afterColon = g2pId.substr(firstColonIndex + 1);
-
-        try {
-            if (const int value = std::stoi(afterColon); value < 0) {
-                return {beforeColon, "0"};
-            }
-            return {beforeColon, afterColon};
-        }
-        catch (const std::exception &) {
-            return {beforeColon, "0"};
-        }
-    }
-
-    std::vector<IG2pFactory *>
-    LanguageManager::Impl::priorityG2ps(const std::vector<std::string> &priorityG2pIds) const {
-        std::vector<std::string> order = defaultG2pOrder;
-
-        std::vector<IG2pFactory *> result;
-        for (const auto &g2pId : priorityG2pIds) {
-            const auto it = g2ps.find(g2pId);
-            if (it == g2ps.end())
+        std::vector<NO<Inference>> result;
+        for (const auto &g2pId : priorityTaggerIds) {
+            const auto it = taggers.find(g2pId);
+            if (it == taggers.end())
                 continue;
             result.push_back(it->second);
         }
 
         for (const auto &id : order) {
-            const auto it = g2ps.find(id);
-            if (it == g2ps.end())
+            if (std::find(priorityTaggerIds.begin(), priorityTaggerIds.end(), id) != priorityTaggerIds.end())
                 continue;
 
-            bool add = true;
-            for (const auto &g2p : result) {
-                if (const auto [g2pType, configId] = extractConfig(g2p->id()); g2pType == it->second->id()) {
-                    add = false;
-                    break;
-                }
-            }
-            if (add)
-                result.push_back(it->second);
+            const auto it = taggers.find(id);
+            if (it == taggers.end())
+                continue;
+            result.push_back(it->second);
         }
         return result;
     }
@@ -590,161 +558,97 @@ namespace LangMgr
         return impl.initialized;
     }
 
-    IG2pFactory *LanguageManager::g2p(const std::string &id) const {
+    Expected<NO<Inference>> LanguageManager::tagger(const std::string &id) const {
         __stdc_impl_t;
-        const auto it = impl.g2ps.find(id);
-        if (it == impl.g2ps.end()) {
-            std::cerr << "LangMgr::LanguageManager::g2p(): factory does not exist:" << id << std::endl;
-            return nullptr;
+        const auto it = impl.taggers.find(id);
+        if (it == impl.taggers.end()) {
+            std::cerr << "LangMgr::LanguageManager::tagger(): factory does not exist:" << id << std::endl;
+            return Expected<NO<Inference>>();
         }
         return it->second;
     }
 
-    std::vector<IG2pFactory *> LanguageManager::g2ps() const {
+    std::vector<NO<Inference>> LanguageManager::taggers() const {
         __stdc_impl_t;
-        std::vector<IG2pFactory *> result;
-        for (const auto &[id, factory] : impl.g2ps) {
-            result.push_back(factory);
-        }
+        std::vector<NO<Inference>> result;
+        for (auto [id, tagger] : impl.taggers)
+            result.push_back(tagger);
         return result;
-    }
-
-    bool LanguageManager::addG2p(IG2pFactory *factory) {
-        __stdc_impl_t;
-        if (!factory) {
-            std::cerr << "LangMgr::LanguageManager::addG2p(): trying to add null factory" << std::endl;
-            return false;
-        }
-        if (impl.g2ps.find(factory->id()) != impl.g2ps.end()) {
-            std::cerr << "LangMgr::LanguageManager::addG2p(): trying to add duplicated factory:" << factory->id()
-                      << std::endl;
-            return false;
-        }
-        impl.g2ps[factory->id()] = factory;
-        return true;
-    }
-
-    bool LanguageManager::removeG2p(const IG2pFactory *factory) {
-        if (factory == nullptr) {
-            std::cerr << "LangMgr::LanguageManager::removeG2p(): trying to remove null factory" << std::endl;
-            return false;
-        }
-        return removeG2p(factory->id());
-    }
-
-    bool LanguageManager::removeG2p(const std::string &id) {
-        __stdc_impl_t;
-        const auto it = impl.g2ps.find(id);
-        if (it == impl.g2ps.end()) {
-            std::cerr << "LangMgr::LanguageManager::removeG2p(): factory does not exist:" << id << std::endl;
-            return false;
-        }
-        impl.g2ps.erase(it);
-        return true;
-    }
-
-    void LanguageManager::clearG2ps() {
-        __stdc_impl_t;
-        impl.g2ps.clear();
     }
 
     std::vector<std::string> LanguageManager::defaultOrder() const {
         __stdc_impl_t;
-        return impl.defaultG2pOrder;
+        return impl.defaultTaggerOrder;
     }
 
     void LanguageManager::setDefaultOrder(const std::vector<std::string> &order) {
         __stdc_impl_t;
-        impl.defaultG2pOrder = order;
+        impl.defaultTaggerOrder = order;
     }
 
     std::vector<LangNote> LanguageManager::split(const std::string &input,
-                                                const std::vector<std::string> &priorityG2pIds) const {
+                                                 const std::vector<std::string> &priorityTaggerIds) const {
         __stdc_impl_t;
-        const auto &g2psList = impl.priorityG2ps(priorityG2pIds);
-        std::vector result = {LangNote(utf8strToU32str(input))};
-        for (const auto &g2p : g2psList)
-            result = g2p->split(result);
-        return result;
-    }
-
-    void LanguageManager::correct(const std::vector<LangNote *> &input, const std::vector<std::string> &priorityG2pIds,
-                                 const std::vector<std::string> &reservedTokens) const {
-        __stdc_impl_t;
-        const auto &g2psList = impl.priorityG2ps(priorityG2pIds);
-        for (const auto &g2p : g2psList)
-            g2p->correct(input);
+        // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
+        // std::vector result = {LangNote(utf8strToU32str(input))};
+        // for (const auto &tagger : taggersList)
+        //     result = tagger->start(result);
+        // return result;
+        return {};
     }
 
     void LanguageManager::convert(const std::vector<LangNote *> &input) const {
-        __stdc_impl_t;
-        std::map<std::string, std::vector<int>> indexMap;
-        std::map<std::string, std::vector<std::u32string>> lyricMap;
-
-        for (int i = 0; i < input.size(); ++i) {
-            const LangNote *note = input.at(i);
-            indexMap[note->g2pId].push_back(i);
-            lyricMap[note->g2pId].push_back(note->lyric);
-        }
-
-        for (const auto &[g2pId, indices] : indexMap) {
-            const auto &rawLyrics = lyricMap[g2pId];
-            auto [g2pType, configId] = impl.extractConfig(g2pId);
-
-            auto g2pFactory = this->g2p(g2pId);
-            if (g2pFactory == nullptr) {
-                g2pFactory = this->g2p("unknown");
-            }
-
-            const auto &tempRes = g2pFactory->convert(rawLyrics);
-            for (int i = 0; i < tempRes.size(); i++) {
-                const auto &index = indices[i];
-                input[index]->error = tempRes[i].error;
-                input[index]->syllable = tempRes[i].syllable;
-                input[index]->candidates = tempRes[i].candidates;
-            }
-        }
+        // __stdc_impl_t;
+        // std::map<std::string, std::vector<int>> indexMap;
+        // std::map<std::string, std::vector<std::u32string>> lyricMap;
+        //
+        // for (int i = 0; i < input.size(); ++i) {
+        //     const LangNote *note = input.at(i);
+        //     indexMap[note->g2pId].push_back(i);
+        //     lyricMap[note->g2pId].push_back(note->lyric);
+        // }
+        //
+        // for (const auto &[taggerId, indices] : indexMap) {
+        //     const auto &rawLyrics = lyricMap[taggerId];
+        //     auto [taggerType, configId] = impl.extractConfig(taggerId);
+        //
+        //     auto g2pFactory = this->tagger(taggerId);
+        //     if (!g2pFactory)
+        //         g2pFactory = this->tagger("unknown");
+        //
+        //     const auto &tempRes = g2pFactory->convert(rawLyrics);
+        //     for (int i = 0; i < tempRes.size(); i++) {
+        //         const auto &index = indices[i];
+        //         input[index]->error = tempRes[i].error;
+        //         input[index]->syllable = tempRes[i].syllable;
+        //         input[index]->candidates = tempRes[i].candidates;
+        //     }
+        // }
     }
 
-    std::string LanguageManager::analysis(const std::string &input, const std::vector<std::string> &priorityG2pIds,
-                                         const std::vector<std::string> &reservedTokens) const {
-        __stdc_impl_t;
-        static std::vector<std::string> keywords = {"AP", "SP"};
-        if (std::find(keywords.begin(), keywords.end(), input) != keywords.end() ||
-            std::find(reservedTokens.begin(), reservedTokens.end(), input) != reservedTokens.end())
-            return {"reserved-token"};
-
-        const auto &g2psList = impl.priorityG2ps(priorityG2pIds);
-
-        for (const auto &g2p : g2psList) {
-            if (const auto language = g2p->analysis(utf8strToU32str(input)); language != "unknown")
-                return language;
-        }
-        return "unknown";
-    }
-
-    std::vector<std::string> LanguageManager::analysis(const std::vector<std::string> &input,
-                                                      const std::vector<std::string> &priorityG2pIds,
-                                                      const std::vector<std::string> &reservedTokens) const {
-        __stdc_impl_t;
-        const auto &g2psList = impl.priorityG2ps(priorityG2pIds);
-        std::vector<LangNote *> inputNote;
-        for (const auto &lyric : input) {
-            inputNote.push_back(new LangNote(utf8strToU32str(lyric)));
-        }
-
-        for (const auto &g2p : g2psList)
-            g2p->correct(inputNote);
-
-        std::vector<std::string> result;
-        for (const auto &note : inputNote)
-            result.push_back(note->language);
-
-        for (const auto note : inputNote) {
-            delete note;
-        }
-
-        return result;
+    std::vector<std::string> LanguageManager::tag(const std::vector<std::string> &input,
+                                                  const std::vector<std::string> &priorityTaggerIds,
+                                                  const std::vector<std::string> &reservedTokens) const {
+        // __stdc_impl_t;
+        // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
+        // std::vector<LangNote *> inputNote;
+        // for (const auto &lyric : input) {
+        //     inputNote.push_back(new LangNote(utf8strToU32str(lyric)));
+        // }
+        //
+        // for (const auto &tagger : taggersList)
+        //     tagger->correct(inputNote);
+        //
+        // std::vector<std::string> result;
+        // for (const auto &note : inputNote)
+        //     result.push_back(note->language);
+        //
+        // for (const auto note : inputNote) {
+        //     delete note;
+        // }
+        //
+        // return result;
+        return {};
     }
 
     void LanguageManager::addPackagePaths(const stdc::array_view<std::filesystem::path> paths) {

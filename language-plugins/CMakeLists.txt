@@ -1,6 +1,6 @@
 project(LangPlugins
         LANGUAGES CXX
-        VERSION 0.0.1.2
+        VERSION 0.0.0.1
         DESCRIPTION "DiffSinger Inference Framework"
 )
 
@@ -21,7 +21,8 @@ set(LANGPLUGINS_INSTALL_NAME ${PROJECT_NAME})
 # ----------------------------------
 # Configure BuildAPI
 # ----------------------------------
-set(LANGPLUGINS_START_YEAR 2023)
+set(LANGPLUGINS_AUTHOR "小狼")
+set(LANGPLUGINS_START_YEAR 2025)
 set(LANGPLUGINS_INCLUDE_DIR include)
 include("${LANGMGR_SOURCE_DIR}/cmake/BuildAPI.cmake")
 

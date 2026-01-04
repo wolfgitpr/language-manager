@@ -9,7 +9,6 @@
 #error "Parser_impl.h should only be included by Parser.h"
 #endif
 
-#include <cstddef>
 #include <fstream>
 #include <utility>
 
@@ -32,6 +31,7 @@ namespace LangPlugins::inferUtil
             // Nothing to do
         }
     }
+
     inline void ConfigurationParser::parse_int_optional(int &out, const std::string &fieldName) {
         const auto &config = *pConfig;
 
@@ -92,6 +92,20 @@ namespace LangPlugins::inferUtil
             }
         } else {
             // Nothing to do
+        }
+    }
+
+    inline void ConfigurationParser::parse_string_required(std::string &out, const std::string &fieldName) {
+        const auto &config = *pConfig;
+
+        if (const auto it = config.find(fieldName); it != config.end()) {
+            if (it->second.isString()) {
+                out = it->second.toString();
+            } else {
+                collectError("string field \"" + fieldName + "\" type mismatch");
+            }
+        } else {
+            collectError("string field \"" + fieldName + "\" is missing");
         }
     }
 

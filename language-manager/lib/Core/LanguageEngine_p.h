@@ -21,15 +21,14 @@ namespace LangMgr
     class LanguageManager::Impl : public PluginFactory::Impl {
     public:
         explicit Impl(LanguageManager *decl);
-        ~Impl();
+        ~Impl() override;
 
         using Decl = LanguageManager;
 
         Expected<PackageData *> open(const std::filesystem::path &path, bool noLoad);
         bool close(PackageData *spec);
 
-        [[nodiscard]] std::vector<IG2pFactory *>
-        priorityG2ps(const std::vector<std::string> &priorityG2pIds = {}) const;
+        std::vector<NO<Inference>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {}) const;
         static std::pair<std::string, std::string> extractConfig(const std::string &g2pId);
 
     public:
@@ -72,9 +71,10 @@ namespace LangMgr
             pendingPackages;
 
         bool initialized = false;
-        std::vector<std::string> defaultG2pOrder = {"cmn-pinyin", "yue-jyutping", "jpn-romaji", "eng-cmu",   "space",
-                                                    "slur",       "punctuation",  "number",     "linebreak", "unknown"};
-        std::map<std::string, IG2pFactory *> g2ps;
+        std::vector<std::string> defaultTaggerOrder = {"cmn-pinyin", "yue-jyutping", "jpn-romaji",  "eng-cmu",
+                                                       "space",      "slur",         "punctuation", "number",
+                                                       "linebreak",  "unknown"};
+        std::map<std::string, NO<Inference>> taggers;
         std::string m_pinyinDictPath;
 
         mutable std::shared_mutex su_mtx;

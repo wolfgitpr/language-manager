@@ -7,13 +7,16 @@
 
 #include <stdcorelib/support/versionnumber.h>
 
+#include <LangMgr/Core/LangCommon.h>
 #include <LangMgr/LangMgrGlobal.h>
-#include <LangMgr/Plugin/IG2pFactory.h>
 #include <LangMgr/Plugin/PluginFactory.h>
 #include <LangMgr/Support/Expected.h>
 
+#include "NamedObject.h"
+
 namespace LangMgr
 {
+    class Inference;
 
     class PackageRef;
     class ContribCategory;
@@ -34,28 +37,19 @@ namespace LangMgr
         bool initialized() const;
 
     public:
-        IG2pFactory *g2p(const std::string &id) const;
-        std::vector<IG2pFactory *> g2ps() const;
-
-        bool addG2p(IG2pFactory *factory);
-        bool removeG2p(const IG2pFactory *factory);
-        bool removeG2p(const std::string &id);
-        void clearG2ps();
+        Expected<NO<Inference>> tagger(const std::string &id) const;
+        std::vector<NO<Inference>> taggers() const;
 
         std::vector<std::string> defaultOrder() const;
         void setDefaultOrder(const std::vector<std::string> &order);
 
         std::vector<LangNote> split(const std::string &input,
-                                    const std::vector<std::string> &priorityG2pIds = {}) const;
-        void correct(const std::vector<LangNote *> &input, const std::vector<std::string> &priorityG2pIds = {},
-                     const std::vector<std::string> &reservedTokens = {}) const;
+                                    const std::vector<std::string> &priorityTaggerIds = {}) const;
         void convert(const std::vector<LangNote *> &input) const;
 
-        std::string analysis(const std::string &input, const std::vector<std::string> &priorityG2pIds = {},
-                             const std::vector<std::string> &reservedTokens = {}) const;
-        std::vector<std::string> analysis(const std::vector<std::string> &input,
-                                          const std::vector<std::string> &priorityG2pIds = {},
-                                          const std::vector<std::string> &reservedTokens = {}) const;
+        std::vector<std::string> tag(const std::vector<std::string> &input,
+                                     const std::vector<std::string> &priorityTaggerIds = {},
+                                     const std::vector<std::string> &reservedTokens = {}) const;
 
     public:
         void addPackagePath(const std::filesystem::path &path);

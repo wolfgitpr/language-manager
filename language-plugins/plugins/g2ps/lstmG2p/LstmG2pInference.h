@@ -1,5 +1,5 @@
-#ifndef LANG_PLUGINS_ENGLISHINFERENCE_H
-#define LANG_PLUGINS_ENGLISHINFERENCE_H
+#ifndef LANG_PLUGINS_LSTMG2PINFERENCE_H
+#define LANG_PLUGINS_LSTMG2PINFERENCE_H
 
 #include <LangMgr/Tool/Inference.h>
 #include <LangPlugins/Core/Tensor.h>
@@ -55,4 +55,4 @@ namespace LangPlugins
     };
 } // namespace LangPlugins
 
-#endif // LANG_PLUGINS_ENGLISHINFERENCE_H
+#endif // LANG_PLUGINS_LSTMG2PINFERENCE_H

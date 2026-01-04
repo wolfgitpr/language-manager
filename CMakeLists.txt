@@ -8,7 +8,7 @@ project(LangMgr
 )
 
 set(CMAKE_CXX_STANDARD 17)
-
+set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "LangMgr project root")
 # ----------------------------------
 # Build Options
 # ----------------------------------

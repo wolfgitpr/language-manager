@@ -1,0 +1,14 @@
+{
+    "plugin": "@PLUGIN_NAME@",
+    "version": "@PROJECT_VERSION@",
+    "target": "@TARGET_NAME@",
+    "build": {
+        "type": "@CMAKE_BUILD_TYPE@",
+        "timestamp": "@TIMESTAMP@"
+    },
+    "metadata": {
+        "description": "@PROJECT_DESCRIPTION@",
+        "author": "@PROJECT_AUTHOR@",
+        "copyright": "@PROJECT_COPYRIGHT@"
+    }
+}

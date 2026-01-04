@@ -106,19 +106,6 @@ namespace LangPlugins
         // Collect all the errors and return to user
         inferUtil::ErrorCollector ec;
         inferUtil::ImportOptionsParser parser(spec, &ec, obj);
-
-        // [REQUIRED] encoder, path (json value is string)
-        {
-            static_assert(std::is_same_v<decltype(result->vocabPath), std::filesystem::path>);
-            parser.parse_path_required(result->vocabPath, "vocabPath");
-        } // encoder
-
-        // [REQUIRED] encoder, path (json value is string)
-        {
-            static_assert(std::is_same_v<decltype(result->configPath), std::filesystem::path>);
-            parser.parse_path_required(result->configPath, "configPath");
-        } // encoder
-
         return result;
     }
 

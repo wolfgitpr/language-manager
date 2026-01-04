@@ -46,9 +46,6 @@ namespace LangPlugins::Api::LstmG2p::L1
     class LstmG2pImportOptions : public LangMgr::InferenceImportOptions {
     public:
         LstmG2pImportOptions() : InferenceImportOptions(API_NAME, API_CLASS, API_LEVEL) {}
-
-        std::filesystem::path vocabPath;
-        std::filesystem::path configPath;
     };
 
     class LstmG2pRuntimeOptions : public LangMgr::InferenceRuntimeOptions {

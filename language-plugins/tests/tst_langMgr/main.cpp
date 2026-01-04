@@ -115,7 +115,7 @@ int main() {
         return -1;
     }
 
-    const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\g2p-en)");
+    const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package\g2p-en)");
 
     LangMgr::InferenceSpec *g2pSpec = nullptr;
     LangMgr::ScopedPackageRef pkg;
@@ -146,9 +146,6 @@ int main() {
     }
 
     LangMgr::JsonObject importOptionsJson;
-    importOptionsJson["vocabPath"] = (modelBasePath / "vocab.json").string();
-    importOptionsJson["configPath"] = (modelBasePath / "config.json").string();
-
     std::cout << "Found inference spec: " << g2pSpec->name().text() << std::endl;
     std::cout << "Class name: " << g2pSpec->className() << std::endl;
     std::cout << "API Level: " << g2pSpec->apiLevel() << std::endl;
