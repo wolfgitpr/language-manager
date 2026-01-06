@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <LangPlugins/Inference/InferenceDriver.h>
 #include <LangPlugins/Inference/InferenceDriverPlugin.h>
 #include <stdcorelib/str.h>
@@ -28,7 +28,7 @@
 #include <Windows.h>
 #endif
 
-using EP = LangPlugins::Api::Onnx::ExecutionProvider;
+using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
 
 struct ImportData {
     LangMgr::NO<LangMgr::InferenceImportOptions> options;
@@ -141,18 +141,18 @@ LangMgr::Expected<LangMgr::NO<LangPlugins::InferenceDriver>> initializeOnnxDrive
     }
 
     const auto onnxDriver = onnxDriverPlugin->create();
-    const auto onnxArgs = LangMgr::NO<LangPlugins::Api::Onnx::DriverInitArgs>::create();
+    const auto onnxArgs = LangMgr::NO<LangPlugins::Api::Onnx::L1::DriverInitArgs>::create();
 
     onnxArgs->ep = ep;
     const auto ortParentPath = onnxDriverPlugin->path().parent_path() / _TSTR("runtimes") / _TSTR("onnx");
 
-    onnxArgs->runtimePath = ep == LangPlugins::Api::Onnx::CUDAExecutionProvider ? ortParentPath / _TSTR("cuda")
-                                                                                : ortParentPath / _TSTR("default");
+    onnxArgs->runtimePath = ep == LangPlugins::Api::Onnx::L1::CUDAExecutionProvider ? ortParentPath / _TSTR("cuda")
+                                                                                    : ortParentPath / _TSTR("default");
 
     onnxArgs->loadFromProgress = loadFromProgress;
     onnxArgs->deviceIndex = deviceIndex;
 
-    if (auto exp = onnxDriver->initialize(onnxArgs); !exp) {
+    if (const auto exp = onnxDriver->initialize(onnxArgs); !exp) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen,
                               stdc::formatN(R"(failed to initialize onnx driver: %1)", exp.error().message()));
     }
@@ -226,9 +226,8 @@ LangMgr::PackageRef loadPackage(LangMgr::LanguageManager &langMgr, const std::fi
 
 const LangMgr::G2pSpec *findG2pSpec(const LangMgr::G2pCategory &g2pCategory, const std::string &g2pId) {
     for (const auto &g2p : g2pCategory.g2pSpecs()) {
-        if (g2p->id() == g2pId) {
+        if (g2p->id() == g2pId)
             return g2p;
-        }
     }
     return nullptr;
 }
@@ -312,7 +311,7 @@ int main() {
         const EP g2pProvider = parseExecutionProvider("cpu");
 
         LangMgr::LanguageManager langMgr;
-        if (auto exp =
+        if (const auto exp =
                 handleError(initializeMgr, "Failed to initialize LanguageManager", langMgr, g2pProvider, 0, false);
             !exp) {
             return -1;
@@ -324,9 +323,8 @@ int main() {
         const auto &g2pCategory = *langMgr.category("g2p")->as<LangMgr::G2pCategory>();
         const LangMgr::G2pSpec *g2pSpec = findG2pSpec(g2pCategory, "eng");
 
-        if (!g2pSpec) {
-            throw std::runtime_error(stdc::formatN(R"(g2p "%1" not found in package)", "templateG2pId"));
-        }
+        if (!g2pSpec)
+            throw std::runtime_error(stdc::formatN(R"(g2p "%1" not found in package)", "eng"));
 
         ImportData importLstm, importTemplate;
         processG2pImports(g2pSpec, importLstm, importTemplate);

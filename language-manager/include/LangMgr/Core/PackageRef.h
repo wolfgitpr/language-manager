@@ -15,7 +15,6 @@ namespace LangMgr
 {
 
     class LanguageManager;
-
     class ContribSpec;
 
     struct PackageDependency {

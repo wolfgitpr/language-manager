@@ -19,7 +19,7 @@ namespace LangMgr
 
     class ContribSpec::Impl {
     public:
-        explicit Impl(std::string category) : category(std::move(category)), state(Invalid) {}
+        explicit Impl(std::string category) : category(std::move(category)), state(Invalid), package(nullptr) {}
         virtual ~Impl() = default;
 
         virtual Expected<void> read(const std::filesystem::path &basePath, const JsonObject &obj) {

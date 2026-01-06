@@ -15,9 +15,9 @@ namespace LangMgr
 {
 
     PackageData::~PackageData() {
-        for (const auto &it : std::as_const(contributes)) {
-            for (const auto &it2 : it.second) {
-                delete it2.second;
+        for (const auto &[fst, snd] : std::as_const(contributes)) {
+            for (const auto &[fst2, snd2] : snd) {
+                delete snd2;
             }
         }
     }

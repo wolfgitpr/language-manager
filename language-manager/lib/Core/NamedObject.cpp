@@ -27,19 +27,18 @@ namespace LangMgr
         return empty;
     }
 
-    const std::any &NamedObject::property(std::string_view name) const {
+    const std::any &NamedObject::property(const std::string_view name) const {
         __stdc_impl_t;
-        auto it = impl.properties.find(name);
+        const auto it = impl.properties.find(name);
         if (it == impl.properties.end()) {
             return staticEmptyObjectProperty();
         }
         return it->second;
     }
 
-    void NamedObject::setProperty(std::string_view name, std::any value) {
+    void NamedObject::setProperty(const std::string_view name, std::any value) {
         __stdc_impl_t;
-        auto it = impl.properties.find(name);
-        if (it == impl.properties.end()) {
+        if (const auto it = impl.properties.find(name); it == impl.properties.end()) {
             impl.properties[std::string(name)] = std::move(value);
         } else {
             it->second = std::move(value);
@@ -56,7 +55,7 @@ namespace LangMgr
 
     void ObjectPool::addObject(const NO<NamedObject> &obj) { addObject({}, obj); }
 
-    void ObjectPool::addObject(std::string_view id, const NO<NamedObject> &obj) {
+    void ObjectPool::addObject(const std::string_view id, const NO<NamedObject> &obj) {
         __stdc_impl_t;
 
         if (!obj) {
@@ -72,15 +71,15 @@ namespace LangMgr
 
     void ObjectPool::removeObject(const NamedObject *obj) { removeObject({}, obj); }
 
-    void ObjectPool::removeObject(std::string_view id, const NamedObject *obj) {
+    void ObjectPool::removeObject(const std::string_view id, const NamedObject *obj) {
         __stdc_impl_t;
-        auto it = impl.objects.find(id);
+        const auto it = impl.objects.find(id);
         if (it == impl.objects.end()) {
             return;
         }
-        auto &map = it->second;
         {
-            auto it2 = map.find(obj);
+            auto &map = it->second;
+            const auto it2 = map.find(obj);
             if (it2 == map.end()) {
                 return;
             }
@@ -92,25 +91,25 @@ namespace LangMgr
         }
     }
 
-    void ObjectPool::removeObjects(std::string_view id) {
+    void ObjectPool::removeObjects(const std::string_view id) {
         __stdc_impl_t;
-        auto it = impl.objects.find(id);
+        const auto it = impl.objects.find(id);
         if (it == impl.objects.end()) {
             return;
         }
         auto &map = it->second;
-        for (auto it = map.rbegin(); it != map.rend(); ++it) {
-            aboutToRemoveObject(id, it->second);
+        for (auto it2 = map.rbegin(); it2 != map.rend(); ++it2) {
+            aboutToRemoveObject(id, it2->second);
         }
         impl.objects.erase(it);
     }
 
     void ObjectPool::removeAllObjects() {
         __stdc_impl_t;
-        for (auto &item : impl.objects) {
-            auto &map = item.second;
+        for (auto &[fst, snd] : impl.objects) {
+            auto &map = snd;
             for (auto it = map.rbegin(); it != map.rend(); ++it) {
-                aboutToRemoveObject(item.first, it->second);
+                aboutToRemoveObject(fst, it->second);
             }
         }
         impl.objects.clear();
@@ -119,16 +118,16 @@ namespace LangMgr
     std::vector<NO<NamedObject>> ObjectPool::allObjects() const {
         __stdc_impl_t;
         std::vector<NO<NamedObject>> res;
-        for (const auto &item : impl.objects) {
-            auto values = item.second.values();
+        for (const auto &[fst, snd] : impl.objects) {
+            auto values = snd.values();
             res.insert(res.end(), values.begin(), values.end());
         }
         return res;
     }
 
-    std::vector<NO<NamedObject>> ObjectPool::getObjects(std::string_view id) const {
+    std::vector<NO<NamedObject>> ObjectPool::getObjects(const std::string_view id) const {
         __stdc_impl_t;
-        auto it = impl.objects.find(id);
+        const auto it = impl.objects.find(id);
         if (it == impl.objects.end()) {
             return {};
         }
@@ -144,12 +143,12 @@ namespace LangMgr
         return it->second.begin()->second;
     }
 
-    void ObjectPool::objectAdded(std::string_view id, const NO<NamedObject> &obj) {
+    void ObjectPool::objectAdded(const std::string_view id, const NO<NamedObject> &obj) {
         (void)id;
         (void)obj;
     }
 
-    void ObjectPool::aboutToRemoveObject(std::string_view id, const NO<NamedObject> &obj) {
+    void ObjectPool::aboutToRemoveObject(const std::string_view id, const NO<NamedObject> &obj) {
         (void)id;
         (void)obj;
     }

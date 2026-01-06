@@ -3,20 +3,17 @@
 
 #include <stdcorelib/pimpl.h>
 
-namespace LangMgr {
+namespace LangMgr
+{
 
-    ITask::ITask() : ITask(*new Impl(this)) {
-    }
+    ITask::ITask() : ITask(*new Impl(this)) {}
 
     ITask::~ITask() = default;
 
-    Expected<void> ITask::initialize(const NO<TaskInitArgs> &args) {
-        return Expected<void>();
-    }
+    Expected<void> ITask::initialize(const NO<TaskInitArgs> &args) { return Expected<void>(); }
 
-    Expected<void> ITask::startAsync(
-        const NO<TaskStartInput> &input,
-        const std::function<void(const NO<TaskResult> &, const Error &)> &callback) {
+    Expected<void> ITask::startAsync(const NO<TaskStartInput> &input,
+                                     const std::function<void(const NO<TaskResult> &, const Error &)> &callback) {
         return Expected<void>();
     }
 
@@ -25,13 +22,12 @@ namespace LangMgr {
         return impl.state;
     }
 
-    void ITask::setState(State state) {
+    void ITask::setState(const State state) {
         __stdc_impl_t;
         impl.state = state;
     }
 
-    ITask::ITask(Impl &impl) : NamedObject(impl) {
-    }
+    ITask::ITask(Impl &impl) : NamedObject(impl) {}
 
 
-}
+} // namespace LangMgr

@@ -36,13 +36,13 @@ namespace LangMgr
     /// NO - A shared pointer wrapper for \c NamedObject instance.
     template <class T>
     class NO : public std::shared_ptr<T> {
-        static_assert(std::is_base_of<NamedObject, T>::value, "T should inherit from LangMgr::NamedObject");
+        static_assert(std::is_base_of_v<NamedObject, T>, "T should inherit from LangMgr::NamedObject");
 
     public:
         using Base = std::shared_ptr<T>;
 
         template <typename... Args>
-        using Constructible = typename std::enable_if_t<std::is_constructible_v<Base, Args...>>;
+        using Constructible = std::enable_if_t<std::is_constructible_v<Base, Args...>>;
 
         constexpr NO() noexcept : Base() {}
 
@@ -88,7 +88,7 @@ namespace LangMgr
         }
 
         template <class... Args>
-        static NO<T> create(Args &&...args) {
+        static NO create(Args &&...args) {
             return std::make_shared<T>(std::forward<Args>(args)...);
         }
     };
@@ -96,12 +96,11 @@ namespace LangMgr
     class LANGMGR_EXPORT ObjectPool : public NamedObject {
     public:
         explicit ObjectPool();
-        ~ObjectPool();
+        ~ObjectPool() override;
 
-    public:
         void addObject(const NO<NamedObject> &obj);
         void addObject(std::string_view id, const NO<NamedObject> &obj);
-        inline void addObjects(std::string_view id, stdc::array_view<NO<NamedObject>> objs) {
+        void addObjects(const std::string_view id, const stdc::array_view<NO<NamedObject>> objs) {
             for (const auto &obj : objs) {
                 addObject(id, obj);
             }
@@ -119,7 +118,6 @@ namespace LangMgr
         virtual void objectAdded(std::string_view id, const NO<NamedObject> &obj);
         virtual void aboutToRemoveObject(std::string_view id, const NO<NamedObject> &obj);
 
-    protected:
         class Impl;
         explicit ObjectPool(Impl &impl);
     };

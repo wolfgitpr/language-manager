@@ -286,10 +286,10 @@ namespace LangMgr
 
     InferenceCategory::~InferenceCategory() = default;
 
-    std::vector<InferenceSpec *> InferenceCategory::findInferences(const ContribLocator &locator) const {
+    std::vector<InferenceSpec *> InferenceCategory::findInferences(const ContribLocator &identifier) const {
         __stdc_impl_t;
         std::vector<InferenceSpec *> res;
-        auto temp = impl.findContributes(locator);
+        auto temp = impl.findContributes(identifier);
         res.reserve(res.size());
         for (const auto &item : std::as_const(temp)) {
             res.push_back(static_cast<InferenceSpec *>(item));
@@ -320,7 +320,7 @@ namespace LangMgr
             };
         }
         auto spec = new InferenceSpec();
-        if (auto exp = spec->_impl->read(basePath, config.toObject()); !exp) {
+        if (const auto exp = spec->_impl->read(basePath, config.toObject()); !exp) {
             delete spec;
             return exp.error();
         }

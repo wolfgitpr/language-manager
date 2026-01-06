@@ -45,14 +45,14 @@ namespace LangMgr
         JsonValue(Type = Null);
         JsonValue(bool b);
         JsonValue(double d);
-        inline JsonValue(int i) : JsonValue(int64_t(i)) {}
-        inline JsonValue(uint32_t i) : JsonValue(uint64_t(i)) {}
+        JsonValue(const int i) : JsonValue(static_cast<int64_t>(i)) {}
+        JsonValue(const uint32_t i) : JsonValue(static_cast<uint64_t>(i)) {}
         JsonValue(int64_t i);
         JsonValue(uint64_t u);
         JsonValue(std::string s);
-        inline JsonValue(const char *s, int size = -1) : JsonValue(size < 0 ? std::string(s) : std::string(s, size)) {}
+        JsonValue(const char *s, const int size = -1) : JsonValue(size < 0 ? std::string(s) : std::string(s, size)) {}
         JsonValue(stdc::array_view<uint8_t> bytes);
-        inline JsonValue(const uint8_t *data, int size) : JsonValue(stdc::array_view<uint8_t>(data, size)) {}
+        JsonValue(const uint8_t *data, const int size) : JsonValue(stdc::array_view(data, size)) {}
         JsonValue(const JsonArray &a);
         JsonValue(JsonArray &&a) noexcept;
         JsonValue(const JsonObject &o);
@@ -62,7 +62,7 @@ namespace LangMgr
         JsonValue(const JsonValue &RHS);
         JsonValue(JsonValue &&RHS) noexcept;
         JsonValue &operator=(const JsonValue &RHS);
-        inline JsonValue &operator=(JsonValue &&RHS) noexcept {
+        JsonValue &operator=(JsonValue &&RHS) noexcept {
             swap(RHS);
             return *this;
         }
@@ -71,16 +71,16 @@ namespace LangMgr
 
     public:
         Type type() const;
-        inline bool isNull() const { return type() == Null; }
-        inline bool isBool() const { return type() == Bool; }
-        inline bool isDouble() const { return type() == Double; }
-        inline bool isInt() const { return type() == Int || type() == UInt; }
-        inline bool isUInt() const { return type() == UInt; }
-        inline bool isNumber() const { return isDouble() || isInt(); }
-        inline bool isString() const { return type() == String; }
-        inline bool isArray() const { return type() == Array; }
-        inline bool isObject() const { return type() == Object; }
-        inline bool isUndefined() const { return type() == Undefined; }
+        bool isNull() const { return type() == Null; }
+        bool isBool() const { return type() == Bool; }
+        bool isDouble() const { return type() == Double; }
+        bool isInt() const { return type() == Int || type() == UInt; }
+        bool isUInt() const { return type() == UInt; }
+        bool isNumber() const { return isDouble() || isInt(); }
+        bool isString() const { return type() == String; }
+        bool isArray() const { return type() == Array; }
+        bool isObject() const { return type() == Object; }
+        bool isUndefined() const { return type() == Undefined; }
 
         bool toBool(bool defaultValue = false) const;
         double toDouble(double defaultValue = 0) const;
@@ -92,16 +92,16 @@ namespace LangMgr
         const std::vector<uint8_t> &toBinary(const std::vector<uint8_t> &defaultValue = {}) const;
         const JsonArray &toArray() const;
         const JsonArray &toArray(const JsonArray &defaultValue) const;
-        inline JsonArray toArray(JsonArray &&defaultValue) { return toArray(defaultValue); }
+        JsonArray toArray(JsonArray &&defaultValue) const { return toArray(defaultValue); }
         const JsonObject &toObject() const;
         const JsonObject &toObject(const JsonObject &defaultValue) const;
-        inline JsonObject toObject(JsonObject &&defaultValue) { return toObject(defaultValue); }
+        JsonObject toObject(JsonObject &&defaultValue) const { return toObject(defaultValue); }
 
         const JsonValue &operator[](std::string_view key) const;
         const JsonValue &operator[](size_t i) const;
 
         bool operator==(const JsonValue &RHS) const;
-        inline bool operator!=(const JsonValue &RHS) const { return !(*this == RHS); }
+        bool operator!=(const JsonValue &RHS) const { return !(*this == RHS); }
 
     public:
         /// Returns the serialized JSON text of this value.
@@ -112,8 +112,10 @@ namespace LangMgr
 
         /// Returns the serialized JsonValue instance of the given JSON text.
         ///
+        /// \param json
         /// \param ignoreComments Whether comments should be ignored and treated like whitespace
         /// (true) or yield a parse error (false)
+        /// \param error
         static JsonValue fromJson(std::string_view json, bool ignoreComments, std::string *error = nullptr);
 
         std::vector<uint8_t> toCbor() const;

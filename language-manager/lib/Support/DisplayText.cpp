@@ -21,12 +21,12 @@ namespace LangMgr
             const auto &obj = value.toObject();
             std::string defaultText_;
             std::map<std::string, std::string, std::less<>> texts_;
-            for (const auto &item : obj) {
-                if (item.first == "_") {
-                    defaultText_ = item.second.toString();
+            for (const auto &[fst, snd] : obj) {
+                if (fst == "_") {
+                    defaultText_ = snd.toString();
                     continue;
                 }
-                texts_[item.first] = item.second.toString();
+                texts_[fst] = snd.toString();
             }
 
             if (!texts_.empty()) {
@@ -37,8 +37,7 @@ namespace LangMgr
                     if (!defaultText_.empty()) {
                         break;
                     }
-                    auto it = texts_.find(item);
-                    if (it != texts_.end()) {
+                    if (auto it = texts_.find(item); it != texts_.end()) {
                         defaultText_ = it->second;
                     }
                 }
@@ -88,12 +87,12 @@ namespace LangMgr
         return impl.defaultText;
     }
 
-    const std::string &DisplayText::text(std::string_view locale) const {
+    const std::string &DisplayText::text(const std::string_view locale) const {
         __stdc_impl_t;
         if (!impl.texts) {
             return impl.defaultText;
         }
-        auto it = impl.texts->find(locale);
+        const auto it = impl.texts->find(locale);
         if (it == impl.texts->end()) {
             return impl.defaultText;
         }

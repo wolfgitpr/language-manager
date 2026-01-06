@@ -4,14 +4,14 @@
 #include <stdcorelib/str.h>
 #include <stdcorelib/support/sharedlibrary.h>
 
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <../../../include/LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 
 #include "OnnxDriver_Logger.h"
 #include "OnnxSession.h"
 #include "internal/Env.h"
 
 #ifndef ORT_API_MANUAL_INIT
-#error "dsinfer requires ort to be manually initialized, but ORT_API_MANUAL_INIT is not set!"
+#error "LangPlugins requires ort to be manually initialized, but ORT_API_MANUAL_INIT is not set!"
 #endif
 
 #include <onnxruntime_cxx_api.h>
@@ -35,14 +35,14 @@ namespace LangPlugins
 
     using namespace Api;
 
-    namespace onnxdriver
+    namespace onnxDriver
     {
 
-        LangMgr::LogCategory Log("onnxdriver");
+        LangMgr::LogCategory Log("onnxDriver");
 
     }
 
-    using onnxdriver::Log;
+    using onnxDriver::Log;
 
     class OnnxDriver::Impl {
     public:
@@ -173,23 +173,22 @@ namespace LangPlugins
 
     OnnxDriver::~OnnxDriver() {}
 
-    std::string OnnxDriver::arch() const {
-        return "onnx";
-    }
+    std::string OnnxDriver::arch() const { return "onnx"; }
 
-    std::string OnnxDriver::backend() const { return Onnx::API_NAME; }
+    std::string OnnxDriver::backend() const { return Onnx::L1::API_NAME; }
 
     LangMgr::Expected<void> OnnxDriver::initialize(const LangMgr::NO<InferenceDriverInitArgs> &args) {
         __stdc_impl_t;
 
-        if (args->objectName() != Onnx::API_NAME) {
+        if (args->objectName() != Onnx::L1::API_NAME) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidArgument,
-                stdc::formatN(R"(invalid driver name: expected "%s", got "%s")", Onnx::API_NAME, args->objectName()),
+                stdc::formatN(R"(invalid driver name: expected "%s", got "%s")", Onnx::L1::API_NAME,
+                              args->objectName()),
             };
         }
 
-        const auto onnxArgs = args.as<Onnx::DriverInitArgs>();
+        const auto onnxArgs = args.as<Onnx::L1::DriverInitArgs>();
         if (!onnxArgs) {
             return LangMgr::Error{LangMgr::Error::InvalidArgument, "onnx args is null pointer"};
         }
@@ -213,10 +212,10 @@ namespace LangPlugins
                 return result;
         }
 
-        onnxdriver::Env::DeviceConfig devConfig;
+        onnxDriver::Env::DeviceConfig devConfig;
         devConfig.ep = onnxArgs->ep;
         devConfig.deviceIndex = onnxArgs->deviceIndex;
-        onnxdriver::Env::setDeviceConfig(devConfig);
+        onnxDriver::Env::setDeviceConfig(devConfig);
         return LangMgr::Expected<void>();
     }
 

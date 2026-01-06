@@ -24,10 +24,10 @@ namespace LangMgr
         using error_type = Error;
 
     private:
-        using reference = typename std::remove_reference_t<T> &;
-        using const_reference = const typename std::remove_reference_t<T> &;
-        using pointer = typename std::remove_reference_t<T> *;
-        using const_pointer = const typename std::remove_reference_t<T> *;
+        using reference = std::remove_reference_t<T> &;
+        using const_reference = const std::remove_reference_t<T> &;
+        using pointer = std::remove_reference_t<T> *;
+        using const_pointer = const std::remove_reference_t<T> *;
 
     public:
         Expected() : _has_value(true) { new (&_storage.val) value_type(value_type{}); }
@@ -41,7 +41,7 @@ namespace LangMgr
         /// Create an Expected<T> success value from the given U value, which
         /// must be convertible to T.
         template <typename U>
-        Expected(U &&val, typename std::enable_if_t<std::is_convertible_v<U, T>> * = nullptr) : _has_value(true) {
+        Expected(U &&val, std::enable_if_t<std::is_convertible_v<U, T>> * = nullptr) : _has_value(true) {
             new (&_storage.val) value_type(std::forward<U>(val));
         }
 
@@ -51,18 +51,18 @@ namespace LangMgr
         /// Move construct an Expected<T> value from an Expected<U>, where U
         /// must be convertible to T.
         template <class U>
-        Expected(Expected<U> &&RHS, typename std::enable_if_t<std::is_convertible_v<U, T>> * = nullptr) {
+        Expected(Expected<U> &&RHS, std::enable_if_t<std::is_convertible_v<U, T>> * = nullptr) {
             moveConstruct(std::move(RHS));
         }
 
         /// Move construct an Expected<T> value from an Expected<U>, where U
         /// isn't convertible to T.
         template <class U>
-        explicit Expected(Expected<U> &&RHS, typename std::enable_if_t<!std::is_convertible_v<U, T>> * = nullptr) {
+        explicit Expected(Expected<U> &&RHS, std::enable_if_t<!std::is_convertible_v<U, T>> * = nullptr) {
             moveConstruct(std::move(RHS));
         }
 
-        Expected &operator=(Expected &&RHS) {
+        Expected &operator=(Expected &&RHS) noexcept {
             moveAssign(std::move(RHS));
             return *this;
         }
@@ -75,7 +75,7 @@ namespace LangMgr
                 _storage.err.~error_type();
         }
 
-        explicit operator bool() { return _has_value; }
+        explicit operator bool() const { return _has_value; }
         reference get() {
             assert(_has_value && "Expected doesn't contain a value");
             return _storage.val;
@@ -140,8 +140,8 @@ namespace LangMgr
             char no_init;
 
             // Do nothing in constructor and destructor.
-            Storage() {};
-            ~Storage() {};
+            Storage() {}
+            ~Storage() {}
         };
         Storage _storage;
         bool _has_value : 1;
@@ -157,7 +157,6 @@ namespace LangMgr
         using value_type = void;
         using error_type = Error;
 
-    public:
         Expected() : _has_value(true) {}
 
         Expected(Error err) : _has_value(false) {
@@ -168,11 +167,11 @@ namespace LangMgr
         Expected(Expected &&RHS) { moveConstruct(std::move(RHS)); }
 
         template <class U>
-        Expected(Expected<U> &&RHS) {
+        explicit Expected(Expected<U> &&RHS) {
             moveConstruct(std::move(RHS));
         }
 
-        Expected &operator=(Expected &&RHS) {
+        Expected &operator=(Expected &&RHS) noexcept {
             moveAssign(std::move(RHS));
             return *this;
         }
@@ -182,7 +181,7 @@ namespace LangMgr
                 _storage.err.~error_type();
         }
 
-        explicit operator bool() { return _has_value; }
+        explicit operator bool() const { return _has_value; }
 
         error_type takeError() { return _has_value ? Error::success() : std::move(_storage.err); }
 
@@ -216,8 +215,8 @@ namespace LangMgr
             char no_init;
 
             // Do nothing in constructor and destructor.
-            Storage() {};
-            ~Storage() {};
+            Storage() {}
+            ~Storage() {}
         };
         Storage _storage;
         bool _has_value : 1;

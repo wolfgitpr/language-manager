@@ -4,7 +4,7 @@
 #include <chrono>
 #include <functional>
 
-namespace LangPlugins::onnxdriver {
+namespace LangPlugins::onnxDriver {
     class ScopedTimer {
     public:
         using duration_t = std::chrono::duration<double>; // seconds

@@ -21,7 +21,6 @@ namespace LangMgr
         using Decl = PluginFactory;
         PluginFactory *_decl;
 
-    public:
         void scanPlugins(const char *iid) const;
 
         std::map<std::string, llvm::SmallVector<std::filesystem::path>, std::less<>> pluginDirs;

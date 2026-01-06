@@ -3,7 +3,7 @@
 namespace LangMgr
 {
 
-    std::shared_ptr<std::string> Error::defaultMessage(int type) {
+    std::shared_ptr<std::string> Error::defaultMessage(const int type) {
         switch (type) {
         case NoError:
             {

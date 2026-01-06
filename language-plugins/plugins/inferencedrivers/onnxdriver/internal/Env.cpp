@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-namespace LangPlugins::onnxdriver
+namespace LangPlugins::onnxDriver
 {
 
     void Env::setDeviceConfig(const DeviceConfig &config) {
@@ -16,4 +16,4 @@ namespace LangPlugins::onnxdriver
     }
 
     int64_t Env::nextId() { return ++s_idCounter; }
-} // namespace LangPlugins::onnxdriver
+} // namespace LangPlugins::onnxDriver

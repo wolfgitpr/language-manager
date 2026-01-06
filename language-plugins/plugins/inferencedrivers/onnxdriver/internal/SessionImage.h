@@ -6,7 +6,7 @@
 
 #include <onnxruntime_cxx_api.h>
 
-namespace LangPlugins::onnxdriver
+namespace LangPlugins::onnxDriver
 {
 
     class SessionImage {
@@ -23,6 +23,6 @@ namespace LangPlugins::onnxdriver
         Ort::Session session;
     };
 
-} // namespace LangPlugins::onnxdriver
+} // namespace LangPlugins::onnxDriver
 
 #endif // LANGMGR_ONNXDRIVER_SESSIONIMAGE_P_H

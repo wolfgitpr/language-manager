@@ -17,7 +17,7 @@ namespace LangMgr
         DisplayText();
 
         /// Constructs with a default text.
-        DisplayText(std::string text);
+        explicit DisplayText(std::string text);
 
         /// Constructs with a default text and a map, where the key is the locale code and the value
         /// is the corresponding text.
@@ -35,9 +35,8 @@ namespace LangMgr
         DisplayText &operator=(std::string text);
         DisplayText &operator=(const JsonValue &value);
 
-        inline void swap(DisplayText &RHS) noexcept { _impl.swap(RHS._impl); }
+        void swap(DisplayText &RHS) noexcept { _impl.swap(RHS._impl); }
 
-    public:
         const std::string &text() const;
         const std::string &text(std::string_view locale) const;
 

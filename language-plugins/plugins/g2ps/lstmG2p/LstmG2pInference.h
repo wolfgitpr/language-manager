@@ -4,14 +4,14 @@
 #include <LangMgr/Tool/Inference.h>
 #include <LangPlugins/Core/Tensor.h>
 
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h>
 #include <stdcorelib/str.h>
 
 namespace LangPlugins
 {
     namespace Lstm = Api::LstmG2p::L1;
-    namespace Onnx = Api::Onnx;
+    namespace Onnx = Api::Onnx::L1;
 
     class LstmG2pInference : public LangMgr::Inference {
     public:

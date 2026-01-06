@@ -1,18 +1,19 @@
-#ifndef DSINFER_ALIGNEDALLOCATOR_H
-#define DSINFER_ALIGNEDALLOCATOR_H
+#ifndef LANGPLUGINS_ALIGNEDALLOCATOR_H
+#define LANGPLUGINS_ALIGNEDALLOCATOR_H
 
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <new>
 
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     template <typename T, std::size_t Alignment>
     class AlignedAllocator {
     public:
-        static_assert(Alignment >= alignof(void *) && (Alignment % alignof(void *) == 0) &&
-                          (Alignment & (Alignment - 1)) == 0,
+        static_assert(Alignment >= alignof(void *) && Alignment % alignof(void *) == 0 &&
+                          (Alignment & Alignment - 1) == 0,
                       "Alignment must be a power of two and a multiple of alignof(void *)");
 
         using value_type = T;
@@ -29,11 +30,9 @@ namespace LangPlugins {
         AlignedAllocator() noexcept = default;
 
         template <typename U>
-        AlignedAllocator(const AlignedAllocator<U, Alignment> &) noexcept {
-        }
+        AlignedAllocator(const AlignedAllocator<U, Alignment> &) noexcept {}
 
-        [[nodiscard]]
-        T *allocate(size_type n) {
+        static T *allocate(const size_type n) {
             if (n > max_size()) {
                 throw std::bad_alloc();
             }
@@ -46,13 +45,9 @@ namespace LangPlugins {
             return static_cast<T *>(ptr);
         }
 
-        void deallocate(T *p, size_type /*n*/) noexcept {
-            aligned_free_impl(p);
-        }
+        static void deallocate(T *p, size_type /*n*/) noexcept { aligned_free_impl(p); }
 
-        size_type max_size() const noexcept {
-            return std::numeric_limits<size_type>::max() / sizeof(T);
-        }
+        static size_type max_size() noexcept { return std::numeric_limits<size_type>::max() / sizeof(T); }
 
         template <typename U>
         struct rebind {
@@ -60,20 +55,18 @@ namespace LangPlugins {
         };
 
         template <typename T1, size_type A1, typename T2, size_type A2>
-        friend constexpr bool operator==(const AlignedAllocator<T1, A1> &,
-                                         const AlignedAllocator<T2, A2> &) noexcept;
+        friend constexpr bool operator==(const AlignedAllocator<T1, A1> &, const AlignedAllocator<T2, A2> &) noexcept;
 
         template <typename T1, size_type A1, typename T2, size_type A2>
-        friend constexpr bool operator!=(const AlignedAllocator<T1, A1> &,
-                                         const AlignedAllocator<T2, A2> &) noexcept;
+        friend constexpr bool operator!=(const AlignedAllocator<T1, A1> &, const AlignedAllocator<T2, A2> &) noexcept;
 
     private:
-        static inline void *aligned_alloc_impl(size_type size, size_type alignment) {
+        static void *aligned_alloc_impl(size_type size, size_type alignment) {
 #if defined(_MSC_VER)
-            return ::_aligned_malloc(size, alignment);
+            return _aligned_malloc(size, alignment);
 
 #elif defined(__MINGW32__) || defined(__MINGW64__)
-            return ::__mingw_aligned_malloc(size, alignment);
+            return __mingw_aligned_malloc(size, alignment);
 
 #elif defined(__APPLE__) || defined(__unix__) || defined(__linux__) || defined(_POSIX_VERSION)
             void *ptr = nullptr;
@@ -88,41 +81,39 @@ namespace LangPlugins {
             return std::aligned_alloc(alignment, size);
 
 #else
-#  error "AlignedAllocator: Unsupported platform"
+#error "AlignedAllocator: Unsupported platform"
 #endif
         }
 
-        static inline void aligned_free_impl(void *p) noexcept {
+        static void aligned_free_impl(void *p) noexcept {
 #if defined(_MSC_VER)
-            ::_aligned_free(p);
+            _aligned_free(p);
 
 #elif defined(__MINGW32__) || defined(__MINGW64__)
-            ::__mingw_aligned_free(p);
+            __mingw_aligned_free(p);
 
 #elif defined(__APPLE__) || defined(__unix__) || defined(__linux__) || defined(_POSIX_VERSION)
-            ::free(p);
+            free(p);
 
 #elif defined(__cpp_aligned_new)
             std::free(p);
 
 #else
-#  error "AlignedAllocator: Unsupported platform"
+#error "AlignedAllocator: Unsupported platform"
 #endif
         }
     };
 
     template <typename T1, std::size_t A1, typename T2, std::size_t A2>
-    constexpr bool operator==(const AlignedAllocator<T1, A1> &,
-                              const AlignedAllocator<T2, A2> &) noexcept {
+    constexpr bool operator==(const AlignedAllocator<T1, A1> &, const AlignedAllocator<T2, A2> &) noexcept {
         return A1 == A2;
     }
 
     template <typename T1, std::size_t A1, typename T2, std::size_t A2>
-    constexpr bool operator!=(const AlignedAllocator<T1, A1> &a,
-                              const AlignedAllocator<T2, A2> &b) noexcept {
+    constexpr bool operator!=(const AlignedAllocator<T1, A1> &a, const AlignedAllocator<T2, A2> &b) noexcept {
         return !(a == b);
     }
 
-}
+} // namespace LangPlugins
 
-#endif // DSINFER_ALIGNEDALLOCATOR_H
+#endif // LANGPLUGINS_ALIGNEDALLOCATOR_H

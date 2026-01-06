@@ -5,30 +5,26 @@
 #include "internal/Env.h"
 #include "internal/Session.h"
 
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     class OnnxSession::Impl {
     public:
-        Impl() : sessionId(onnxdriver::Env::nextId()) {
-        }
-        ~Impl() {
-        }
+        Impl() : sessionId(onnxDriver::Env::nextId()) {}
+        ~Impl() {}
 
         int64_t sessionId;
-        onnxdriver::Session session;
+        onnxDriver::Session session;
     };
 
-    OnnxSession::OnnxSession() : _impl(std::make_unique<Impl>()) {
-    }
+    OnnxSession::OnnxSession() : _impl(std::make_unique<Impl>()) {}
 
-    OnnxSession::~OnnxSession() {
-        __stdc_impl_t;
-    }
+    OnnxSession::~OnnxSession() { __stdc_impl_t; }
 
     LangMgr::Expected<void> OnnxSession::open(const std::filesystem::path &path,
-                                          const LangMgr::NO<InferenceSessionOpenArgs> &args) {
+                                              const LangMgr::NO<InferenceSessionOpenArgs> &args) {
         __stdc_impl_t;
-        const auto openArgs = args.as<Api::Onnx::SessionOpenArgs>();
+        const auto openArgs = args.as<Api::Onnx::L1::SessionOpenArgs>();
         if (!openArgs) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidArgument,
@@ -53,13 +49,14 @@ namespace LangPlugins {
         return impl.sessionId;
     }
 
-    LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> OnnxSession::start(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
+    LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>>
+    OnnxSession::start(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
         __stdc_impl_t;
         return impl.session.run(input);
     }
 
     LangMgr::Expected<void> OnnxSession::startAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
-                                                const StartAsyncCallback &callback) {
+                                                    const StartAsyncCallback &callback) {
         __stdc_impl_t;
         return impl.session.runAsync(input, callback);
     }
@@ -75,4 +72,4 @@ namespace LangPlugins {
         return true;
     }
 
-}
+} // namespace LangPlugins

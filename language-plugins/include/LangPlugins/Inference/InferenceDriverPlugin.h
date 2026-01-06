@@ -1,5 +1,5 @@
-#ifndef DSINFER_INFERENCEDRIVERPLUGIN_H
-#define DSINFER_INFERENCEDRIVERPLUGIN_H
+#ifndef LANGPLUGINS_INFERENCEDRIVERPLUGIN_H
+#define LANGPLUGINS_INFERENCEDRIVERPLUGIN_H
 
 #include <LangMgr/Plugin/Plugin.h>
 #include <LangPlugins/Inference/InferenceDriver.h>
@@ -22,4 +22,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-#endif // DSINFER_INFERENCEDRIVERPLUGIN_H
+#endif // LANGPLUGINS_INFERENCEDRIVERPLUGIN_H

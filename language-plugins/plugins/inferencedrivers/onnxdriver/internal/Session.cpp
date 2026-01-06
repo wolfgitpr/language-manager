@@ -27,7 +27,7 @@
 
 namespace fs = std::filesystem;
 
-namespace LangPlugins::onnxdriver
+namespace LangPlugins::onnxDriver
 {
 
     struct SessionSystem {
@@ -144,9 +144,9 @@ namespace LangPlugins::onnxdriver
 
         std::unique_ptr<SessionRunContext> context;
         std::unique_ptr<SessionAsyncRunContext> asyncContext;
-        LangMgr::NO<Api::Onnx::SessionResult> sessionResult;
+        LangMgr::NO<Api::Onnx::L1::SessionResult> sessionResult;
 
-        Impl() : sessionResult(LangMgr::NO<Api::Onnx::SessionResult>::create()) {}
+        Impl() : sessionResult(LangMgr::NO<Api::Onnx::L1::SessionResult>::create()) {}
 
         static size_t getTensorDataTypeSize(const ITensor::DataType type) {
             switch (type) {
@@ -267,7 +267,7 @@ namespace LangPlugins::onnxdriver
             }
         }
 
-        LangMgr::Error validateInputValueMap(const LangMgr::NO<Api::Onnx::SessionStartInput> &input) const;
+        LangMgr::Error validateInputValueMap(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &input) const;
 
         static void runAsyncCallback(void *user_data, OrtValue **outputs, const size_t num_outputs,
                                      const OrtStatusPtr status) {
@@ -301,10 +301,10 @@ namespace LangPlugins::onnxdriver
             langMgrDebug("runAsyncCallback completed");
         }
 
-        LangMgr::NO<Api::Onnx::SessionResult>
-        sessionRun(const LangMgr::NO<Api::Onnx::SessionStartInput> &sessionStartInput,
+        LangMgr::NO<Api::Onnx::L1::SessionResult>
+        sessionRun(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &sessionStartInput,
                    LangMgr::Error *error = nullptr) {
-            if (!(sessionStartInput && sessionStartInput->objectName() == Api::Onnx::API_NAME)) {
+            if (!(sessionStartInput && sessionStartInput->objectName() == Api::Onnx::L1::API_NAME)) {
                 if (error) {
                     *error = {LangMgr::Error::InvalidArgument, "Session start input is not valid"};
                 }
@@ -325,7 +325,7 @@ namespace LangPlugins::onnxdriver
             context = std::make_unique<SessionRunContext>(inputCount, outputCount);
             auto &ctx = *context;
 
-            auto result = LangMgr::NO<Api::Onnx::SessionResult>::create();
+            auto result = LangMgr::NO<Api::Onnx::L1::SessionResult>::create();
             try {
                 const auto memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
@@ -401,9 +401,9 @@ namespace LangPlugins::onnxdriver
             return {};
         }
 
-        bool sessionRunAsync(const LangMgr::NO<Api::Onnx::SessionStartInput> &sessionStartInput,
+        bool sessionRunAsync(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &sessionStartInput,
                              const LangMgr::ITask::StartAsyncCallback &callback, LangMgr::Error *error = nullptr) {
-            if (!(sessionStartInput && sessionStartInput->objectName() == Api::Onnx::API_NAME)) {
+            if (!(sessionStartInput && sessionStartInput->objectName() == Api::Onnx::L1::API_NAME)) {
                 if (error) {
                     *error = {LangMgr::Error::InvalidArgument, "Session start input is not valid"};
                 }
@@ -480,7 +480,7 @@ namespace LangPlugins::onnxdriver
             return false;
         }
     };
-    LangMgr::Error Session::Impl::validateInputValueMap(const LangMgr::NO<Api::Onnx::SessionStartInput> &input) const {
+    LangMgr::Error Session::Impl::validateInputValueMap(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &input) const {
         const auto &inputValueMap = input->inputs;
         if (inputValueMap.empty()) {
             return {LangMgr::Error::SessionError, "Input map is empty"};
@@ -588,7 +588,7 @@ namespace LangPlugins::onnxdriver
         return true;
     }
 
-    LangMgr::Expected<void> Session::open(const fs::path &path, const LangMgr::NO<Api::Onnx::SessionOpenArgs> &args) {
+    LangMgr::Expected<void> Session::open(const fs::path &path, const LangMgr::NO<Api::Onnx::L1::SessionOpenArgs> &args) {
         __stdc_impl_t;
 
         if (isOpen()) {
@@ -782,7 +782,7 @@ namespace LangPlugins::onnxdriver
     Session::run(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
         __stdc_impl_t;
         LangMgr::Error tmpError;
-        if (!(input && input->objectName() == Api::Onnx::API_NAME)) {
+        if (!(input && input->objectName() == Api::Onnx::L1::API_NAME)) {
             tmpError = {LangMgr::Error::InvalidArgument, "invalid task start input"};
             impl.sessionResult->error = tmpError;
             return tmpError;
@@ -792,7 +792,7 @@ namespace LangPlugins::onnxdriver
             impl.sessionResult->error = tmpError;
             return tmpError;
         }
-        const auto startInput = input.as<Api::Onnx::SessionStartInput>();
+        const auto startInput = input.as<Api::Onnx::L1::SessionStartInput>();
         auto result = impl.sessionRun(startInput, &tmpError);
         if (!result) {
             impl.sessionResult->error = tmpError;
@@ -806,7 +806,7 @@ namespace LangPlugins::onnxdriver
                                               const LangMgr::ITask::StartAsyncCallback &callback) {
         __stdc_impl_t;
         LangMgr::Error tmpError;
-        if (!(input && input->objectName() == Api::Onnx::API_NAME)) {
+        if (!(input && input->objectName() == Api::Onnx::L1::API_NAME)) {
             tmpError = {LangMgr::Error::InvalidArgument, "invalid task start input"};
             impl.sessionResult->error = tmpError;
             return tmpError;
@@ -816,7 +816,7 @@ namespace LangPlugins::onnxdriver
             impl.sessionResult->error = tmpError;
             return tmpError;
         }
-        const auto startInput = input.as<Api::Onnx::SessionStartInput>();
+        const auto startInput = input.as<Api::Onnx::L1::SessionStartInput>();
         if (const bool ok = impl.sessionRunAsync(startInput, callback, &tmpError); !ok) {
             impl.sessionResult->error = tmpError;
             return tmpError;
@@ -828,4 +828,4 @@ namespace LangPlugins::onnxdriver
         __stdc_impl_t;
         return impl.sessionResult.as<LangMgr::TaskResult>();
     }
-} // namespace LangPlugins::onnxdriver
+} // namespace LangPlugins::onnxDriver

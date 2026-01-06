@@ -25,24 +25,23 @@ namespace LangMgr
 
         std::unordered_set<LogCategory *> categories;
 
-        void updateFilterRules() {
+        void updateFilterRules() const {
             for (const auto &category : categories) {
                 categoryFilter(category);
             }
         }
 
-        static inline LogRegistry *instance() {
+        static LogRegistry *instance() {
             static LogRegistry registry;
             return &registry;
         }
     };
 
-    static void defaultLogCallback(int level, const LogContext &context, const std::string_view &message) {
+    static void defaultLogCallback(const int level, const LogContext &context, const std::string_view &message) {
         (void)context;
 
-        if (level < Logger::Success) {
+        if (level < Logger::Success)
             return;
-        }
 
         using namespace stdc;
 
@@ -68,12 +67,12 @@ namespace LangMgr
         // TODO
     }
 
-    void Logger::print(int level, const std::string_view &message) { LogRegistry::callback(level, _context, message); }
+    void Logger::print(const int level, const std::string_view &message) const { LogRegistry::callback(level, _context, message); }
 
-    void Logger::printf(int level, const char *fmt, ...) {
+    void Logger::printf(const int level, const char *fmt, ...) const {
         va_list args;
         va_start(args, fmt);
-        std::string message = stdc::vasprintf(fmt, args);
+        const std::string message = stdc::vasprintf(fmt, args);
         va_end(args);
         LogRegistry::callback(level, _context, message);
     }
@@ -84,7 +83,7 @@ namespace LangMgr
 
     Logger::LogCallback Logger::logCallback() { return LogRegistry::callback; }
 
-    void Logger::setLogCallback(LogCallback callback) { LogRegistry::callback = callback; }
+    void Logger::setLogCallback(const LogCallback callback) { LogRegistry::callback = callback; }
 
     LogCategory::LogCategory(const char *name) : _name(name) {
         enabled = 0x0101010101010101ULL;

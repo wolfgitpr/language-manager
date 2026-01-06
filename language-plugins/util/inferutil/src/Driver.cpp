@@ -3,7 +3,7 @@
 #include <stdcorelib/str.h>
 
 #include <LangMgr/Tool/InferenceContrib.h>
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 
 #include "LangMgr/Tool/InferenceInterpreter.h"
 
@@ -38,7 +38,7 @@ namespace LangPlugins::inferUtil
         const bool isArchMatch = arch == expectedArch;
 
         const auto backend = onnxDriver->backend();
-        constexpr auto expectedBackend = Onnx::API_NAME;
+        constexpr auto expectedBackend = Onnx::L1::API_NAME;
 
         if (const bool isBackendMatch = backend == expectedBackend; !isArchMatch || !isBackendMatch) {
             return LangMgr::Error(

@@ -3,6 +3,8 @@
 
 #include <filesystem>
 
+#include <stdcorelib/support/sharedlibrary.h>
+
 #include <LangMgr/LangMgrGlobal.h>
 
 namespace LangMgr
@@ -11,31 +13,16 @@ namespace LangMgr
     /// Plugin - Base class for all plugins.
     class LANGMGR_EXPORT Plugin {
     public:
-        virtual ~Plugin();
+        virtual ~Plugin() = default;
 
-    public:
         /// Returns the interface identifier of the plugin.
         virtual const char *iid() const = 0;
 
         /// Returns the key of the plugin.
         virtual const char *key() const = 0;
 
-    public:
-        std::filesystem::path path() const;
+        std::filesystem::path path() const { return stdc::SharedLibrary::locateLibraryPath(this); }
     };
-
-    class StaticPlugin {
-    public:
-        using PluginInstanceFunction = Plugin *(*)();
-
-        explicit constexpr StaticPlugin(const PluginInstanceFunction i) : instance(i) {}
-
-        PluginInstanceFunction instance = nullptr;
-
-    public:
-        LANGMGR_EXPORT static void registerStaticPlugin(const char *pluginSet, StaticPlugin plugin);
-    };
-
 } // namespace LangMgr
 
 #define LANGMGR_EXPORT_PLUGIN(PLUGIN_NAME)                                                                             \
@@ -43,19 +30,4 @@ namespace LangMgr
         static PLUGIN_NAME _instance;                                                                                  \
         return &_instance;                                                                                             \
     }
-
-#define LANGMGR_EXPORT_STATIC_PLUGIN(PLUGIN_NAME, PLUGIN_SET)                                                          \
-    struct initializer {                                                                                               \
-        initializer() {                                                                                                \
-            LangMgr::StaticPlugin::registerStaticPlugin(PLUGIN_SET,                                                    \
-                                                        LangMgr::StaticPlugin(                                         \
-                                                            []() -> LangMgr::Plugin *                                  \
-                                                            {                                                          \
-                                                                static PLUGIN_NAME _instance;                          \
-                                                                return &_instance;                                     \
-                                                            }));                                                       \
-        }                                                                                                              \
-        ~initializer() {}                                                                                              \
-    } dummy;
-
 #endif // LANGUAGE_MANAGER_PLUGIN_H

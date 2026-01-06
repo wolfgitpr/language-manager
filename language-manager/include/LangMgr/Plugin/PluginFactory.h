@@ -17,15 +17,10 @@ namespace LangMgr
     /// Plugins:
     ///  - filesystem plugins: shared libraries loaded from registered directories per \c iid
     ///  - runtime plugins   : runtime class instances (not owned by PluginFactory)
-    ///  - static plugins    : static class instances (not owned by PluginFactory)
     class LANGMGR_EXPORT PluginFactory {
     public:
         PluginFactory();
         virtual ~PluginFactory();
-
-        static std::vector<std::string> staticPluginSets();
-        static std::vector<StaticPlugin> staticPlugins(const char *pluginSet);
-        static std::vector<Plugin *> staticInstances(const char *pluginSet);
 
         void addRuntimePlugin(Plugin *plugin);
         std::vector<Plugin *> runtimePlugins() const;
@@ -50,7 +45,7 @@ namespace LangMgr
 
     template <class T>
     T *PluginFactory::plugin(const char *key) const {
-        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from srt::Plugin");
+        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangMgr::Plugin");
         return static_cast<T *>(plugin(reinterpret_cast<T *>(0)->T::iid(), key));
     }
 

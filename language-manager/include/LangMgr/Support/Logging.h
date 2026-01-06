@@ -10,9 +10,9 @@ namespace LangMgr
 
     class LogContext {
     public:
-        inline LogContext() noexcept = default;
-        inline LogContext(const char *fileName, int lineNumber, const char *functionName,
-                          const char *categoryName) noexcept :
+        LogContext() noexcept = default;
+        LogContext(const char *fileName, const int lineNumber, const char *functionName,
+                   const char *categoryName) noexcept :
             line(lineNumber), file(fileName), function(functionName), category(categoryName) {}
 
         int line = 0;
@@ -33,55 +33,55 @@ namespace LangMgr
             Fatal,
         };
 
-        inline Logger(LogContext context) : _context(std::move(context)) {}
+        explicit Logger(LogContext context) : _context(std::move(context)) {}
 
-        inline Logger(const char *file, int line, const char *function, const char *category) :
+        Logger(const char *file, const int line, const char *function, const char *category) :
             _context(file, line, function, category) {}
 
         template <class... Args>
-        inline void trace(const std::string_view &format, Args &&...args) {
+        void trace(const std::string_view &format, Args &&...args) {
             print(Trace, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
         template <class... Args>
-        inline void debug(const std::string_view &format, Args &&...args) {
+        void debug(const std::string_view &format, Args &&...args) {
             print(Debug, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
         template <class... Args>
-        inline void success(const std::string_view &format, Args &&...args) {
+        void success(const std::string_view &format, Args &&...args) {
             print(Success, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
         template <class... Args>
-        inline void info(const std::string_view &format, Args &&...args) {
+        void info(const std::string_view &format, Args &&...args) {
             print(Information, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
         template <class... Args>
-        inline void warning(const std::string_view &format, Args &&...args) {
+        void warning(const std::string_view &format, Args &&...args) {
             print(Warning, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
         template <class... Args>
-        inline void critical(const std::string_view &format, Args &&...args) {
+        void critical(const std::string_view &format, Args &&...args) {
             print(Critical, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
         template <class... Args>
-        inline void fatal(const std::string_view &format, Args &&...args) {
+        void fatal(const std::string_view &format, Args &&...args) {
             print(Critical, stdc::formatN(format, std::forward<Args>(args)...));
             abort();
         }
 
         template <class... Args>
-        inline void log(int level, const std::string_view &format, Args &&...args) {
+        void log(const int level, const std::string_view &format, Args &&...args) {
             print(level, stdc::formatN(format, std::forward<Args>(args)...));
         }
 
-        void print(int level, const std::string_view &message);
+        void print(int level, const std::string_view &message) const;
 
-        void printf(int level, const char *fmt, ...);
+        void printf(int level, const char *fmt, ...) const;
 
         static void abort();
 
@@ -101,9 +101,9 @@ namespace LangMgr
         explicit LogCategory(const char *name);
         ~LogCategory();
 
-        inline const char *name() const { return _name; }
-        inline bool isLevelEnabled(int level) const { return levelEnabled[level]; }
-        inline void setLevelEnabled(int level, bool enabled) { levelEnabled[level] = enabled; }
+        const char *name() const { return _name; }
+        bool isLevelEnabled(const int level) const { return levelEnabled[level]; }
+        void setLevelEnabled(const int level, const bool enabled) { levelEnabled[level] = enabled; }
 
         using LogCategoryFilter = void (*)(LogCategory *);
 
@@ -111,35 +111,35 @@ namespace LangMgr
         static void setLogFilter(LogCategoryFilter filter);
 
         static std::string filterRules();
-        void setFilterRules(std::string rules);
+        static void setFilterRules(std::string rules);
 
         static LogCategory &defaultCategory();
 
         template <int Level, class... Args>
-        void log(const char *fileName, int lineNumber, const char *functionName, const std::string_view &format,
+        void log(const char *fileName, const int lineNumber, const char *functionName, const std::string_view &format,
                  Args &&...args) const {
             if (!isLevelEnabled(Level)) {
                 return;
             }
             Logger(fileName, lineNumber, functionName, _name).log(Level, format, std::forward<Args>(args)...);
-            if constexpr (Level == LangMgr::Logger::Fatal) {
+            if constexpr (Level == Logger::Fatal) {
                 Logger::abort();
             }
         }
 
         template <int Level, class... Args>
-        void logf(const char *fileName, int lineNumber, const char *functionName, const char *fmt,
+        void logf(const char *fileName, const int lineNumber, const char *functionName, const char *fmt,
                   Args &&...args) const {
             if (!isLevelEnabled(Level)) {
                 return;
             }
             Logger(fileName, lineNumber, functionName, _name).printf(Level, fmt, std::forward<Args>(args)...);
-            if constexpr (Level == LangMgr::Logger::Fatal) {
+            if constexpr (Level == Logger::Fatal) {
                 Logger::abort();
             }
         }
 
-        inline const LogCategory &_langMgrGetLogCategory() const { return *this; }
+        const LogCategory &_langMgrGetLogCategory() const { return *this; }
 
     protected:
         const char *_name;
@@ -152,7 +152,7 @@ namespace LangMgr
 
 } // namespace LangMgr
 
-static inline const LangMgr::LogCategory &_langMgrGetLogCategory() { return LangMgr::LogCategory::defaultCategory(); }
+static const LangMgr::LogCategory &_langMgrGetLogCategory() { return LangMgr::LogCategory::defaultCategory(); }
 
 /*!
     \macro langMgrDebug

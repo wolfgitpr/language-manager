@@ -9,7 +9,6 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/stlextra/algorithms.h>
 
-
 #include "JSON.h"
 
 #include "Contribute_p.h"
@@ -587,7 +586,7 @@ namespace LangMgr
     }
 
     std::vector<TaggerRes> LanguageManager::split(const std::string &input,
-                                                 const std::vector<std::string> &priorityTaggerIds) const {
+                                                  const std::vector<std::string> &priorityTaggerIds) const {
         __stdc_impl_t;
         // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
         // std::vector result = {TaggerRes(utf8strToU32str(input))};

@@ -12,17 +12,17 @@ namespace LangMgr
 
     class TaskInitArgs : public NamedObject {
     public:
-        inline TaskInitArgs(std::string name) : NamedObject(std::move(name)) {}
+        explicit TaskInitArgs(std::string name) : NamedObject(std::move(name)) {}
     };
 
     class TaskStartInput : public NamedObject {
     public:
-        inline TaskStartInput(std::string name) : NamedObject(std::move(name)) {}
+        explicit TaskStartInput(std::string name) : NamedObject(std::move(name)) {}
     };
 
     class TaskResult : public NamedObject {
     public:
-        inline TaskResult(std::string name) : NamedObject(std::move(name)) {}
+        explicit TaskResult(std::string name) : NamedObject(std::move(name)) {}
 
         Error error;
     };
@@ -30,7 +30,7 @@ namespace LangMgr
     class LANGMGR_EXPORT ITask : public NamedObject {
     public:
         ITask();
-        ~ITask();
+        ~ITask() override;
 
         enum State {
             Idle,
@@ -41,7 +41,6 @@ namespace LangMgr
 
         using StartAsyncCallback = std::function<void(const NO<TaskResult> &, const Error &)>;
 
-    public:
         virtual Expected<void> initialize(const NO<TaskInitArgs> &args);
 
         virtual Expected<NO<TaskResult>> start(const NO<TaskStartInput> &input) = 0;
@@ -55,9 +54,8 @@ namespace LangMgr
     protected:
         void setState(State state);
 
-    protected:
         class Impl;
-        ITask(Impl &impl);
+        explicit ITask(Impl &impl);
     };
 
 } // namespace LangMgr

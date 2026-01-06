@@ -57,7 +57,7 @@ namespace LangPlugins
         auto &map = impl.map;
 
         file.seekg(0, std::ios::end);
-        std::streamsize file_size = file.tellg();
+        const std::streamsize file_size = file.tellg();
         file.seekg(0, std::ios::beg);
 
         filebuf.resize(file_size + 1); // +1 for terminator
@@ -75,9 +75,9 @@ namespace LangPlugins
         const auto buffer_end = buffer_begin + filebuf.size();
 
         // Estimate line numbers if the file is too large
-        static constexpr const size_t larget_file_size = 1 * 1024 * 1024;
+        static constexpr size_t larget_file_size = 1 * 1024 * 1024;
         if (file_size > larget_file_size) {
-            size_t line_cnt = std::count(buffer_begin, buffer_end, '\n') + 1;
+            const size_t line_cnt = std::count(buffer_begin, buffer_end, '\n') + 1;
             map.reserve(line_cnt);
         }
 
@@ -90,7 +90,7 @@ namespace LangPlugins
                     start++;
                 }
 
-                char *value_start = nullptr;
+                const char *value_start = nullptr;
                 uint32_t value_cnt = 0;
 
                 // Find tab
@@ -114,7 +114,7 @@ namespace LangPlugins
                 }
 
                 // Tab not found
-                while (start < buffer_end && (*start != '\r' && *start != '\n')) {
+                while (start < buffer_end && *start != '\r' && *start != '\n') {
                     *start = '\0';
                     start++;
                 }
@@ -143,7 +143,7 @@ namespace LangPlugins
 
             out_success:
                 {
-                    map[start] = Impl::Entry{uint32_t(value_start - buffer_begin), value_cnt};
+                    map[start] = Impl::Entry{static_cast<uint32_t>(value_start - buffer_begin), value_cnt};
                     start = p + 1;
                 }
             out_next_line:;
@@ -157,8 +157,8 @@ namespace LangPlugins
             return;
         }
         auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = (decltype(it.row_current))const_cast<void *>(_row);
-        it.col_current = (decltype(it.col_current))const_cast<void *>(_col);
+        it.row_current = static_cast<decltype(it.row_current)>(const_cast<void *>(_row));
+        it.col_current = static_cast<decltype(it.col_current)>(const_cast<void *>(_col));
 
         const char *key = it->first;
         PhonemeList value(_buf + it->second.offset, it->second.count);
@@ -168,8 +168,8 @@ namespace LangPlugins
 
     void PhonemeDict::iterator::next() {
         auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = (decltype(it.row_current))_row;
-        it.col_current = (decltype(it.col_current))_col;
+        it.row_current = static_cast<decltype(it.row_current)>(_row);
+        it.col_current = static_cast<decltype(it.col_current)>(_col);
         ++it;
         _row = it.row_current;
         _col = it.col_current;
@@ -178,8 +178,8 @@ namespace LangPlugins
 
     void PhonemeDict::iterator::prev() {
         auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = (decltype(it.row_current))_row;
-        it.col_current = (decltype(it.col_current))_col;
+        it.row_current = static_cast<decltype(it.row_current)>(_row);
+        it.col_current = static_cast<decltype(it.col_current)>(_col);
         --it;
         _row = it.row_current;
         _col = it.col_current;
@@ -188,22 +188,21 @@ namespace LangPlugins
 
     bool PhonemeDict::iterator::equals(const iterator &RHS) const {
         auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = (decltype(it.row_current))_row;
-        it.col_current = (decltype(it.col_current))_col;
+        it.row_current = static_cast<decltype(it.row_current)>(_row);
+        it.col_current = static_cast<decltype(it.col_current)>(_col);
         auto it2 = decltype(Impl::map)::const_iterator();
-        it2.row_current = (decltype(it2.row_current))RHS._row;
-        it2.col_current = (decltype(it2.col_current))RHS._col;
+        it2.row_current = static_cast<decltype(it2.row_current)>(RHS._row);
+        it2.col_current = static_cast<decltype(it2.col_current)>(RHS._col);
         return it == it2;
     }
 
     PhonemeDict::iterator PhonemeDict::find(const char *key) const {
         __stdc_impl_t;
-        auto &filebuf = impl.filebuf;
         auto &map = impl.map;
         if (!key) {
             return end();
         }
-        auto it = map.find(const_cast<char *>(key));
+        const auto it = map.find(const_cast<char *>(key));
         if (it == map.end()) {
             return end();
         }
@@ -225,7 +224,7 @@ namespace LangPlugins
         if (!key) {
             return PhonemeList();
         }
-        auto it = map.find(const_cast<char *>(key));
+        const auto it = map.find(const_cast<char *>(key));
         if (it == map.end()) {
             return PhonemeList();
         }
@@ -244,13 +243,13 @@ namespace LangPlugins
 
     PhonemeDict::iterator PhonemeDict::begin() const {
         __stdc_impl_t;
-        auto it = impl.map.begin();
+        const auto it = impl.map.begin();
         return iterator(impl.filebuf.data(), it.row_current, it.col_current);
     }
 
     PhonemeDict::iterator PhonemeDict::end() const {
         __stdc_impl_t;
-        auto it = impl.map.end();
+        const auto it = impl.map.end();
         return iterator(impl.filebuf.data(), it.row_current, it.col_current);
     }
 

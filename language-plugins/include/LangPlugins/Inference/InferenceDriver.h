@@ -1,5 +1,5 @@
-#ifndef DSINFER_INFERENCEDRIVER_H
-#define DSINFER_INFERENCEDRIVER_H
+#ifndef LANGPLUGINS_INFERENCEDRIVER_H
+#define LANGPLUGINS_INFERENCEDRIVER_H
 
 #include <LangMgr/Core/NamedObject.h>
 #include <LangMgr/Support/Expected.h>
@@ -45,4 +45,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-#endif // DSINFER_INFERENCEDRIVER_H
+#endif // LANGPLUGINS_INFERENCEDRIVER_H

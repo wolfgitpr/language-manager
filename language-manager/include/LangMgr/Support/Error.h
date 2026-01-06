@@ -25,23 +25,23 @@ namespace LangMgr
             InterpreterNotFound,
         };
 
-        inline Error() : Error(NoError) {}
+        Error() : Error(NoError) {}
 
-        inline explicit Error(int type) : Error(static_cast<Type>(type)) {}
+        explicit Error(int type) : Error(static_cast<Type>(type)) {}
 
-        inline Error(Type type) : _type(type), _msg(defaultMessage(type)) {}
+        Error(const Type type) : _type(type), _msg(defaultMessage(type)) {}
 
-        inline Error(int type, std::string msg) : _type(type), _msg(std::make_shared<std::string>(std::move(msg))) {}
+        Error(const int type, std::string msg) : _type(type), _msg(std::make_shared<std::string>(std::move(msg))) {}
 
-        inline Error(int type, const char *msg) : _type(type), _msg(std::make_shared<std::string>(msg)) {}
+        Error(const int type, const char *msg) : _type(type), _msg(std::make_shared<std::string>(msg)) {}
 
-        inline int type() const { return _type; }
+        int type() const { return _type; }
 
-        inline bool ok() const { return _type == NoError; }
+        bool ok() const { return _type == NoError; }
 
-        inline const std::string &message() const { return *_msg; }
+        const std::string &message() const { return *_msg; }
 
-        inline const char *what() const { return _msg->c_str(); }
+        const char *what() const { return _msg->c_str(); }
 
         static Error success() { return Error(NoError); }
 

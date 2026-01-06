@@ -1,5 +1,5 @@
-#ifndef LANGUAGE_MANAGER_SYNTHUNIT_P_H
-#define LANGUAGE_MANAGER_SYNTHUNIT_P_H
+#ifndef LANGUAGE_MANAGER_P_H
+#define LANGUAGE_MANAGER_P_H
 
 #include <list>
 #include <map>
@@ -29,9 +29,8 @@ namespace LangMgr
         bool close(PackageData *spec);
 
         std::vector<NO<Inference>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {}) const;
-        static std::pair<std::string, std::string> extractConfig(const std::string &g2pId);
 
-    public:
+        // packages func
         void closeAllLoadedPackages();
         void refreshPackageIndexes();
 
@@ -79,10 +78,9 @@ namespace LangMgr
 
         mutable std::shared_mutex su_mtx;
 
-    public:
         static llvm::SmallVector<ContribCategory *(*)(LanguageManager *)> categoryFactories;
     };
 
 } // namespace LangMgr
 
-#endif // LANGUAGE_MANAGER_SYNTHUNIT_P_H
+#endif // LANGUAGE_MANAGER_P_H

@@ -1,5 +1,5 @@
-#ifndef LANGPLG_API_ONNX_ONNXDRIVERAPI_H
-#define LANGPLG_API_ONNX_ONNXDRIVERAPI_H
+#ifndef LANGPLG_API_ONNX_ONNXDRIVERAPIL1_H
+#define LANGPLG_API_ONNX_ONNXDRIVERAPIL1_H
 
 #include <filesystem>
 #include <map>
@@ -9,7 +9,7 @@
 #include <LangPlugins/Inference/InferenceDriver.h>
 #include <LangPlugins/Inference/InferenceSession.h>
 
-namespace LangPlugins::Api::Onnx
+namespace LangPlugins::Api::Onnx::L1
 {
 
     inline constexpr char API_NAME[] = "onnx";
@@ -66,6 +66,6 @@ namespace LangPlugins::Api::Onnx
         std::map<std::string, LangMgr::NO<ITensor>> outputs;
     };
 
-} // namespace LangPlugins::Api::Onnx
+} // namespace LangPlugins::Api::Onnx::L1
 
-#endif // LANGPLG_API_ONNX_ONNXDRIVERAPI_H
+#endif // LANGPLG_API_ONNX_ONNXDRIVERAPIL1_H

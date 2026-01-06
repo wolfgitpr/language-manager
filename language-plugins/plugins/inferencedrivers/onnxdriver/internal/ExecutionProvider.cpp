@@ -13,7 +13,7 @@
 
 #include <stdcorelib/support/sharedlibrary.h>
 
-namespace LangPlugins::onnxdriver
+namespace LangPlugins::onnxDriver
 {
 
     bool initCUDA(const Ort::SessionOptions &options, const int deviceIndex, std::string *errorMessage) {
@@ -154,4 +154,4 @@ namespace LangPlugins::onnxdriver
 #endif
     }
 
-} // namespace LangPlugins::onnxdriver
+} // namespace LangPlugins::onnxDriver

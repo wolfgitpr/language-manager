@@ -14,10 +14,8 @@ namespace LangMgr
 
         const char *iid() const override { return "org.openvpi.G2pProvider"; }
 
-    public:
         virtual NO<G2pProvider> create() = 0;
 
-    public:
         STDCORELIB_DISABLE_COPY(G2pProviderPlugin)
     };
     inline G2pProviderPlugin::~G2pProviderPlugin() {}

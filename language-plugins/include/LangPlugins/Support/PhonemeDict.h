@@ -20,7 +20,7 @@ namespace LangPlugins
     /// The sequence maintains contiguous memory storage of the original input format.
     class PhonemeList {
     public:
-        inline PhonemeList() noexcept : _data(nullptr), _count(0) {}
+        PhonemeList() noexcept : _data(nullptr), _count(0) {}
 
         class iterator {
         public:
@@ -30,24 +30,24 @@ namespace LangPlugins
             using pointer = const value_type *;
             using reference = const value_type &;
 
-            inline iterator() noexcept : _data(nullptr), _index(0) {}
-            inline reference operator*() const noexcept { return _data; }
-            inline pointer operator->() const noexcept { return &_data; }
-            inline iterator &operator++() {
+            iterator() noexcept : _data(nullptr), _index(0) {}
+            reference operator*() const noexcept { return _data; }
+            pointer operator->() const noexcept { return &_data; }
+            iterator &operator++() {
                 _data += std::strlen(_data) + 1; // move to next word
                 ++_index;
                 return *this;
             }
-            inline iterator operator++(int) {
-                auto tmp = *this;
+            iterator operator++(int) {
+                const auto tmp = *this;
                 ++*this;
                 return tmp;
             }
-            inline bool operator==(const iterator &RHS) const noexcept { return _index == RHS._index; }
-            inline bool operator!=(const iterator &RHS) const noexcept { return !(*this == RHS); }
+            bool operator==(const iterator &RHS) const noexcept { return _index == RHS._index; }
+            bool operator!=(const iterator &RHS) const noexcept { return !(*this == RHS); }
 
         private:
-            inline iterator(const char *key, int index) noexcept : _data(key), _index(index) {}
+            iterator(const char *key, const int index) noexcept : _data(key), _index(index) {}
             const char *_data;
             int _index;
 
@@ -63,7 +63,7 @@ namespace LangPlugins
         }
 
     protected:
-        PhonemeList(const char *data, uint32_t count) : _data(data), _count(count) {}
+        PhonemeList(const char *data, const uint32_t count) : _data(data), _count(count) {}
 
         const char *_data;
         uint32_t _count;
@@ -86,7 +86,6 @@ namespace LangPlugins
         using pointer = const value_type *;
         using const_pointer = const value_type *;
 
-    public:
         PhonemeDict();
         ~PhonemeDict();
 
@@ -99,49 +98,47 @@ namespace LangPlugins
         /// Example line : "HELLO\tHH AH L OW\n"
         bool load(const std::filesystem::path &path, std::error_code *ec);
 
-    public:
         class iterator {
         public:
             using iterator_category = std::bidirectional_iterator_tag;
-            using value_type = PhonemeDict::value_type;
+            using value_type = value_type;
             using difference_type = ptrdiff_t;
             using pointer = const value_type *;
             using reference = const value_type &;
 
-            inline iterator() : _buf(nullptr), _row(nullptr), _col(nullptr) {}
+            iterator() : _buf(nullptr), _row(nullptr), _col(nullptr) {}
 
-        public:
-            inline reference operator*() const {
+            reference operator*() const {
                 fetch();
                 return _copy.value();
             }
-            inline pointer operator->() const {
+            pointer operator->() const {
                 fetch();
                 return &_copy.value();
             }
-            inline iterator &operator++() {
+            iterator &operator++() {
                 next();
                 return *this;
             }
-            inline iterator operator++(int) {
+            iterator operator++(int) {
                 auto tmp = *this;
                 ++*this;
                 return tmp;
             }
-            inline iterator &operator--() {
+            iterator &operator--() {
                 prev();
                 return *this;
             }
-            inline iterator operator--(int) {
+            iterator operator--(int) {
                 auto tmp = *this;
                 --*this;
                 return tmp;
             }
-            inline bool operator==(const iterator &RHS) const { return equals(RHS); }
-            inline bool operator!=(const iterator &RHS) const { return !(*this == RHS); }
+            bool operator==(const iterator &RHS) const { return equals(RHS); }
+            bool operator!=(const iterator &RHS) const { return !(*this == RHS); }
 
         private:
-            inline iterator(const char *buf, const void *row, const void *col) : _buf(buf), _row(row), _col(col) {}
+            iterator(const char *buf, const void *row, const void *col) : _buf(buf), _row(row), _col(col) {}
 
             LANGPLUGINS_EXPORT void fetch() const;
             LANGPLUGINS_EXPORT void next();
@@ -167,8 +164,8 @@ namespace LangPlugins
 
         iterator begin() const;
         iterator end() const;
-        inline reverse_iterator rbegin() const { return reverse_iterator(end()); }
-        inline reverse_iterator rend() const { return reverse_iterator(begin()); }
+        reverse_iterator rbegin() const { return reverse_iterator(end()); }
+        reverse_iterator rend() const { return reverse_iterator(begin()); }
 
     protected:
         class Impl;

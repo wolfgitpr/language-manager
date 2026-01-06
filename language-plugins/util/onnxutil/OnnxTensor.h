@@ -1,5 +1,5 @@
-#ifndef DSINFER_ONNXTENSOR_H
-#define DSINFER_ONNXTENSOR_H
+#ifndef LANGPLUGINS_ONNXTENSOR_H
+#define LANGPLUGINS_ONNXTENSOR_H
 
 #include <algorithm>
 
@@ -7,18 +7,19 @@
 
 #include <onnxruntime_cxx_api.h>
 
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     /**
      * @class OnnxTensor
      * @brief A wrapper around Ort::Value representing an ONNX Runtime tensor.
      *
      * This class provides an implementation of the ITensor interface and acts
-     * as an adapter between the dsinfer framework and ONNX Runtime.
+     * as an adapter between the g2p framework and ONNX Runtime.
      */
     class OnnxTensor : public ITensor {
     public:
-        static constexpr const char *BACKEND = "onnx";
+        static constexpr auto BACKEND = "onnx";
 
         /**
          * @brief Constructs an empty (invalid) OnnxTensor.
@@ -63,12 +64,12 @@ namespace LangPlugins {
          * @param data The raw tensor data.
          */
         static LangMgr::Expected<LangMgr::NO<OnnxTensor>> createFromRawView(DataType dataType,
-                                                         const std::vector<int64_t> &shape,
-                                                         const stdc::array_view<std::byte> &data);
+                                                                            const std::vector<int64_t> &shape,
+                                                                            const stdc::array_view<std::byte> &data);
 
         template <typename T>
         static LangMgr::Expected<LangMgr::NO<OnnxTensor>> createFromView(const std::vector<int64_t> &shape,
-            const stdc::array_view<T> &data);
+                                                                         const stdc::array_view<T> &data);
 
         template <typename T>
         static LangMgr::Expected<LangMgr::NO<OnnxTensor>> createScalar(T value, bool zeroDimensions = false);
@@ -95,7 +96,7 @@ namespace LangPlugins {
          * @param value The Ort::Value to take ownership of.
          * @return Ort::Value previously held by this OnnxTensor object.
          */
-        Ort::Value takeOrtValue(Ort::Value&& value);
+        Ort::Value takeOrtValue(Ort::Value &&value);
 
         /**
          * @brief Releases ownership of the internal Ort::Value.
@@ -164,40 +165,33 @@ namespace LangPlugins {
     };
 
     template <typename T>
-    inline LangMgr::Expected<LangMgr::NO<OnnxTensor>>
-        OnnxTensor::createFromView(const std::vector<int64_t> &shape,
-                                   const stdc::array_view<T> &data) {
+    LangMgr::Expected<LangMgr::NO<OnnxTensor>> OnnxTensor::createFromView(const std::vector<int64_t> &shape,
+                                                                          const stdc::array_view<T> &data) {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
 
-        stdc::array_view<std::byte> rawView{reinterpret_cast<const std::byte *>(data.data()),
-                                            data.size() * sizeof(T)};
+        const stdc::array_view<std::byte> rawView{reinterpret_cast<const std::byte *>(data.data()),
+                                                  data.size() * sizeof(T)};
         return createFromRawView(tensor_traits<T>::data_type, shape, rawView);
     }
 
     template <typename T>
-    inline LangMgr::Expected<LangMgr::NO<OnnxTensor>>
-        OnnxTensor::createScalar(T value, bool zeroDimensions) {
+    LangMgr::Expected<LangMgr::NO<OnnxTensor>> OnnxTensor::createScalar(T value, const bool zeroDimensions) {
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
 
-        Tensor::Container data(sizeof(T));
-        stdc::array_view<std::byte> rawView(data.data(), data.size());
+        const Tensor::Container data(sizeof(T));
+        const stdc::array_view rawView(data.data(), data.size());
 
         return createFromRawView(tensor_traits<T>::data_type,
-                                 zeroDimensions ? std::vector<int64_t>{} : std::vector<int64_t>{1},
-                                 rawView);
+                                 zeroDimensions ? std::vector<int64_t>{} : std::vector<int64_t>{1}, rawView);
     }
 
     template <typename T>
-    inline LangMgr::Expected<LangMgr::NO<OnnxTensor>>
-        OnnxTensor::createFilled(const std::vector<int64_t> &shape, T value) {
+    LangMgr::Expected<LangMgr::NO<OnnxTensor>> OnnxTensor::createFilled(const std::vector<int64_t> &shape, T value) {
 
         static_assert(tensor_traits<T>::is_valid, "Unsupported tensor data type");
-        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1,
-                      "sizeof(bool) == 1 does not satisfy");
+        static_assert(!std::is_same_v<T, bool> || sizeof(bool) == 1, "sizeof(bool) == 1 does not satisfy");
 
         auto exp = create(tensor_traits<T>::data_type, shape);
         if (!exp) {
@@ -208,6 +202,6 @@ namespace LangPlugins {
         std::fill(dataPtr, dataPtr + tensor->elementCount(), value);
         return tensor;
     }
-}
+} // namespace LangPlugins
 
-#endif // DSINFER_ONNXTENSOR_H
+#endif // LANGPLUGINS_ONNXTENSOR_H

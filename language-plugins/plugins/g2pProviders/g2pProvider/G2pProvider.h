@@ -11,7 +11,6 @@ namespace LangPlugins
         G2pProvider();
         ~G2pProvider() override;
 
-    public:
         int apiLevel() const override;
 
         LangMgr::Expected<LangMgr::NO<LangMgr::G2pConfiguration>>

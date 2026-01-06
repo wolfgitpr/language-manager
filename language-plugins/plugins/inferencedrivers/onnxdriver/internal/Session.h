@@ -4,12 +4,12 @@
 #include <filesystem>
 #include <memory>
 
+#include <../../../../include/LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Task/ITask.h>
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
 
 
-namespace LangPlugins::onnxdriver
+namespace LangPlugins::onnxDriver
 {
 
     class Session {
@@ -29,7 +29,7 @@ namespace LangPlugins::onnxdriver
         Session &operator=(Session &&other) noexcept;
 
         LangMgr::Expected<void> open(const std::filesystem::path &path,
-                                     const LangMgr::NO<Api::Onnx::SessionOpenArgs> &args);
+                                     const LangMgr::NO<Api::Onnx::L1::SessionOpenArgs> &args);
         LangMgr::Expected<void> close();
 
         const std::vector<std::string> &inputNames() const;
@@ -51,6 +51,6 @@ namespace LangPlugins::onnxdriver
         std::unique_ptr<Impl> _impl;
     };
 
-} // namespace LangPlugins::onnxdriver
+} // namespace LangPlugins::onnxDriver
 
 #endif // LANGMGR_ONNXDRIVER_SESSION_H

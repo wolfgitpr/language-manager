@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include <LangPlugins/Api/Drivers/Onnx/OnnxDriverApi.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <re2/re2.h>
 #include <stdcorelib/str.h>
 
@@ -18,7 +18,7 @@
 
 #include <LangMgr/Core/PackageRef.h>
 
-using EP = LangPlugins::Api::Onnx::ExecutionProvider;
+using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
 
 static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr) {
     // Get basic directories

@@ -425,7 +425,7 @@ namespace LangMgr
             };
         }
         auto spec = new G2pSpec();
-        if (auto exp = spec->_impl->read(basePath, config.toObject()); !exp) {
+        if (const auto exp = spec->_impl->read(basePath, config.toObject()); !exp) {
             delete spec;
             return exp.error();
         }

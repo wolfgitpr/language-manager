@@ -8,19 +8,19 @@ namespace
     using namespace LangMgr;
 
     struct EmptyValues {
-        static inline const JsonValue &nullValue() {
-            static const JsonValue null = JsonValue(JsonValue::Null);
+        static const JsonValue &nullValue() {
+            static const auto null = JsonValue(JsonValue::Null);
             return null;
         }
-        static inline const JsonValue &undefinedValue() {
-            static const JsonValue false_ = JsonValue(JsonValue::Undefined);
+        static const JsonValue &undefinedValue() {
+            static const auto false_ = JsonValue(JsonValue::Undefined);
             return false_;
         }
-        static inline const JsonArray &emptyArray() {
+        static const JsonArray &emptyArray() {
             static const JsonArray emptyArray;
             return emptyArray;
         }
-        static inline const JsonObject &emptyObject() {
+        static const JsonObject &emptyObject() {
             static const JsonObject emptyObject;
             return emptyObject;
         }
@@ -81,7 +81,7 @@ namespace
             }
             iterator_base operator--(int) noexcept {
                 auto tmp = *this;
-                --(*this);
+                --*this;
                 return tmp;
             }
             iterator_base &operator+=(const difference_type &n) noexcept {
@@ -323,7 +323,7 @@ namespace
 } // namespace
 
 #ifndef LANGUAGE_MANAGER_JSON_IN_PLACE
-namespace srt
+namespace LangMgr
 {
 
     class JsonValueContainer {
@@ -331,7 +331,7 @@ namespace srt
         JSON json;
     };
 
-} // namespace srt
+} // namespace LangMgr
 #endif
 
 namespace
@@ -339,9 +339,9 @@ namespace
 
     class JV : public JsonValue {
     public:
-        inline JV(void *p, bool move) : JsonValue(p, move) {}
+        JV(void *p, bool move) : JsonValue(p, move) {}
 
-        static inline void construct(JsonValue &val) {
+        static void construct(JsonValue &val) {
             auto &jv = static_cast<JV &>(val);
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             new (jv.storage.buf) JSON();
@@ -350,7 +350,7 @@ namespace
 #endif
         }
 
-        static inline void construct(JsonValue &val, const JsonValue &RHS) {
+        static void construct(JsonValue &val, const JsonValue &RHS) {
             auto &jv = static_cast<JV &>(val);
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             new (jv.storage.buf) JSON(JV::unpack(RHS));
@@ -359,7 +359,7 @@ namespace
 #endif
         }
 
-        static inline void construct(JsonValue &val, JsonValue &&RHS) {
+        static void construct(JsonValue &val, JsonValue &&RHS) {
             auto &jv = static_cast<JV &>(val);
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             new (jv.storage.buf) JSON(std::move(JV::unpack(RHS)));
@@ -368,13 +368,13 @@ namespace
 #endif
         }
 
-        static inline void construct(JsonValue &val, void *raw, bool move) {
+        static void construct(JsonValue &val, void *raw, const bool move) {
             auto &jv = static_cast<JV &>(val);
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             if (move) {
-                new (jv.storage.buf) JSON(std::move(*reinterpret_cast<JSON *>(raw)));
+                new (jv.storage.buf) JSON(std::move(*static_cast<JSON *>(raw)));
             } else {
-                new (jv.storage.buf) JSON(*reinterpret_cast<JSON *>(raw));
+                new (jv.storage.buf) JSON(*static_cast<JSON *>(raw));
             }
 #else
             jv.c = std::make_shared<JsonValueContainer>();
@@ -386,13 +386,13 @@ namespace
 #endif
         }
 
-        static inline void destruct(JsonValue &val) {
+        static void destruct(JsonValue &val) {
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             unpack(val).~basic_json();
 #endif
         }
 
-        static inline JSON &unpack(JsonValue &val) {
+        static JSON &unpack(JsonValue &val) {
             auto &jv = static_cast<JV &>(val);
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             return *reinterpret_cast<JSON *>(jv.storage.buf);
@@ -401,7 +401,7 @@ namespace
 #endif
         }
 
-        static inline const JSON &unpack(const JsonValue &val) {
+        static const JSON &unpack(const JsonValue &val) {
             auto &jv = static_cast<const JV &>(val);
 #ifdef LANGUAGE_MANAGER_JSON_IN_PLACE
             return *reinterpret_cast<const JSON *>(jv.storage.buf);
@@ -410,9 +410,9 @@ namespace
 #endif
         }
 
-        static inline JsonValue pack(const JSON &json) { return JV(const_cast<JSON *>(&json), false); }
+        static JsonValue pack(const JSON &json) { return JV(const_cast<JSON *>(&json), false); }
 
-        static inline JsonValue pack(JSON &&json) { return JV(&json, true); }
+        static JsonValue pack(JSON &&json) { return JV(&json, true); }
     };
 
     // proxy container implementations
@@ -553,12 +553,12 @@ namespace LangMgr
             }
         case Int:
             {
-                json = int64_t(0);
+                json = 0;
                 break;
             }
         case UInt:
             {
-                json = uint64_t(0);
+                json = 0;
                 break;
             }
         case Double:
@@ -622,7 +622,7 @@ namespace LangMgr
         json = std::move(s);
     }
 
-    JsonValue::JsonValue(stdc::array_view<uint8_t> bytes) {
+    JsonValue::JsonValue(const stdc::array_view<uint8_t> bytes) {
         JV::construct(*this);
         auto &json = JV::unpack(*this);
         json = JSON::binary_t(bytes.vec());
@@ -738,16 +738,14 @@ namespace LangMgr
         }
         return type;
     }
-    bool JsonValue::toBool(bool defaultValue) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_boolean()) {
+    bool JsonValue::toBool(const bool defaultValue) const {
+        if (auto &json = JV::unpack(*this); json.is_boolean()) {
             return json.get<bool>();
         }
         return defaultValue;
     }
-    int64_t JsonValue::toInt(int64_t defaultValue) const {
-        auto &json = JV::unpack(*this);
-        switch (json.type()) {
+    double JsonValue::toDouble(const double defaultValue) const {
+        switch (auto &json = JV::unpack(*this); json.type()) {
         case nlohmann::detail::value_t::number_integer:
             return json.get<int64_t>();
         case nlohmann::detail::value_t::number_unsigned:
@@ -759,9 +757,8 @@ namespace LangMgr
         }
         return defaultValue;
     }
-    uint64_t JsonValue::toUInt(uint64_t defaultValue) const {
-        auto &json = JV::unpack(*this);
-        switch (json.type()) {
+    int64_t JsonValue::toInt(const int64_t defaultValue) const {
+        switch (auto &json = JV::unpack(*this); json.type()) {
         case nlohmann::detail::value_t::number_integer:
             return json.get<int64_t>();
         case nlohmann::detail::value_t::number_unsigned:
@@ -773,9 +770,8 @@ namespace LangMgr
         }
         return defaultValue;
     }
-    double JsonValue::toDouble(double defaultValue) const {
-        auto &json = JV::unpack(*this);
-        switch (json.type()) {
+    uint64_t JsonValue::toUInt(const uint64_t defaultValue) const {
+        switch (auto &json = JV::unpack(*this); json.type()) {
         case nlohmann::detail::value_t::number_integer:
             return json.get<int64_t>();
         case nlohmann::detail::value_t::number_unsigned:
@@ -795,24 +791,21 @@ namespace LangMgr
         return defaultValue;
     }
     const std::string &JsonValue::toString(const std::string &defaultValue) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_string()) {
+        if (auto &json = JV::unpack(*this); json.is_string()) {
             return json.get_ref<const std::string &>();
         }
         return defaultValue;
     }
-    stdc::array_view<uint8_t> JsonValue::toBinaryView(stdc::array_view<uint8_t> defaultValue) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_binary()) {
+    stdc::array_view<uint8_t> JsonValue::toBinaryView(const stdc::array_view<uint8_t> defaultValue) const {
+        if (auto &json = JV::unpack(*this); json.is_binary()) {
             auto &bin = json.get_binary();
-            return stdc::array_view<uint8_t>(bin.data(), bin.size());
+            return stdc::array_view(bin.data(), bin.size());
         }
         return defaultValue;
     }
 
     const std::vector<uint8_t> &JsonValue::toBinary(const std::vector<uint8_t> &defaultValue) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_binary()) {
+        if (auto &json = JV::unpack(*this); json.is_binary()) {
             auto &bin = json.get_binary();
             return bin;
         }
@@ -820,54 +813,46 @@ namespace LangMgr
     }
 
     const JsonArray &JsonValue::toArray() const {
-        auto &json = JV::unpack(*this);
-        if (json.is_array()) {
+        if (auto &json = JV::unpack(*this); json.is_array()) {
             return json.get_ref<const JSON::array_t &>().buf;
         }
         return EmptyValues::emptyArray();
     }
 
     const JsonArray &JsonValue::toArray(const JsonArray &defaultValue) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_array()) {
+        if (auto &json = JV::unpack(*this); json.is_array()) {
             return json.get_ref<const JSON::array_t &>().buf;
         }
         return defaultValue;
     }
 
     const JsonObject &JsonValue::toObject() const {
-        auto &json = JV::unpack(*this);
-        if (json.is_object()) {
+        if (auto &json = JV::unpack(*this); json.is_object()) {
             return json.get_ref<const JSON::object_t &>().buf;
         }
         return EmptyValues::emptyObject();
     }
 
     const JsonObject &JsonValue::toObject(const JsonObject &defaultValue) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_object()) {
+        if (auto &json = JV::unpack(*this); json.is_object()) {
             return json.get_ref<const JSON::object_t &>().buf;
         }
         return defaultValue;
     }
 
-    const JsonValue &JsonValue::operator[](std::string_view key) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_object()) {
+    const JsonValue &JsonValue::operator[](const std::string_view key) const {
+        if (auto &json = JV::unpack(*this); json.is_object()) {
             auto &obj = json.get_ref<const JSON::object_t &>().buf;
-            auto it = obj.find(std::string(key));
-            if (it != obj.end()) {
+            if (const auto it = obj.find(std::string(key)); it != obj.end()) {
                 return it->second;
             }
         }
         return EmptyValues::undefinedValue();
     }
 
-    const JsonValue &JsonValue::operator[](size_t i) const {
-        auto &json = JV::unpack(*this);
-        if (json.is_array()) {
-            auto &arr = json.get_ref<const JSON::array_t &>().buf;
-            if (i < arr.size()) {
+    const JsonValue &JsonValue::operator[](const size_t i) const {
+        if (auto &json = JV::unpack(*this); json.is_array()) {
+            if (auto &arr = json.get_ref<const JSON::array_t &>().buf; i < arr.size()) {
                 return arr[i];
             }
         }
@@ -876,8 +861,8 @@ namespace LangMgr
 
     bool JsonValue::operator==(const JsonValue &RHS) const { return JV::unpack(*this) == JV::unpack(RHS); }
 
-    std::string JsonValue::toJson(int indent) const { return JV::unpack(*this).dump(indent); }
-    JsonValue JsonValue::fromJson(std::string_view json, bool ignoreComments, std::string *error) {
+    auto JsonValue::toJson(const int indent) const -> std::string { return JV::unpack(*this).dump(indent); }
+    JsonValue JsonValue::fromJson(std::string_view json, const bool ignoreComments, std::string *error) {
         JsonValue val;
         try {
             auto jv = JSON::parse(json, nullptr, true, ignoreComments);
@@ -908,6 +893,6 @@ namespace LangMgr
     /*!
         \internal
     */
-    JsonValue::JsonValue(void *raw, bool move) { JV::construct(*this, raw, move); }
+    JsonValue::JsonValue(void *raw, const bool move) { JV::construct(*this, raw, move); }
 
 } // namespace LangMgr

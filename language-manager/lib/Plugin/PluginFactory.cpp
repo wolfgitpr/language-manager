@@ -5,39 +5,18 @@
 #include <fstream>
 #include <iostream>
 #include <mutex>
-#include <nlohmann/json.hpp>
 #include <utility>
+
+#include <LangMgr/Support/JSON.h>
 
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
 #include <stdcorelib/pimpl.h>
+#include <stdcorelib/str.h>
 
 namespace fs = std::filesystem;
 
 namespace LangMgr
 {
-
-    using StaticPluginMap = std::map<std::string, llvm::SmallVector<StaticPlugin, 10>>;
-
-    static StaticPluginMap &getStaticPluginMap() {
-        static StaticPluginMap staticPluginMap;
-        return staticPluginMap;
-    }
-
-    void StaticPlugin::registerStaticPlugin(const char *pluginSet, StaticPlugin plugin) {
-        auto &plugins = getStaticPluginMap()[pluginSet];
-
-        // insert the plugin in the list, sorted by address, so we can detect
-        // duplicate registrations
-        static const auto comparator = [=](const StaticPlugin &p1, const StaticPlugin &p2)
-        {
-            using Less = std::less<decltype(plugin.instance)>;
-            return Less{}(p1.instance, p2.instance);
-        };
-        if (const auto pos = std::lower_bound(plugins.begin(), plugins.end(), plugin, comparator);
-            pos == plugins.end() || pos->instance != plugin.instance)
-            plugins.insert(pos, plugin);
-    }
-
     PluginFactory::Impl::Impl(PluginFactory *decl) : _decl(decl) {}
 
     PluginFactory::Impl::~Impl() {
@@ -57,18 +36,26 @@ namespace LangMgr
         PluginDesc desc;
 
         try {
-            std::ifstream file(descPath);
-            if (!file.is_open()) {
+            std::ifstream ifs(descPath);
+            if (!ifs.is_open())
                 return desc;
-            }
 
-            nlohmann::json json;
-            file >> json;
+            const std::string jsonStr((std::istreambuf_iterator(ifs)), (std::istreambuf_iterator<char>()));
 
-            if (json.contains("target") && json["target"].is_string()) {
-                desc.target = json["target"].get<std::string>();
-                desc.valid = true;
-            }
+            // parse JSON
+            std::string jsonErrorMessage;
+            const JsonValue jsonDoc = JsonValue::fromJson(jsonStr, true, &jsonErrorMessage);
+            if (!jsonErrorMessage.empty())
+                return desc;
+            if (!jsonDoc.isObject())
+                return desc;
+            const auto &docObj = jsonDoc.toObject();
+
+            const auto it = docObj.find("target");
+            if (it == docObj.end())
+                return desc;
+            desc.target = it->second.toString();
+            desc.valid = true;
         }
         catch (const std::exception &e) {
             std::cerr << "Failed to parse plugin desc.json: " << descPath << ", error: " << e.what() << std::endl;
@@ -146,39 +133,6 @@ namespace LangMgr
     PluginFactory::PluginFactory() : _impl(new Impl(this)) {}
 
     PluginFactory::~PluginFactory() = default;
-
-    std::vector<std::string> PluginFactory::staticPluginSets() {
-        const auto &map = getStaticPluginMap();
-        std::vector<std::string> pluginSets;
-        pluginSets.reserve(map.size());
-        for (const auto &[fst, snd] : map) {
-            pluginSets.push_back(fst);
-        }
-        return pluginSets;
-    }
-
-    std::vector<StaticPlugin> PluginFactory::staticPlugins(const char *pluginSet) {
-        auto &map = getStaticPluginMap();
-        const auto it = map.find(pluginSet);
-        if (it == map.end()) {
-            return {};
-        }
-        return {it->second.begin(), it->second.end()};
-    }
-
-    std::vector<Plugin *> PluginFactory::staticInstances(const char *pluginSet) {
-        auto &map = getStaticPluginMap();
-        std::vector<Plugin *> instances;
-        const auto it = map.find(pluginSet);
-        if (it == map.end()) {
-            return {};
-        }
-        const auto &plugins = it->second;
-        instances.reserve(plugins.size());
-        for (const StaticPlugin plugin : plugins)
-            instances.push_back(plugin.instance());
-        return instances;
-    }
 
     void PluginFactory::addRuntimePlugin(Plugin *plugin) {
         __stdc_impl_t;

@@ -1,5 +1,5 @@
-#ifndef DSINFER_INFERENCESESSION_H
-#define DSINFER_INFERENCESESSION_H
+#ifndef LANGPLUGINS_INFERENCESESSION_H
+#define LANGPLUGINS_INFERENCESESSION_H
 
 #include <filesystem>
 
@@ -54,4 +54,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-#endif // DSINFER_INFERENCESESSION_H
+#endif // LANGPLUGINS_INFERENCESESSION_H
