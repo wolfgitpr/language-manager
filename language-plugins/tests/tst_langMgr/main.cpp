@@ -12,16 +12,13 @@
 #include <LangMgr/Core/NamedObject.h>
 #include <stdcorelib/system.h>
 
+#include <LangMgr/Core/PackageRef.h>
+
 #include <LangMgr/Tool/Inference.h>
 #include <LangMgr/Tool/InferenceContrib.h>
 #include <LangMgr/Tool/InferenceInterpreterPlugin.h>
+
 #include <LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h>
-
-#include <LangMgr/Core/PackageRef.h>
-
-#include "../../plugins/g2ps/TemplateG2p/TemplateG2pInference.h"
-#include "../../plugins/g2ps/lstmG2p/LstmG2pInference.h"
-#include "LangMgr/Tool/G2pContrib.h"
 #include "LangPlugins/Api/Inferences/TemplateG2p/1/TemplateG2pL1.h"
 
 #ifdef WIN32
@@ -29,11 +26,6 @@
 #endif
 
 using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
-
-struct ImportData {
-    LangMgr::NO<LangMgr::InferenceImportOptions> options;
-    LangMgr::InferenceSpec *inference = nullptr;
-};
 
 template <typename InferenceType>
 class InferenceCreator {
@@ -86,16 +78,16 @@ public:
 template <typename InferenceType>
 LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>
 createSpecificInference(LangMgr::ContribCategory &inferenceCategory,
-                        const typename InferenceType::ImportData &importData) {
+                        const typename InferenceType::InferenceSpec &inferenceSpec) {
     return InferenceCreator<InferenceType>::template create<typename InferenceType::RuntimeOptions,
                                                             typename InferenceType::InitArgs>(
-        inferenceCategory, InferenceType::InterpreterName, importData.inference, InferenceType::InferenceName);
+        inferenceCategory, InferenceType::InterpreterName, inferenceSpec, InferenceType::InferenceName);
 }
 
 struct LstmG2pTraits {
     using RuntimeOptions = LangPlugins::Api::LstmG2p::L1::LstmG2pRuntimeOptions;
     using InitArgs = LangPlugins::Api::LstmG2p::L1::LstmG2pInitArgs;
-    using ImportData = ImportData;
+    using InferenceSpec = LangMgr::InferenceSpec *;
     static constexpr auto InterpreterName = "lstmG2pInterpreter";
     static constexpr auto InferenceName = "lstmG2pInference";
 };
@@ -103,7 +95,7 @@ struct LstmG2pTraits {
 struct TemplateG2pTraits {
     using RuntimeOptions = LangPlugins::Api::TemplateG2p::L1::TemplateG2pRuntimeOptions;
     using InitArgs = LangPlugins::Api::TemplateG2p::L1::TemplateG2pInitArgs;
-    using ImportData = ImportData;
+    using InferenceSpec = LangMgr::InferenceSpec *;
     static constexpr auto InterpreterName = "templateG2pInterpreter";
     static constexpr auto InferenceName = "templateG2pInference";
 };
@@ -174,7 +166,6 @@ LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, const EP ep
     const auto pluginRootDir = getPluginRootDirectory();
     const auto defaultPluginDir = pluginRootDir / _TSTR("LangPlugins");
 
-    mgr.addPluginPath("org.openvpi.G2pProvider", defaultPluginDir / _TSTR("g2pProviders"));
     mgr.addPluginPath("org.openvpi.InferenceDriver", defaultPluginDir / _TSTR("inferencedrivers"));
     mgr.addPluginPath("org.openvpi.InferenceInterpreter", defaultPluginDir / _TSTR("g2ps"));
 
@@ -224,52 +215,45 @@ LangMgr::PackageRef loadPackage(LangMgr::LanguageManager &langMgr, const std::fi
     return pkg;
 }
 
-const LangMgr::G2pSpec *findG2pSpec(const LangMgr::G2pCategory &g2pCategory, const std::string &g2pId) {
-    for (const auto &g2p : g2pCategory.g2pSpecs()) {
-        if (g2p->id() == g2pId)
-            return g2p;
-    }
-    return nullptr;
-}
-
-void processG2pImports(const LangMgr::G2pSpec *g2pSpec, ImportData &lstmImport, ImportData &templateImport) {
+void processG2pImports(const LangMgr::InferenceCategory &inferenceCate, LangMgr::InferenceSpec *&lstmSpec,
+                       LangMgr::InferenceSpec *&templateSpec) {
     struct ImportEntry {
         std::string_view className;
         std::string_view apiName;
-        ImportData *data;
+        LangMgr::InferenceSpec *&spec;
     };
 
-    const ImportEntry imports[] = {
-        {LangPlugins::Lstm::API_CLASS, LangPlugins::Lstm::API_NAME, &lstmImport},
-        {LangPlugins::Template::API_CLASS, LangPlugins::Template::API_NAME, &templateImport},
+    ImportEntry imports[] = {
+        {LangPlugins::Api::LstmG2p::L1::API_CLASS, LangPlugins::Api::LstmG2p::L1::API_NAME, lstmSpec},
+        {LangPlugins::Api::TemplateG2p::L1::API_CLASS, LangPlugins::Api::TemplateG2p::L1::API_NAME, templateSpec},
     };
 
-    for (const auto &imp : g2pSpec->imports()) {
-        const auto &cls = imp.inference()->className();
+    for (const auto inference : inferenceCate.inferences()) {
+        const auto &cls = inference->className();
         for (const auto &entry : imports) {
             if (cls == entry.className) {
-                *entry.data = {imp.options(), imp.inference()};
+                entry.spec = inference;
                 break;
             }
         }
     }
 
     for (const auto &entry : imports) {
-        if (!entry.data->inference) {
+        if (!entry.spec) {
             throw std::runtime_error(
-                stdc::formatN(R"(%1 inference not found for g2p "%2")", entry.apiName, "templateG2pId"));
+                stdc::formatN(R"(%1 inference not found for g2p "%2")", entry.apiName, entry.spec->className()));
         }
     }
 }
 
 LangMgr::Expected<LangMgr::NO<LangMgr::Inference>> createLstmG2pInference(LangMgr::ContribCategory &inferenceCategory,
-                                                                          const ImportData &importData) {
-    return createSpecificInference<LstmG2pTraits>(inferenceCategory, importData);
+                                                                          LangMgr::InferenceSpec *lstmSpec) {
+    return createSpecificInference<LstmG2pTraits>(inferenceCategory, lstmSpec);
 }
 
 LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>
-createTemplateG2pInference(LangMgr::ContribCategory &inferenceCategory, const ImportData &importData) {
-    return createSpecificInference<TemplateG2pTraits>(inferenceCategory, importData);
+createTemplateG2pInference(LangMgr::ContribCategory &inferenceCategory, LangMgr::InferenceSpec *templateSpec) {
+    return createSpecificInference<TemplateG2pTraits>(inferenceCategory, templateSpec);
 }
 
 void executeTemplateInference(const LangMgr::NO<LangMgr::Inference> &templateInference) {
@@ -320,16 +304,10 @@ int main() {
         const auto packagePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package\g2p-template-eng)");
         LangMgr::PackageRef pkg = loadPackage(langMgr, packagePath);
 
-        const auto &g2pCategory = *langMgr.category("g2p")->as<LangMgr::G2pCategory>();
-        const LangMgr::G2pSpec *g2pSpec = findG2pSpec(g2pCategory, "eng");
-
-        if (!g2pSpec)
-            throw std::runtime_error(stdc::formatN(R"(g2p "%1" not found in package)", "eng"));
-
-        ImportData importLstm, importTemplate;
-        processG2pImports(g2pSpec, importLstm, importTemplate);
-
         auto &inferenceCategory = *langMgr.category("inference");
+
+        LangMgr::InferenceSpec *importLstm = nullptr, *importTemplate = nullptr;
+        processG2pImports(*inferenceCategory.as<LangMgr::InferenceCategory>(), importLstm, importTemplate);
 
         auto lstmInferenceExp =
             handleError(createLstmG2pInference, "Failed to create LSTM G2P inference", inferenceCategory, importLstm);
@@ -344,9 +322,6 @@ int main() {
             return -1;
         }
         const auto templateInference = templateInferenceExp.take();
-
-        std::cout << "Found inference spec: " << g2pSpec->name().text() << std::endl;
-        std::cout << "API Level: " << g2pSpec->apiLevel() << std::endl;
 
         // Starting inference
         executeTemplateInference(templateInference);
