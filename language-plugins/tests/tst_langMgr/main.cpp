@@ -41,17 +41,8 @@ public:
                                   stdc::formatN(R"(%1 interpreter not found)", interpreterName));
         }
 
-        const LangMgr::JsonObject importOptionsJson;
-        auto importOptionsExp = interpreter->createImportOptions(inferenceSpec, importOptionsJson);
-        if (!importOptionsExp) {
-            return LangMgr::Error(
-                LangMgr::Error::InvalidArgument,
-                stdc::formatN(R"(Failed to create import options: %1)", importOptionsExp.error().message()));
-        }
-
-        auto importOptions = importOptionsExp.take();
         auto runtimeOptions = LangMgr::NO<RuntimeOptionsType>::create();
-        auto inferenceExp = interpreter->createInference(inferenceSpec, importOptions, runtimeOptions);
+        auto inferenceExp = interpreter->createInference(inferenceSpec, runtimeOptions);
 
         if (!inferenceExp) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument,

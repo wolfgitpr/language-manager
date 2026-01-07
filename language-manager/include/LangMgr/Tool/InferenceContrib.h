@@ -23,21 +23,9 @@ namespace LangMgr
         int _apiLevel;
     };
 
-    class InferenceSchema : public InferenceInfoBase {
-    public:
-        InferenceSchema(std::string name, std::string iid, const int apiLevel) :
-            InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
-    };
-
     class InferenceConfiguration : public InferenceInfoBase {
     public:
         InferenceConfiguration(std::string name, std::string iid, const int apiLevel) :
-            InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
-    };
-
-    class InferenceImportOptions : public InferenceInfoBase {
-    public:
-        InferenceImportOptions(std::string name, std::string iid, const int apiLevel) :
             InferenceInfoBase(std::move(name), std::move(iid), apiLevel) {}
     };
 
@@ -59,20 +47,13 @@ namespace LangMgr
         DisplayText name() const;
         int apiLevel() const;
 
-        const JsonObject &manifestSchema() const;
-        NO<InferenceSchema> schema() const;
-
         const JsonObject &manifestConfiguration() const;
         NO<InferenceConfiguration> configuration() const;
 
         const std::filesystem::path &path() const;
 
-        /// Mainly called by \c G2pSpec at loading state.
-        Expected<NO<InferenceImportOptions>> createImportOptions(const JsonValue &options) const;
-
         /// Creates an inference interface with the given options.
-        Expected<NO<Inference>> createInference(const NO<InferenceImportOptions> &importOptions,
-                                                const NO<InferenceRuntimeOptions> &runtimeOptions) const;
+        Expected<NO<Inference>> createInference(const NO<InferenceRuntimeOptions> &runtimeOptions) const;
 
     protected:
         class Impl;

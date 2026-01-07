@@ -23,11 +23,6 @@ namespace LangPlugins::Api::TemplateG2p::L1
     constexpr int API_LEVEL = 1;
 
 
-    class TemplateG2pSchema : public LangMgr::InferenceSchema {
-    public:
-        TemplateG2pSchema() : InferenceSchema(API_NAME, API_CLASS, API_LEVEL) {}
-    };
-
     class TemplateG2pConfiguration : public LangMgr::InferenceConfiguration {
     public:
         TemplateG2pConfiguration() : InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
@@ -35,11 +30,6 @@ namespace LangPlugins::Api::TemplateG2p::L1
         std::vector<VerifyEntry> verifyEntry;
         std::filesystem::path dictPath;
         std::string onnxInferenceId;
-    };
-
-    class TemplateG2pImportOptions : public LangMgr::InferenceImportOptions {
-    public:
-        TemplateG2pImportOptions() : InferenceImportOptions(API_NAME, API_CLASS, API_LEVEL) {}
     };
 
     class TemplateG2pRuntimeOptions : public LangMgr::InferenceRuntimeOptions {

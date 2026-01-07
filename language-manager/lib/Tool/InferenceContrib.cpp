@@ -29,9 +29,6 @@ namespace LangMgr
         DisplayText name;
         int apiLevel = 0;
 
-        JsonObject manifestSchema;
-        NO<InferenceSchema> schema;
-
         JsonObject manifestConfiguration;
         NO<InferenceConfiguration> configuration;
 
@@ -47,7 +44,6 @@ namespace LangMgr
         DisplayText name_;
         int apiLevel_;
 
-        JsonObject schema_;
         JsonObject configuration_;
 
         // Parse desc
@@ -184,18 +180,7 @@ namespace LangMgr
                 };
             }
         }
-        // schema
-        {
-            if (auto it = configObj.find("schema"); it != configObj.end()) {
-                if (!it->second.isObject()) {
-                    return Error{
-                        Error::InvalidFormat,
-                        stdc::formatN(R"(%1: "schema" field has invalid value)", configPath),
-                    };
-                }
-                schema_ = it->second.toObject();
-            }
-        }
+
         // configuration
         {
             if (auto it = configObj.find("configuration"); it != configObj.end()) {
@@ -215,7 +200,6 @@ namespace LangMgr
         className = std::move(className_);
         name = name_;
         apiLevel = apiLevel_;
-        manifestSchema = std::move(schema_);
         manifestConfiguration = std::move(configuration_);
         return {};
     }
@@ -246,16 +230,6 @@ namespace LangMgr
         return impl.apiLevel;
     }
 
-    const JsonObject &InferenceSpec::manifestSchema() const {
-        __stdc_impl_t;
-        return impl.manifestSchema;
-    }
-
-    NO<InferenceSchema> InferenceSpec::schema() const {
-        __stdc_impl_t;
-        return impl.schema;
-    }
-
     const JsonObject &InferenceSpec::manifestConfiguration() const {
         __stdc_impl_t;
         return impl.manifestConfiguration;
@@ -271,15 +245,9 @@ namespace LangMgr
         return impl.path;
     }
 
-    Expected<NO<InferenceImportOptions>> InferenceSpec::createImportOptions(const JsonValue &options) const {
+    Expected<NO<Inference>> InferenceSpec::createInference(const NO<InferenceRuntimeOptions> &runtimeOptions) const {
         __stdc_impl_t;
-        return impl.interp->createImportOptions(this, options);
-    }
-
-    Expected<NO<Inference>> InferenceSpec::createInference(const NO<InferenceImportOptions> &importOptions,
-                                                           const NO<InferenceRuntimeOptions> &runtimeOptions) const {
-        __stdc_impl_t;
-        return impl.interp->createInference(this, importOptions, runtimeOptions);
+        return impl.interp->createInference(this, runtimeOptions);
     }
 
     InferenceSpec::InferenceSpec() : ContribSpec(*new Impl()) {}
@@ -299,7 +267,7 @@ namespace LangMgr
 
     std::vector<InferenceSpec *> InferenceCategory::inferences() const {
         __stdc_impl_t;
-        std::shared_lock<std::shared_mutex> lock(impl.su_mtx());
+        std::shared_lock lock(impl.su_mtx());
         std::vector<InferenceSpec *> res;
         res.reserve(impl.contributes.size());
         for (const auto &item : impl.contributes) {
@@ -365,17 +333,6 @@ namespace LangMgr
                     };
                 }
 
-                // Create schema and configuration
-                auto schema = interp->createSchema(infSpec);
-                if (!schema) {
-                    return Error{
-                        Error::InvalidFormat,
-                        stdc::formatN(R"(failed to parse inference schema of "%1": %2)", infSpec->id(),
-                                      schema.error().message()),
-                    };
-                }
-                spec_impl->schema = schema.get();
-
                 auto config = interp->createConfiguration(infSpec);
                 if (!config) {
                     return Error{
@@ -391,14 +348,11 @@ namespace LangMgr
 
         case ContribSpec::Ready:
         case ContribSpec::Finished:
-            {
-                return {};
-            }
+            return {};
 
         case ContribSpec::Deleted:
-            {
-                return ContribCategory::loadSpec(spec, state);
-            }
+            return ContribCategory::loadSpec(spec, state);
+
         default:
             break;
         }

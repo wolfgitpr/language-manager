@@ -16,23 +16,11 @@ namespace LangPlugins::Api::RegexSpliter::L1
     constexpr int API_LEVEL = 1;
 
 
-    class RegexSpliterSchema : public LangMgr::InferenceSchema {
-    public:
-        RegexSpliterSchema() : InferenceSchema(API_NAME, API_CLASS, API_LEVEL) {}
-
-        std::vector<std::string> languages;
-    };
-
     class RegexSpliterConfiguration : public LangMgr::InferenceConfiguration {
     public:
         RegexSpliterConfiguration() : InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::string regexStr;
-    };
-
-    class RegexSpliterImportOptions : public LangMgr::InferenceImportOptions {
-    public:
-        RegexSpliterImportOptions() : InferenceImportOptions(API_NAME, API_CLASS, API_LEVEL) {}
     };
 
     class RegexSpliterRuntimeOptions : public LangMgr::InferenceRuntimeOptions {

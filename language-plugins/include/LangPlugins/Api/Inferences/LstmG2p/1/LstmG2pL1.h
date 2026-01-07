@@ -18,13 +18,6 @@ namespace LangPlugins::Api::LstmG2p::L1
     constexpr int API_LEVEL = 1;
 
 
-    class LstmG2pSchema : public LangMgr::InferenceSchema {
-    public:
-        LstmG2pSchema() : InferenceSchema(API_NAME, API_CLASS, API_LEVEL) {}
-
-        std::vector<std::string> languages;
-    };
-
     class LstmG2pConfiguration : public LangMgr::InferenceConfiguration {
     public:
         LstmG2pConfiguration() : InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
@@ -41,11 +34,6 @@ namespace LangPlugins::Api::LstmG2p::L1
         int bosIdx = 2;
         int eosIdx = 3;
         int maxLen = 48;
-    };
-
-    class LstmG2pImportOptions : public LangMgr::InferenceImportOptions {
-    public:
-        LstmG2pImportOptions() : InferenceImportOptions(API_NAME, API_CLASS, API_LEVEL) {}
     };
 
     class LstmG2pRuntimeOptions : public LangMgr::InferenceRuntimeOptions {

@@ -246,55 +246,6 @@ namespace LangPlugins::inferUtil
         }
         return flag;
     }
-
-    inline void SchemaParser::parse_bool_optional(bool &out, const std::string &fieldName) {
-        const auto &schema = *pSchema;
-
-        if (const auto it = schema.find(fieldName); it != schema.end()) {
-            if (it->second.isBool()) {
-                out = it->second.toBool();
-            } else {
-                collectError("boolean field \"" + fieldName + "\" type mismatch");
-            }
-        } else {
-            // Nothing to do
-        }
-    }
-
-    inline void SchemaParser::parse_string_array_optional(std::vector<std::string> &out, const std::string &fieldName) {
-        const auto &schema = *pSchema;
-
-        if (const auto it = schema.find(fieldName); it != schema.end()) {
-            if (!it->second.isArray()) {
-                collectError("array field \"" + fieldName + "\" type mismatch");
-            } else {
-                const auto &arr = it->second.toArray();
-                out.reserve(arr.size());
-                for (const auto &item : arr) {
-                    if (!item.isString()) {
-                        collectError("array field \"" + fieldName + "\" values type mismatch: string expected");
-                    } else {
-                        out.emplace_back(item.toString());
-                    }
-                }
-            }
-        } else {
-            // nothing to do: optional field
-        }
-    }
-
-    inline void ImportOptionsParser::parse_path_required(std::filesystem::path &out, const std::string &fieldName) {
-        const auto &config = *pOptions;
-        if (const auto it = config.find(fieldName); it != config.end()) {
-            if (!it->second.isString()) {
-                collectError("string field \"" + fieldName + "\" type mismatch");
-            } else {
-                out = stdc::path::clean_path(spec->path() / stdc::path::from_utf8(it->second.toStringView()));
-            }
-        } else {
-            collectError("string field \"" + fieldName + "\" is missing");
-        }
-    }
 } // namespace LangPlugins::inferUtil
 
 #endif // LANGPLUGINS_INFERUTIL_PARSER_IMPL_H

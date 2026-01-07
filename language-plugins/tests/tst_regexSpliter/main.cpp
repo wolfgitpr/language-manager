@@ -97,21 +97,13 @@ int main() {
         return -1;
     }
 
-    LangMgr::JsonObject importOptionsJson;
     std::cout << "Found inference spec: " << spliterSpec->name().text() << std::endl;
     std::cout << "Class name: " << spliterSpec->className() << std::endl;
     std::cout << "API Level: " << spliterSpec->apiLevel() << std::endl;
 
-    auto importOptionsExp = regexSpliterInterpreter->createImportOptions(spliterSpec, importOptionsJson);
-    if (!importOptionsExp) {
-        std::cerr << "Failed to create import options: " << importOptionsExp.error().message() << std::endl;
-        return -1;
-    }
-
-    auto importOptions = importOptionsExp.take();
     auto runtimeOptions = LangMgr::NO<LangPlugins::Api::RegexSpliter::L1::RegexSpliterRuntimeOptions>::create();
 
-    auto inferenceExp = regexSpliterInterpreter->createInference(spliterSpec, importOptions, runtimeOptions);
+    auto inferenceExp = regexSpliterInterpreter->createInference(spliterSpec, runtimeOptions);
     if (!inferenceExp) {
         std::cerr << "failed to create inference: " << inferenceExp.error().message() << std::endl;
         return -1;
