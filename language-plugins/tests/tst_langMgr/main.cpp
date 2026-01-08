@@ -7,16 +7,16 @@
 #include <LangPlugins/Inference/InferenceDriverPlugin.h>
 #include <stdcorelib/str.h>
 
-#include <LangMgr/Core/Contribute.h>
-#include <LangMgr/Core/LanguageManager.h>
+#include <LangMgr/Core/Manager.h>
+#include <LangMgr/Core/Module.h>
 #include <LangMgr/Core/NamedObject.h>
 #include <stdcorelib/system.h>
 
-#include <LangMgr/Core/PackageRef.h>
+#include <LangMgr/Core/Package.h>
 
-#include <LangMgr/Tool/Inference.h>
-#include <LangMgr/Tool/InferenceContrib.h>
-#include <LangMgr/Tool/InferenceInterpreterPlugin.h>
+#include <LangMgr/Modules/EngineFactoryPlugin.h>
+#include <LangMgr/Modules/G2pModule.h>
+#include <LangMgr/Task/Task.h>
 
 #include <LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h>
 #include "LangPlugins/Api/Inferences/TemplateG2p/1/TemplateG2pL1.h"
@@ -31,10 +31,10 @@ template <typename InferenceType>
 class InferenceCreator {
 public:
     template <typename RuntimeOptionsType, typename InitArgsType>
-    static LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>
-    create(LangMgr::ContribCategory &inferenceCategory, const std::string &interpreterName,
-           LangMgr::InferenceSpec *inferenceSpec, const std::string &inferenceName) {
-        const auto interpreter = inferenceCategory.getFirstObject(interpreterName).as<LangMgr::InferenceInterpreter>();
+    static LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
+    create(LangMgr::ModuleCategory &inferenceCategory, const std::string &interpreterName,
+           LangMgr::ModuleDefinition *inferenceSpec, const std::string &inferenceName) {
+        const auto interpreter = inferenceCategory.getFirstObject(interpreterName).as<LangMgr::EngineFactory>();
 
         if (!interpreter) {
             return LangMgr::Error(LangMgr::Error::InterpreterNotFound,
@@ -42,7 +42,7 @@ public:
         }
 
         auto runtimeOptions = LangMgr::NO<RuntimeOptionsType>::create();
-        auto inferenceExp = interpreter->createInference(inferenceSpec, runtimeOptions);
+        auto inferenceExp = interpreter->createTask(inferenceSpec, runtimeOptions);
 
         if (!inferenceExp) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument,
@@ -67,9 +67,9 @@ public:
 };
 
 template <typename InferenceType>
-LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>
-createSpecificInference(LangMgr::ContribCategory &inferenceCategory,
-                        const typename InferenceType::InferenceSpec &inferenceSpec) {
+LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
+createSpecificInference(LangMgr::ModuleCategory &inferenceCategory,
+                        const typename InferenceType::ModuleDefinition &inferenceSpec) {
     return InferenceCreator<InferenceType>::template create<typename InferenceType::RuntimeOptions,
                                                             typename InferenceType::InitArgs>(
         inferenceCategory, InferenceType::InterpreterName, inferenceSpec, InferenceType::InferenceName);
@@ -78,7 +78,7 @@ createSpecificInference(LangMgr::ContribCategory &inferenceCategory,
 struct LstmG2pTraits {
     using RuntimeOptions = LangPlugins::Api::LstmG2p::L1::LstmG2pRuntimeOptions;
     using InitArgs = LangPlugins::Api::LstmG2p::L1::LstmG2pInitArgs;
-    using InferenceSpec = LangMgr::InferenceSpec *;
+    using ModuleDefinition = LangMgr::ModuleDefinition *;
     static constexpr auto InterpreterName = "lstmG2pInterpreter";
     static constexpr auto InferenceName = "lstmG2pInference";
 };
@@ -86,7 +86,7 @@ struct LstmG2pTraits {
 struct TemplateG2pTraits {
     using RuntimeOptions = LangPlugins::Api::TemplateG2p::L1::TemplateG2pRuntimeOptions;
     using InitArgs = LangPlugins::Api::TemplateG2p::L1::TemplateG2pInitArgs;
-    using InferenceSpec = LangMgr::InferenceSpec *;
+    using ModuleDefinition = LangMgr::ModuleDefinition *;
     static constexpr auto InterpreterName = "templateG2pInterpreter";
     static constexpr auto InferenceName = "templateG2pInference";
 };
@@ -115,9 +115,8 @@ std::filesystem::path getPluginRootDirectory() {
 #endif
 }
 
-LangMgr::Expected<LangMgr::NO<LangPlugins::InferenceDriver>> initializeOnnxDriver(const LangMgr::LanguageManager &mgr,
-                                                                                  const EP ep, const int deviceIndex,
-                                                                                  const bool loadFromProgress) {
+LangMgr::Expected<LangMgr::NO<LangPlugins::InferenceDriver>>
+initializeOnnxDriver(const LangMgr::Manager &mgr, const EP ep, const int deviceIndex, const bool loadFromProgress) {
     const auto onnxDriverPlugin = mgr.plugin<LangPlugins::InferenceDriverPlugin>("onnx");
     if (!onnxDriverPlugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load ONNX inference driver");
@@ -143,27 +142,30 @@ LangMgr::Expected<LangMgr::NO<LangPlugins::InferenceDriver>> initializeOnnxDrive
     return onnxDriver;
 }
 
-LangMgr::Expected<LangMgr::NO<LangMgr::InferenceInterpreter>>
-loadInterpreter(const LangMgr::LanguageManager &mgr, const std::string &pluginName, const std::string &errorMsg) {
-    const auto plugin = mgr.plugin<LangMgr::InferenceInterpreterPlugin>(pluginName.c_str());
+LangMgr::Expected<LangMgr::NO<LangMgr::EngineFactory>>
+loadInterpreter(const LangMgr::Manager &mgr, const std::string &pluginName, const std::string &errorMsg) {
+    const auto plugin = mgr.plugin<LangMgr::EngineFactoryPlugin>(pluginName.c_str());
     if (!plugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, errorMsg);
     }
     return plugin->create();
 }
 
-LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, const EP ep, const int deviceIndex,
+LangMgr::Expected<void> initializeMgr(LangMgr::Manager &mgr, const EP ep, const int deviceIndex,
                                       const bool loadFromProgress) {
     const auto pluginRootDir = getPluginRootDirectory();
     const auto defaultPluginDir = pluginRootDir / _TSTR("LangPlugins");
 
-    mgr.addPluginPath("org.openvpi.InferenceDriver", defaultPluginDir / _TSTR("inferencedrivers"));
-    mgr.addPluginPath("org.openvpi.InferenceInterpreter", defaultPluginDir / _TSTR("g2ps"));
+    mgr.addPluginPath("org.openvpi.InferenceDriver", defaultPluginDir / _TSTR("InferenceDrivers"));
+    mgr.addPluginPath("org.openvpi.EngineFactory", defaultPluginDir / _TSTR("G2ps"));
 
     auto onnxDriverExp = initializeOnnxDriver(mgr, ep, deviceIndex, loadFromProgress);
     if (!onnxDriverExp) {
         return onnxDriverExp.error();
     }
+
+    auto &inferenceCategory = *mgr.category("driver");
+    inferenceCategory.addObject("g2pOnnxDriver", onnxDriverExp.take());
 
     struct InterpreterInfo {
         std::string pluginName;
@@ -175,21 +177,20 @@ LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr, const EP ep
         {"g2p.model.LstmG2pInference", "lstmG2pInterpreter", "failed to load LstmG2p interpreter plugin"},
         {"g2p.template.TemplateInference", "templateG2pInterpreter", "failed to load TemplateG2p interpreter plugin"}};
 
-    auto &inferenceCategory = *mgr.category("inference");
-    inferenceCategory.addObject("g2pOnnxDriver", onnxDriverExp.take());
+    auto &g2pCategory = *mgr.category("g2p");
 
     for (const auto &[pluginName, objectName, errorMsg] : interpreters) {
         auto interpreterExp = loadInterpreter(mgr, pluginName, errorMsg);
         if (!interpreterExp) {
             return interpreterExp.error();
         }
-        inferenceCategory.addObject(objectName, interpreterExp.take());
+        g2pCategory.addObject(objectName, interpreterExp.take());
     }
 
     return {};
 }
 
-LangMgr::PackageRef loadPackage(LangMgr::LanguageManager &langMgr, const std::filesystem::path &packagePath) {
+LangMgr::Package loadPackage(LangMgr::Manager &langMgr, const std::filesystem::path &packagePath) {
     langMgr.addPackagePath(packagePath.parent_path());
 
     auto exp = langMgr.open(packagePath, false);
@@ -198,7 +199,7 @@ LangMgr::PackageRef loadPackage(LangMgr::LanguageManager &langMgr, const std::fi
             stdc::formatN(R"(failed to open package "%1": %2)", packagePath, exp.error().message()));
     }
 
-    LangMgr::PackageRef pkg = exp.take();
+    LangMgr::Package pkg = exp.take();
     if (!pkg.isLoaded()) {
         throw std::runtime_error(
             stdc::formatN(R"(failed to load package "%1": %2)", packagePath, pkg.error().message()));
@@ -206,12 +207,12 @@ LangMgr::PackageRef loadPackage(LangMgr::LanguageManager &langMgr, const std::fi
     return pkg;
 }
 
-void processG2pImports(const LangMgr::InferenceCategory &inferenceCate, LangMgr::InferenceSpec *&lstmSpec,
-                       LangMgr::InferenceSpec *&templateSpec) {
+void processG2pImports(const LangMgr::G2pCategory &inferenceCate, LangMgr::ModuleDefinition *&lstmSpec,
+                       LangMgr::ModuleDefinition *&templateSpec) {
     struct ImportEntry {
         std::string_view className;
         std::string_view apiName;
-        LangMgr::InferenceSpec *&spec;
+        LangMgr::ModuleDefinition *&spec;
     };
 
     ImportEntry imports[] = {
@@ -219,7 +220,7 @@ void processG2pImports(const LangMgr::InferenceCategory &inferenceCate, LangMgr:
         {LangPlugins::Api::TemplateG2p::L1::API_CLASS, LangPlugins::Api::TemplateG2p::L1::API_NAME, templateSpec},
     };
 
-    for (const auto inference : inferenceCate.inferences()) {
+    for (const auto inference : inferenceCate.definitions()) {
         const auto &cls = inference->className();
         for (const auto &entry : imports) {
             if (cls == entry.className) {
@@ -237,22 +238,23 @@ void processG2pImports(const LangMgr::InferenceCategory &inferenceCate, LangMgr:
     }
 }
 
-LangMgr::Expected<LangMgr::NO<LangMgr::Inference>> createLstmG2pInference(LangMgr::ContribCategory &inferenceCategory,
-                                                                          LangMgr::InferenceSpec *lstmSpec) {
+LangMgr::Expected<LangMgr::NO<LangMgr::Task>> createLstmG2pInference(LangMgr::ModuleCategory &inferenceCategory,
+                                                                     LangMgr::ModuleDefinition *lstmSpec) {
     return createSpecificInference<LstmG2pTraits>(inferenceCategory, lstmSpec);
 }
 
-LangMgr::Expected<LangMgr::NO<LangMgr::Inference>>
-createTemplateG2pInference(LangMgr::ContribCategory &inferenceCategory, LangMgr::InferenceSpec *templateSpec) {
+LangMgr::Expected<LangMgr::NO<LangMgr::Task>> createTemplateG2pInference(LangMgr::ModuleCategory &inferenceCategory,
+                                                                         LangMgr::ModuleDefinition *templateSpec) {
     return createSpecificInference<TemplateG2pTraits>(inferenceCategory, templateSpec);
 }
 
-void executeTemplateInference(const LangMgr::NO<LangMgr::Inference> &templateInference) {
+void executeTemplateInference(const LangMgr::NO<LangMgr::Task> &templateInference) {
     const auto input = LangMgr::NO<LangPlugins::Api::TemplateG2p::L1::TemplateG2pStartInput>::create();
     input->g2pInput = {LangPlugins::Api::Common::L1::G2pInput({"hello", "eng"}),
                        LangPlugins::Api::Common::L1::G2pInput({"hellobazhahei", "eng"})};
 
-    std::cout << "Starting inference - Id: " << templateInference->spec()->name().text() << std::endl;
+    std::cout << "Starting inference - Id: " << templateInference->spec()->as<LangMgr::G2pDefinition>()->name().text()
+              << std::endl;
     auto resultExp = templateInference->start(input);
     if (!resultExp)
         throw std::runtime_error(stdc::formatN("inference failed: %1", resultExp.error().message()));
@@ -282,47 +284,40 @@ auto handleError(Func func, const std::string &errorPrefix, Args &&...args) {
 }
 
 int main() {
-    try {
-        const EP g2pProvider = parseExecutionProvider("cpu");
+    const EP g2pProvider = parseExecutionProvider("cpu");
 
-        LangMgr::LanguageManager langMgr;
-        if (const auto exp =
-                handleError(initializeMgr, "Failed to initialize LanguageManager", langMgr, g2pProvider, 0, false);
-            !exp) {
-            return -1;
-        }
-
-        const auto packagePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package\g2p-template-eng)");
-        LangMgr::PackageRef pkg = loadPackage(langMgr, packagePath);
-
-        auto &inferenceCategory = *langMgr.category("inference");
-
-        LangMgr::InferenceSpec *importLstm = nullptr, *importTemplate = nullptr;
-        processG2pImports(*inferenceCategory.as<LangMgr::InferenceCategory>(), importLstm, importTemplate);
-
-        auto lstmInferenceExp =
-            handleError(createLstmG2pInference, "Failed to create LSTM G2P inference", inferenceCategory, importLstm);
-        if (!lstmInferenceExp) {
-            return -1;
-        }
-        const auto lstmInference = lstmInferenceExp.take();
-
-        auto templateInferenceExp = handleError(createTemplateG2pInference, "Failed to create Template G2P inference",
-                                                inferenceCategory, importTemplate);
-        if (!templateInferenceExp) {
-            return -1;
-        }
-        const auto templateInference = templateInferenceExp.take();
-
-        // Starting inference
-        executeTemplateInference(templateInference);
-
-        lstmInference->stop();
-        std::cout << "Inference completed successfully" << std::endl;
-        return 0;
-    }
-    catch (const std::exception &e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    LangMgr::Manager langMgr;
+    if (const auto exp = handleError(initializeMgr, "Failed to initialize Manager", langMgr, g2pProvider, 0, false);
+        !exp) {
         return -1;
     }
+
+    const auto packagePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package\Phonetic-Suite-Eng)");
+    LangMgr::Package pkg = loadPackage(langMgr, packagePath);
+
+    auto &inferenceCategory = *langMgr.category("g2p");
+
+    LangMgr::ModuleDefinition *importLstm = nullptr, *importTemplate = nullptr;
+    processG2pImports(*inferenceCategory.as<LangMgr::G2pCategory>(), importLstm, importTemplate);
+
+    auto lstmInferenceExp =
+        handleError(createLstmG2pInference, "Failed to create LSTM G2P inference", inferenceCategory, importLstm);
+    if (!lstmInferenceExp) {
+        return -1;
+    }
+    const auto lstmInference = lstmInferenceExp.take();
+
+    auto templateInferenceExp = handleError(createTemplateG2pInference, "Failed to create Template G2P inference",
+                                            inferenceCategory, importTemplate);
+    if (!templateInferenceExp) {
+        return -1;
+    }
+    const auto templateInference = templateInferenceExp.take();
+
+    // Starting inference
+    executeTemplateInference(templateInference);
+
+    lstmInference->stop();
+    std::cout << "G2pTask completed successfully" << std::endl;
+    return 0;
 }

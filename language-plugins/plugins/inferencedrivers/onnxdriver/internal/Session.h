@@ -6,7 +6,7 @@
 
 #include <../../../../include/LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <LangMgr/Support/Expected.h>
-#include <LangMgr/Task/ITask.h>
+#include <LangMgr/Task/Task.h>
 
 
 namespace LangPlugins::onnxDriver
@@ -37,7 +37,7 @@ namespace LangPlugins::onnxDriver
 
         LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>> run(const LangMgr::NO<LangMgr::TaskStartInput> &input);
         LangMgr::Expected<void> runAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
-                                         const LangMgr::ITask::StartAsyncCallback &callback);
+                                         const LangMgr::Task::StartAsyncCallback &callback);
 
         void terminate();
 

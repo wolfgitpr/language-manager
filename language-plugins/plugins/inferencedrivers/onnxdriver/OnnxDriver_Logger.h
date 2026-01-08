@@ -3,7 +3,8 @@
 
 #include <LangMgr/Support/Logging.h>
 
-namespace LangPlugins::onnxDriver {
+namespace LangPlugins::onnxDriver
+{
 
     extern LangMgr::LogCategory Log;
 

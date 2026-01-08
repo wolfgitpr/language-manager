@@ -67,7 +67,9 @@ namespace LangMgr
         // TODO
     }
 
-    void Logger::print(const int level, const std::string_view &message) const { LogRegistry::callback(level, _context, message); }
+    void Logger::print(const int level, const std::string_view &message) const {
+        LogRegistry::callback(level, _context, message);
+    }
 
     void Logger::printf(const int level, const char *fmt, ...) const {
         va_list args;

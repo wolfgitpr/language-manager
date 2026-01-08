@@ -2,37 +2,38 @@
 
 #include <numeric>
 
-namespace LangPlugins {
+namespace LangPlugins
+{
 
     static inline size_t getElementSizeFromOrtType(ONNXTensorElementDataType type) {
         switch (type) {
-            case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
-                return sizeof(float);
-            case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
-                return sizeof(bool);
-            case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
-                return sizeof(int64_t);
-            default:
-                return 0;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+            return sizeof(float);
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
+            return sizeof(bool);
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+            return sizeof(int64_t);
+        default:
+            return 0;
         }
     }
 
     static inline size_t getElementSize(ITensor::DataType dataType) {
         switch (dataType) {
-            case ITensor::Float:
-                return sizeof(float);
-            case ITensor::Int64:
-                return sizeof(int64_t);
-            case ITensor::Bool:
-                return sizeof(bool);
-            default:
-                assert(false && "Unsupported data type");
-                return 0;
+        case ITensor::Float:
+            return sizeof(float);
+        case ITensor::Int64:
+            return sizeof(int64_t);
+        case ITensor::Bool:
+            return sizeof(bool);
+        default:
+            assert(false && "Unsupported data type");
+            return 0;
         }
     }
 
-    static inline std::optional<uint64_t>
-        getElementCountFromShape(ITensor::DataType dataType, const std::vector<int64_t> &shape) {
+    static inline std::optional<uint64_t> getElementCountFromShape(ITensor::DataType dataType,
+                                                                   const std::vector<int64_t> &shape) {
         if (shape.empty()) {
             return 1;
         }
@@ -60,8 +61,7 @@ namespace LangPlugins {
         return totalElements;
     }
 
-    static inline bool verifyShape(ITensor::DataType dataType, const std::vector<int64_t> &shape,
-                                   size_t dataSize) {
+    static inline bool verifyShape(ITensor::DataType dataType, const std::vector<int64_t> &shape, size_t dataSize) {
         if (shape.empty()) {
             return dataSize == getElementSize(dataType);
         }
@@ -83,8 +83,7 @@ namespace LangPlugins {
         return totalBytes == static_cast<uint64_t>(dataSize);
     }
 
-    LangMgr::Expected<void> verify(ITensor::DataType dataType, const std::vector<int64_t> &shape,
-                               size_t dataSize) {
+    LangMgr::Expected<void> verify(ITensor::DataType dataType, const std::vector<int64_t> &shape, size_t dataSize) {
         if (dataType == ITensor::Undefined) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "data type can not be Undefined");
         }
@@ -94,14 +93,11 @@ namespace LangPlugins {
         return LangMgr::Expected<void>();
     }
 
-    OnnxTensor::OnnxTensor()
-        : _value(nullptr), _dataType(Undefined), _elementSize(0), _bytesSize(0) {
-    }
+    OnnxTensor::OnnxTensor() : _value(nullptr), _dataType(Undefined), _elementSize(0), _bytesSize(0) {}
 
-    OnnxTensor::OnnxTensor(OnnxTensor &&other) noexcept
-        : _value(std::move(other._value)), _dataType(other._dataType),
-          _shape(std::move(other._shape)), _elementSize(other._elementSize),
-          _bytesSize(other._bytesSize) {
+    OnnxTensor::OnnxTensor(OnnxTensor &&other) noexcept :
+        _value(std::move(other._value)), _dataType(other._dataType), _shape(std::move(other._shape)),
+        _elementSize(other._elementSize), _bytesSize(other._bytesSize) {
         other._dataType = Undefined;
         other._elementSize = 0;
         other._bytesSize = 0;
@@ -125,7 +121,7 @@ namespace LangPlugins {
     OnnxTensor::~OnnxTensor() = default;
 
     LangMgr::Expected<LangMgr::NO<OnnxTensor>> OnnxTensor::create(DataType dataType,
-                                                          const std::vector<int64_t> &shape) {
+                                                                  const std::vector<int64_t> &shape) {
         // Check if shape is valid
         auto maybeTotalElements = getElementCountFromShape(dataType, shape);
         if (!maybeTotalElements.has_value()) {
@@ -145,17 +141,17 @@ namespace LangPlugins {
         }
         ONNXTensorElementDataType onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
         switch (dataType) {
-            case Float:
-                onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
-                break;
-            case Bool:
-                onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL;
-                break;
-            case Int64:
-                onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
-                break;
-            default:
-                return LangMgr::Error(LangMgr::Error::InvalidArgument, "unsupported data type");
+        case Float:
+            onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+            break;
+        case Bool:
+            onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL;
+            break;
+        case Int64:
+            onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+            break;
+        default:
+            return LangMgr::Error(LangMgr::Error::InvalidArgument, "unsupported data type");
         }
 
         // Populate OnnxTensor metadata
@@ -174,9 +170,9 @@ namespace LangPlugins {
         return tensor;
     }
 
-    LangMgr::Expected<LangMgr::NO<OnnxTensor>>
-        OnnxTensor::createFromRawView(DataType dataType, const std::vector<int64_t> &shape,
-                                      const stdc::array_view<std::byte> &data) {
+    LangMgr::Expected<LangMgr::NO<OnnxTensor>> OnnxTensor::createFromRawView(DataType dataType,
+                                                                             const std::vector<int64_t> &shape,
+                                                                             const stdc::array_view<std::byte> &data) {
 
         auto exp = create(dataType, shape);
         if (!exp) {
@@ -207,25 +203,24 @@ namespace LangPlugins {
         tensor->_bytesSize = typeInfo.GetElementCount() * tensor->_elementSize;
 
         switch (ortType) {
-            case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
-                tensor->_dataType = Float;
-                break;
-            case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
-                tensor->_dataType = Bool;
-                break;
-            case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
-                tensor->_dataType = Int64;
-                break;
-            default:
-                return LangMgr::Error(LangMgr::Error::InvalidArgument, "unsupported data type");
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+            tensor->_dataType = Float;
+            break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
+            tensor->_dataType = Bool;
+            break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+            tensor->_dataType = Int64;
+            break;
+        default:
+            return LangMgr::Error(LangMgr::Error::InvalidArgument, "unsupported data type");
         }
 
         tensor->_value = std::move(value);
         return tensor;
     }
 
-    LangMgr::Expected<LangMgr::NO<OnnxTensor>>
-        OnnxTensor::createFromTensor(const LangMgr::NO<ITensor> &tensor) {
+    LangMgr::Expected<LangMgr::NO<OnnxTensor>> OnnxTensor::createFromTensor(const LangMgr::NO<ITensor> &tensor) {
         if (!tensor) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "tensor must not be nullptr");
         }
@@ -244,27 +239,15 @@ namespace LangPlugins {
         return valueToRelease;
     }
 
-    Ort::Value *OnnxTensor::valuePtr() {
-        return &_value;
-    }
+    Ort::Value *OnnxTensor::valuePtr() { return &_value; }
 
-    const Ort::Value *OnnxTensor::valuePtr() const {
-        return &_value;
-    }
+    const Ort::Value *OnnxTensor::valuePtr() const { return &_value; }
 
-    std::string OnnxTensor::backend() const {
-        return BACKEND;
-    }
+    std::string OnnxTensor::backend() const { return BACKEND; }
 
-    ITensor::DataType OnnxTensor::dataType() const {
-        return _dataType;
-    }
-    std::vector<int64_t> OnnxTensor::shape() const {
-        return _shape;
-    }
-    size_t OnnxTensor::byteSize() const {
-        return _bytesSize;
-    }
+    ITensor::DataType OnnxTensor::dataType() const { return _dataType; }
+    std::vector<int64_t> OnnxTensor::shape() const { return _shape; }
+    size_t OnnxTensor::byteSize() const { return _bytesSize; }
 
     size_t OnnxTensor::elementCount() const {
         if (_elementSize == 0) {
@@ -273,9 +256,7 @@ namespace LangPlugins {
         return _bytesSize / _elementSize;
     }
 
-    size_t OnnxTensor::elementSize() const {
-        return _elementSize;
-    }
+    size_t OnnxTensor::elementSize() const { return _elementSize; }
 
     const std::byte *OnnxTensor::rawData() const {
         if (!_value || !_value.IsTensor()) {
@@ -302,8 +283,6 @@ namespace LangPlugins {
         return createFromRawView(dataType(), shape(), rawView()).valueOr(nullptr);
     }
 
-    bool OnnxTensor::isValid() const {
-        return _value && _value.IsTensor() && _dataType != Undefined;
-    }
+    bool OnnxTensor::isValid() const { return _value && _value.IsTensor() && _dataType != Undefined; }
 
-}
+} // namespace LangPlugins

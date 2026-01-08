@@ -4,7 +4,7 @@
 #include <filesystem>
 
 #include <LangMgr/Support/Expected.h>
-#include <LangMgr/Task/ITask.h>
+#include <LangMgr/Task/Task.h>
 
 namespace LangPlugins
 {
@@ -42,7 +42,7 @@ namespace LangPlugins
     };
 
     /// InferenceSession - Provides a basic interface for the memory image of an AI model.
-    class InferenceSession : public LangMgr::ITask {
+    class InferenceSession : public LangMgr::Task {
     public:
         virtual LangMgr::Expected<void> open(const std::filesystem::path &path,
                                              const LangMgr::NO<InferenceSessionOpenArgs> &args) = 0;

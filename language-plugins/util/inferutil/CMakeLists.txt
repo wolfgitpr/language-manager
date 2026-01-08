@@ -1,6 +1,6 @@
 project(inferutil
         VERSION ${LANGPLUGINS_VERSION}
-        LANGUAGES CXX
+        LANGUAGES C CXX
 )
 
 file(GLOB_RECURSE _src *.h *.cpp)

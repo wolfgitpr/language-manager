@@ -6,8 +6,8 @@
 #include <stdcorelib/path.h>
 #include <stdcorelib/stlextra/algorithms.h>
 
-#include "Contribute_p.h"
-#include "LanguageEngine_p.h"
+#include "Manager_p.h"
+#include "Module_p.h"
 
 namespace fs = std::filesystem;
 
@@ -15,7 +15,7 @@ namespace LangMgr
 {
 
     PackageData::~PackageData() {
-        for (const auto &[fst, snd] : std::as_const(contributes)) {
+        for (const auto &[fst, snd] : std::as_const(moduleSpecs)) {
             for (const auto &[fst2, snd2] : snd) {
                 delete snd2;
             }
@@ -23,8 +23,8 @@ namespace LangMgr
     }
 
     Expected<void> PackageData::parse(const std::filesystem::path &dir,
-                                      const std::map<std::string, ContribCategory *, std::less<>> &categories,
-                                      llvm::SmallVectorImpl<ContribSpec *> *outContributes) {
+                                      const std::map<std::string, ModuleCategory *, std::less<>> &categories,
+                                      llvm::SmallVectorImpl<ModuleDefinition *> *outModules) {
         std::string id_;
         stdc::VersionNumber version_;
         stdc::VersionNumber compatVersion_;
@@ -35,7 +35,7 @@ namespace LangMgr
         std::string url_;
         llvm::SmallVector<PackageDependency> dependencies_;
 
-        llvm::SmallVector<ContribSpec *> contributes_;
+        llvm::SmallVector<ModuleDefinition *> modules_;
 
         // Read desc
         JsonObject obj;
@@ -46,19 +46,19 @@ namespace LangMgr
         }
 
         auto canonicalDir = fs::canonical(dir);
-        const auto &descPath = canonicalDir / _TSTR("desc.json");
+        const auto &descPath = canonicalDir / _TSTR("package.json");
 
         // id
         {
-            auto it = obj.find("id");
+            auto it = obj.find("packageId");
             if (it == obj.end()) {
                 return Error{
                     Error::InvalidFormat,
-                    stdc::formatN(R"(%1: missing "id" field)", descPath),
+                    stdc::formatN(R"(%1: missing "packageId" field)", descPath),
                 };
             }
             id_ = it->second.toString();
-            if (!ContribLocator::isValidLocator(id_)) {
+            if (!ModuleLocator::isValidLocator(id_)) {
                 return Error{
                     Error::InvalidFormat,
                     stdc::formatN(R"(%1: "id" field has invalid value)", descPath),
@@ -151,14 +151,14 @@ namespace LangMgr
                 }
             }
         }
-        // contributes
+        // modules
         {
-            auto it = obj.find("contributes");
+            auto it = obj.find("modules");
             if (it != obj.end()) {
                 if (!it->second.isObject()) {
                     return Error{
                         Error::InvalidFormat,
-                        R"("contributes" field has invalid value in package manifest)",
+                        R"("modules" field has invalid value in package manifest)",
                     };
                 }
             }
@@ -166,12 +166,12 @@ namespace LangMgr
             do {
                 Error error1;
                 for (const auto &[fst, snd] : it->second.toObject()) {
-                    const auto &contributeKey = fst;
-                    auto it2 = categories.find(contributeKey);
+                    const auto &moduleKey = fst;
+                    auto it2 = categories.find(moduleKey);
                     if (it2 == categories.end()) {
                         error1 = {
                             Error::FeatureNotSupported,
-                            stdc::formatN(R"(unknown contribute "%1")", contributeKey),
+                            stdc::formatN(R"(unknown module "%1")", moduleKey),
                         };
                         goto out_failed;
                     }
@@ -180,38 +180,37 @@ namespace LangMgr
                     if (!snd.isArray()) {
                         error1 = {
                             Error::InvalidFormat,
-                            stdc::formatN(R"(contribute "%1" field has invalid value in package manifest)",
-                                          contributeKey),
+                            stdc::formatN(R"(module "%1" field has invalid value in package manifest)", moduleKey),
                         };
                         goto out_failed;
                     }
 
                     std::set<std::string_view> idSet;
                     for (const auto &item : snd.toArray()) {
-                        auto contribute = cc->parseSpec(canonicalDir, item);
-                        if (!contribute) {
-                            error1 = contribute.error();
+                        auto module = cc->parseDefinition(canonicalDir, item);
+                        if (!module) {
+                            error1 = module.error();
                             goto out_failed;
                         }
-                        contributes_.push_back(contribute.get());
+                        modules_.push_back(module.get());
 
                         // Check id
-                        const auto &contributeId = contribute.get()->id();
-                        if (idSet.count(contributeId)) {
+                        const auto &moduleId = module.get()->id();
+                        if (idSet.count(moduleId)) {
                             error1 = {
                                 Error::InvalidFormat,
-                                stdc::formatN(R"(contribute "%1" object has duplicated id "%2")", fst, contributeId),
+                                stdc::formatN(R"(module "%1" object has duplicated id "%2")", fst, moduleId),
                             };
                             goto out_failed;
                         }
-                        idSet.emplace(contributeId);
+                        idSet.emplace(moduleId);
                     }
                 }
 
                 break;
 
             out_failed:
-                stdc::delete_all(contributes_);
+                stdc::delete_all(modules_);
                 return error1;
             }
             while (false);
@@ -227,12 +226,12 @@ namespace LangMgr
         readme = std::move(readme_);
         url = std::move(url_);
         dependencies = std::move(dependencies_);
-        *outContributes = std::move(contributes_);
+        *outModules = std::move(modules_);
         return Expected<void>();
     }
 
     Expected<JsonObject> PackageData::readDesc(const std::filesystem::path &dir) {
-        const auto &descPath = dir / _TSTR("desc.json");
+        const auto &descPath = dir / _TSTR("package.json");
         const std::ifstream file(descPath);
         if (!file.is_open()) {
             return Error{
@@ -272,7 +271,7 @@ namespace LangMgr
                 return false;
             }
             const auto package = token.substr(0, openBracket);
-            if (!ContribLocator::isValidLocator(package)) {
+            if (!ModuleLocator::isValidLocator(package)) {
                 return false;
             }
             *outId = package;
@@ -336,45 +335,45 @@ namespace LangMgr
         return res;
     }
 
-    PackageRef::PackageRef() : _data(&staticEmptyPackageData()) {}
+    Package::Package() : _data(&staticEmptyPackageData()) {}
 
-    PackageRef::~PackageRef() = default;
+    Package::~Package() = default;
 
-    bool PackageRef::close() {
+    bool Package::close() {
         if (!_data->mgr) {
             return true;
         }
-        if (!static_cast<LanguageManager::Impl *>(_data->mgr->_impl.get())->close(_data)) {
+        if (!static_cast<Manager::Impl *>(_data->mgr->_impl.get())->close(_data)) {
             return false;
         }
         _data = &staticEmptyPackageData();
         return true;
     }
 
-    const std::string &PackageRef::id() const { return _data->id; }
+    const std::string &Package::id() const { return _data->id; }
 
-    stdc::VersionNumber PackageRef::version() const { return _data->version; }
+    stdc::VersionNumber Package::version() const { return _data->version; }
 
-    stdc::VersionNumber PackageRef::compatVersion() const { return _data->compatVersion; }
+    stdc::VersionNumber Package::compatVersion() const { return _data->compatVersion; }
 
-    DisplayText PackageRef::description() const { return _data->description; }
+    DisplayText Package::description() const { return _data->description; }
 
-    DisplayText PackageRef::vendor() const { return _data->vendor; }
+    DisplayText Package::vendor() const { return _data->vendor; }
 
-    DisplayText PackageRef::copyright() const { return _data->copyright; }
+    DisplayText Package::copyright() const { return _data->copyright; }
 
-    const std::filesystem::path &PackageRef::readme() const { return _data->readme; }
+    const std::filesystem::path &Package::readme() const { return _data->readme; }
 
-    const std::string &PackageRef::url() const { return _data->url; }
+    const std::string &Package::url() const { return _data->url; }
 
-    std::vector<ContribSpec *> PackageRef::contributes(const std::string_view &category) const {
-        auto &contributes = _data->contributes;
-        const auto it = contributes.find(category);
-        if (it == contributes.end()) {
+    std::vector<ModuleDefinition *> Package::moduleSpecs(const std::string_view &category) const {
+        auto &modules = _data->moduleSpecs;
+        const auto it = modules.find(category);
+        if (it == modules.end()) {
             return {};
         }
 
-        std::vector<ContribSpec *> res;
+        std::vector<ModuleDefinition *> res;
         const auto &map2 = it->second;
         res.reserve(map2.size());
         for (const auto &[fst, snd] : std::as_const(map2)) {
@@ -383,10 +382,10 @@ namespace LangMgr
         return res;
     }
 
-    ContribSpec *PackageRef::contribute(const std::string_view &category, const std::string_view &id) const {
-        auto &contributes = _data->contributes;
-        const auto it = contributes.find(category);
-        if (it == contributes.end()) {
+    ModuleDefinition *Package::moduleSpec(const std::string_view &category, const std::string_view &id) const {
+        auto &modules = _data->moduleSpecs;
+        const auto it = modules.find(category);
+        if (it == modules.end()) {
             return nullptr;
         }
 
@@ -398,15 +397,15 @@ namespace LangMgr
         return it2->second;
     }
 
-    const std::filesystem::path &PackageRef::path() const { return _data->path; }
+    const std::filesystem::path &Package::path() const { return _data->path; }
 
-    stdc::array_view<PackageDependency> PackageRef::dependencies() const { return _data->dependencies; }
+    stdc::array_view<PackageDependency> Package::dependencies() const { return _data->dependencies; }
 
-    Error PackageRef::error() const { return _data->err; }
+    Error Package::error() const { return _data->err; }
 
-    bool PackageRef::isLoaded() const { return _data->loaded; }
+    bool Package::isLoaded() const { return _data->loaded; }
 
-    LanguageManager *PackageRef::Mgr() const { return _data->mgr; }
+    Manager *Package::Mgr() const { return _data->mgr; }
 
     void ScopedPackageRef::forceClose() {
         if (!close()) {

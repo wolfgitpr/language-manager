@@ -7,12 +7,12 @@
 
 #include "NamedObject.h"
 
-namespace LangMgr {
+namespace LangMgr
+{
 
     class NamedObject::Impl {
     public:
-        explicit Impl(NamedObject *decl) : _decl(decl) {
-        }
+        explicit Impl(NamedObject *decl) : _decl(decl) {}
         virtual ~Impl() = default;
 
         NamedObject *_decl;
@@ -21,16 +21,6 @@ namespace LangMgr {
         std::map<std::string, std::any, std::less<>> properties;
     };
 
-    class ObjectPool::Impl : public NamedObject::Impl {
-    public:
-        explicit Impl(ObjectPool *decl) : NamedObject::Impl(decl) {
-        }
-        ~Impl() override;
-
-        std::map<std::string, stdc::linked_map<const NamedObject *, NO<NamedObject>>, std::less<>>
-            objects;
-    };
-
-}
+} // namespace LangMgr
 
 #endif // LANGUAGE_MANAGER_NAMEDOBJECT_P_H

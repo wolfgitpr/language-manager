@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-#include <LangMgr/Core/LanguageManager.h>
+#include <LangMgr/Core/Manager.h>
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -13,7 +13,7 @@
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
 
-    const auto langMgr = LangMgr::LanguageManager::instance();
+    const auto langMgr = LangMgr::Manager::instance();
 
     std::string errorMsg;
 

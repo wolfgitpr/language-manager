@@ -76,14 +76,14 @@ namespace LangMgr
 
         if (const auto it = pluginDirs.find(iid); it != pluginDirs.end()) {
             for (const auto &pluginDir : it->second) {
-                fs::path descPath = pluginDir / "desc.json";
+                fs::path descPath = pluginDir / "plugin.json";
                 if (!fs::exists(descPath))
                     continue;
 
                 // Parse desc.json
                 auto [target, valid] = parsePluginDesc(descPath);
                 if (!valid) {
-                    std::cerr << "Invalid desc.json in: " << pluginDir << std::endl;
+                    std::cerr << "Invalid plugin.json in: " << pluginDir << std::endl;
                     continue;
                 }
 
@@ -164,7 +164,7 @@ namespace LangMgr
 
             const auto &pluginDir = fs::canonical(entry.path());
 
-            if (fs::path descPath = pluginDir / "desc.json"; fs::exists(descPath)) {
+            if (fs::path descPath = pluginDir / "plugin.json"; fs::exists(descPath)) {
                 // This is a plugin directory
                 impl.pluginDirs[iid].push_back(pluginDir);
             }
@@ -198,7 +198,7 @@ namespace LangMgr
 
                     const auto &pluginDir = fs::canonical(entry.path());
 
-                    if (fs::path descPath = pluginDir / "desc.json"; fs::exists(descPath)) {
+                    if (fs::path descPath = pluginDir / "plugin.json"; fs::exists(descPath)) {
                         // This is a plugin directory
                         pluginDirs.push_back(pluginDir);
                     }

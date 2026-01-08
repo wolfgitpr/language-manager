@@ -116,7 +116,7 @@ namespace LangPlugins::inferUtil
             if (!it->second.isString()) {
                 collectError("string field \"" + fieldName + "\" type mismatch");
             } else {
-                out = stdc::path::clean_path(spec->path() / stdc::path::from_utf8(it->second.toStringView()));
+                out = stdc::path::clean_path(definition->path() / stdc::path::from_utf8(it->second.toStringView()));
             }
         } else {
             collectError("string field \"" + fieldName + "\" is missing");
@@ -130,7 +130,7 @@ namespace LangPlugins::inferUtil
             if (!it->second.isString()) {
                 collectError(R"(string field "phonemes" type mismatch)");
             } else {
-                const auto path = spec->path() / stdc::path::from_utf8(it->second.toStringView());
+                const auto path = definition->path() / stdc::path::from_utf8(it->second.toStringView());
                 loadIdMapping(it->first, path, out);
             }
         } else {

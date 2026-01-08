@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <LangMgr/Tool/InferenceContrib.h>
 #include <inferutil/ErrorCollector.h>
 
 #include "LangPlugins/Api/Inferences/TemplateG2p/1/TemplateG2pL1.h"
@@ -19,8 +18,8 @@ namespace LangPlugins::inferUtil
 
     class ConfigurationParser {
     public:
-        ConfigurationParser(const LangMgr::InferenceSpec *spec_, ErrorCollector *ec_) : spec(spec_), ec(ec_) {
-            pConfig = &spec->manifestConfiguration();
+        ConfigurationParser(const LangMgr::ModuleDefinition *spec_, ErrorCollector *ec_) : definition(spec_), ec(ec_) {
+            pConfig = &definition->manifestConfiguration();
         }
 
         inline void parse_bool_optional(bool &out, const std::string &fieldName);
@@ -45,7 +44,7 @@ namespace LangPlugins::inferUtil
         bool loadIdMapping(const std::string &fieldName, const std::filesystem::path &path,
                            std::map<std::string, int> &out);
 
-        const LangMgr::InferenceSpec *spec;
+        const LangMgr::ModuleDefinition *definition;
         ErrorCollector *ec;
         const LangMgr::JsonObject *pConfig;
     };

@@ -1,18 +1,18 @@
-#include <LangMgr/Tool/InferenceInterpreterPlugin.h>
+#include <LangMgr/Modules/EngineFactoryPlugin.h>
 
-#include "TemplateG2pInterpreter.h"
+#include "TemplateG2pEngineFactory.h"
 
 namespace LangPlugins
 {
 
-    class TemplateG2pInterpreterPlugin final : public LangMgr::InferenceInterpreterPlugin {
+    class TemplateG2pInterpreterPlugin final : public LangMgr::EngineFactoryPlugin {
     public:
         TemplateG2pInterpreterPlugin() = default;
 
         const char *key() const override { return "g2p.template.TemplateInference"; }
 
-        LangMgr::NO<LangMgr::InferenceInterpreter> create() override {
-            return LangMgr::NO<TemplateG2pInterpreter>::create();
+        LangMgr::NO<LangMgr::EngineFactory> create() override {
+            return LangMgr::NO<TemplateG2pEngineFactory>::create();
         }
     };
 

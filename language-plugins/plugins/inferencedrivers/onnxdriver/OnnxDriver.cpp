@@ -4,7 +4,7 @@
 #include <stdcorelib/str.h>
 #include <stdcorelib/support/sharedlibrary.h>
 
-#include <../../../include/LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 
 #include "OnnxDriver_Logger.h"
 #include "OnnxSession.h"

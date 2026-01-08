@@ -129,7 +129,7 @@ namespace LangPlugins::onnxDriver
     };
 
     struct SessionAsyncRunContext {
-        LangMgr::ITask::StartAsyncCallback callback;
+        LangMgr::Task::StartAsyncCallback callback;
     };
 
     class Session::Impl {
@@ -402,7 +402,7 @@ namespace LangPlugins::onnxDriver
         }
 
         bool sessionRunAsync(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &sessionStartInput,
-                             const LangMgr::ITask::StartAsyncCallback &callback, LangMgr::Error *error = nullptr) {
+                             const LangMgr::Task::StartAsyncCallback &callback, LangMgr::Error *error = nullptr) {
             if (!(sessionStartInput && sessionStartInput->objectName() == Api::Onnx::L1::API_NAME)) {
                 if (error) {
                     *error = {LangMgr::Error::InvalidArgument, "Session start input is not valid"};
@@ -480,7 +480,8 @@ namespace LangPlugins::onnxDriver
             return false;
         }
     };
-    LangMgr::Error Session::Impl::validateInputValueMap(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &input) const {
+    LangMgr::Error
+    Session::Impl::validateInputValueMap(const LangMgr::NO<Api::Onnx::L1::SessionStartInput> &input) const {
         const auto &inputValueMap = input->inputs;
         if (inputValueMap.empty()) {
             return {LangMgr::Error::SessionError, "Input map is empty"};
@@ -588,7 +589,8 @@ namespace LangPlugins::onnxDriver
         return true;
     }
 
-    LangMgr::Expected<void> Session::open(const fs::path &path, const LangMgr::NO<Api::Onnx::L1::SessionOpenArgs> &args) {
+    LangMgr::Expected<void> Session::open(const fs::path &path,
+                                          const LangMgr::NO<Api::Onnx::L1::SessionOpenArgs> &args) {
         __stdc_impl_t;
 
         if (isOpen()) {
@@ -803,7 +805,7 @@ namespace LangPlugins::onnxDriver
     }
 
     LangMgr::Expected<void> Session::runAsync(const LangMgr::NO<LangMgr::TaskStartInput> &input,
-                                              const LangMgr::ITask::StartAsyncCallback &callback) {
+                                              const LangMgr::Task::StartAsyncCallback &callback) {
         __stdc_impl_t;
         LangMgr::Error tmpError;
         if (!(input && input->objectName() == Api::Onnx::L1::API_NAME)) {

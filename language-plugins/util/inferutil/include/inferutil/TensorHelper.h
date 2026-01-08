@@ -14,7 +14,7 @@ namespace LangPlugins::inferUtil
         static LangMgr::Expected<TensorHelper> createFor1DArray(size_t size) {
             TensorHelper helper;
             const std::vector shape{1, static_cast<int64_t>(size)};
-            auto exp = LangPlugins::Tensor::create(LangPlugins::tensor_traits<T>::data_type, shape);
+            auto exp = Tensor::create(tensor_traits<T>::data_type, shape);
             if (!exp) {
                 return exp.takeError();
             }
@@ -28,7 +28,7 @@ namespace LangPlugins::inferUtil
             return helper;
         }
 
-        inline bool write(T value) {
+        bool write(T value) {
             if (_current >= _end) {
                 return false;
             }
@@ -36,13 +36,13 @@ namespace LangPlugins::inferUtil
             return true;
         }
 
-        inline void writeUnchecked(T value) { *_current++ = value; }
+        void writeUnchecked(T value) { *_current++ = value; }
 
-        inline bool isComplete() const { return _current == _end; }
+        bool isComplete() const { return _current == _end; }
 
-        inline LangMgr::NO<LangPlugins::Tensor> &value() { return _tensor; }
+        LangMgr::NO<Tensor> &value() { return _tensor; }
 
-        inline LangMgr::NO<LangPlugins::Tensor> &&take() { return std::move(_tensor); }
+        LangMgr::NO<Tensor> &&take() { return std::move(_tensor); }
 
         STDCORELIB_DISABLE_COPY(TensorHelper)
 
@@ -67,7 +67,7 @@ namespace LangPlugins::inferUtil
     private:
         TensorHelper() : _current(nullptr), _end(nullptr) {};
 
-        LangMgr::NO<LangPlugins::Tensor> _tensor;
+        LangMgr::NO<Tensor> _tensor;
         T *_current;
         const T *_end;
     };

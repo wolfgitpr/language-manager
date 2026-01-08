@@ -6,21 +6,21 @@
 #include <re2/re2.h>
 #include <stdcorelib/str.h>
 
-#include <LangMgr/Core/Contribute.h>
-#include <LangMgr/Core/LanguageManager.h>
+#include <LangMgr/Core/Manager.h>
+#include <LangMgr/Core/Module.h>
 #include <LangMgr/Core/NamedObject.h>
 #include <stdcorelib/system.h>
 
-#include <LangMgr/Tool/Inference.h>
-#include <LangMgr/Tool/InferenceContrib.h>
-#include <LangMgr/Tool/InferenceInterpreterPlugin.h>
-#include <LangPlugins/Api/Inferences/RegexSpliter/1/RegexSpliterL1.h>
+#include <LangMgr/Modules/EngineFactoryPlugin.h>
+#include <LangMgr/Modules/G2pModule.h>
+#include <LangMgr/Task/Task.h>
+#include <LangPlugins/Api/Inferences/RegexSplitter/1/RegexSplitterL1.h>
 
-#include <LangMgr/Core/PackageRef.h>
+#include <LangMgr/Core/Package.h>
 
 using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
 
-static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr) {
+static LangMgr::Expected<void> initializeMgr(LangMgr::Manager &mgr) {
     // Get basic directories
     const auto pluginRootDir =
 #if defined(Q_OS_MAC)
@@ -33,14 +33,14 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr) {
     const auto defaultPluginDir = pluginRootDir / _TSTR("LangPlugins");
 
     // Set default plugin directories
-    mgr.addPluginPath("org.openvpi.InferenceInterpreter", defaultPluginDir / _TSTR("g2ps"));
-    mgr.addPluginPath("org.openvpi.InferenceInterpreter", defaultPluginDir / _TSTR("spliters"));
+    mgr.addPluginPath("org.openvpi.EngineFactory", defaultPluginDir / _TSTR("g2ps"));
+    mgr.addPluginPath("org.openvpi.EngineFactory", defaultPluginDir / _TSTR("spliters"));
 
     // Load RegexSpliterInterpreter
     const auto regexSpliterInterpreterPlugin =
-        mgr.plugin<LangMgr::InferenceInterpreterPlugin>("spliter.regex.RegexSpliterInference");
+        mgr.plugin<LangMgr::EngineFactoryPlugin>("spliter.regex.RegexSpliterInference");
     if (!regexSpliterInterpreterPlugin) {
-        return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load RegexSpliter interpreter plugin");
+        return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load RegexSplitter interpreter plugin");
     }
 
     const auto regexSpliterInterpreter = regexSpliterInterpreterPlugin->create();
@@ -52,16 +52,16 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::LanguageManager &mgr) {
 }
 
 int main() {
-    LangMgr::LanguageManager langMgr;
-    if (auto exp = initializeMgr(langMgr); !exp) {
-        std::cerr << "failed to initialize LanguageManager: " << exp.error().message() << std::endl;
+    LangMgr::Manager langMgr;
+    if (const auto exp = initializeMgr(langMgr); !exp) {
+        std::cerr << "failed to initialize Manager: " << exp.error().message() << std::endl;
         return -1;
     }
 
     const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package)");
 
-    LangMgr::InferenceSpec *spliterSpec = nullptr;
-    std::vector<LangMgr::PackageRef> pkgs;
+    const LangMgr::G2pDefinition *spliterSpec = nullptr;
+    std::vector<LangMgr::Package> pkgs;
 
     auto loadPackage = [&](const std::filesystem::path &path)
     {
@@ -71,14 +71,14 @@ int main() {
         } else {
             const auto pkg = exp.take();
             pkgs.push_back(pkg);
-            const auto regexSpliterG2pContrib = pkg.contributes("inference");
+            const auto regexSpliterG2pContrib = pkg.moduleSpecs("inference");
             if (regexSpliterG2pContrib.empty()) {
                 std::cerr << "no inference contributions found in package" << std::endl;
                 return false;
             }
-            spliterSpec = dynamic_cast<LangMgr::InferenceSpec *>(regexSpliterG2pContrib.front());
+            spliterSpec = dynamic_cast<LangMgr::G2pDefinition *>(regexSpliterG2pContrib.front());
             if (!spliterSpec) {
-                std::cerr << "failed to cast to InferenceSpec" << std::endl;
+                std::cerr << "failed to cast to InferenceDefinition" << std::endl;
                 return false;
             }
         }
@@ -90,10 +90,10 @@ int main() {
 
     const auto &inferenceCategory = *langMgr.category("inference");
     const auto regexSpliterInterpreter =
-        inferenceCategory.getFirstObject("regexSpliterInterpreter").as<LangMgr::InferenceInterpreter>();
+        inferenceCategory.getFirstObject("regexSpliterInterpreter").as<LangMgr::EngineFactory>();
 
     if (!regexSpliterInterpreter) {
-        std::cerr << "RegexSpliter interpreter not found" << std::endl;
+        std::cerr << "RegexSplitter interpreter not found" << std::endl;
         return -1;
     }
 
@@ -101,25 +101,25 @@ int main() {
     std::cout << "Class name: " << spliterSpec->className() << std::endl;
     std::cout << "API Level: " << spliterSpec->apiLevel() << std::endl;
 
-    auto runtimeOptions = LangMgr::NO<LangPlugins::Api::RegexSpliter::L1::RegexSpliterRuntimeOptions>::create();
+    const auto runtimeOptions = LangMgr::NO<LangPlugins::Api::RegexSplitter::L1::RegexSplitterRuntimeOptions>::create();
 
-    auto inferenceExp = regexSpliterInterpreter->createInference(spliterSpec, runtimeOptions);
+    auto inferenceExp = regexSpliterInterpreter->createTask(spliterSpec, runtimeOptions);
     if (!inferenceExp) {
         std::cerr << "failed to create inference: " << inferenceExp.error().message() << std::endl;
         return -1;
     }
-    auto inference = inferenceExp.take();
+    const auto inference = inferenceExp.take();
 
-    auto initArgs = LangMgr::NO<LangPlugins::Api::RegexSpliter::L1::RegexSpliterInitArgs>::create();
+    const auto initArgs = LangMgr::NO<LangPlugins::Api::RegexSplitter::L1::RegexSplitterInitArgs>::create();
 
-    if (auto exp = inference->initialize(initArgs); !exp) {
+    if (const auto exp = inference->initialize(initArgs); !exp) {
         std::cerr << "failed to initialize inference: " << exp.error().message() << std::endl;
         return -1;
     }
 
     std::cout << "Inference initialized successfully" << std::endl;
 
-    auto input = LangMgr::NO<LangPlugins::Api::RegexSpliter::L1::RegexSpliterStartInput>::create();
+    const auto input = LangMgr::NO<LangPlugins::Api::RegexSplitter::L1::RegexSplitterStartInput>::create();
     input->rawStrVec = {u8"你好hello1加23"};
 
     std::cout << "Starting inference..." << std::endl;
@@ -129,8 +129,8 @@ int main() {
         return -1;
     }
 
-    auto result = resultExp.take();
-    if (auto spliterResult = result.as<LangPlugins::Api::RegexSpliter::L1::RegexSpliterResult>()) {
+    const auto result = resultExp.take();
+    if (const auto spliterResult = result.as<LangPlugins::Api::RegexSplitter::L1::RegexSplitterResult>()) {
         std::cout << "Input: " << input->rawStrVec.front() << std::endl;
         std::cout << "Res: ";
         for (const auto &resStr : spliterResult->resStrVec) {

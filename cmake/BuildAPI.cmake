@@ -297,7 +297,7 @@ endmacro()
         [GEN_DESC]                    # Generate description file
         [VERSION <version>]           # Plugin version (default: ${_CUR_VERSION})
         [TEMPLATE_NAME <template_name>] # Template file name (default: "plugin_desc.json.in")
-        [OUTPUT_NAME <output_name>]   # Output JSON file name (default: "desc.json")
+        [OUTPUT_NAME <output_name>]   # Output JSON file name (default: "plugin.json")
         [NO_INSTALL_DESC]             # Don't install description file
         [EXTRA_VARS <var=value>...]   # Extra variables for template
         <configure_options...>
@@ -512,7 +512,7 @@ endmacro()
 macro(_cur_add_desc_internal _target _plugin_dir)
     # Set default values
     qm_set_value(_version FUNC_VERSION ${_CUR_VERSION})
-    qm_set_value(_output_name FUNC_OUTPUT_NAME "desc.json")
+    qm_set_value(_output_name FUNC_OUTPUT_NAME "plugin.json")
     qm_set_value(_template_name FUNC_TEMPLATE_NAME "plugin_desc.json.in")
 
     # Template file path - look in project root's cmake directory

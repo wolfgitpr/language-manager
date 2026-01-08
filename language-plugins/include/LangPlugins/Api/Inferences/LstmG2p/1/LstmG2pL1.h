@@ -6,10 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <LangMgr/Tool/Inference.h>
-#include <LangMgr/Tool/InferenceContrib.h>
-
-
 namespace LangPlugins::Api::LstmG2p::L1
 {
 
@@ -18,9 +14,9 @@ namespace LangPlugins::Api::LstmG2p::L1
     constexpr int API_LEVEL = 1;
 
 
-    class LstmG2pConfiguration : public LangMgr::InferenceConfiguration {
+    class LstmG2pConfiguration : public LangMgr::TaskConfiguration {
     public:
-        LstmG2pConfiguration() : InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pConfiguration() : TaskConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::map<std::string, int> charVocab;
         std::map<std::string, int> phonemeVocab;
@@ -36,17 +32,17 @@ namespace LangPlugins::Api::LstmG2p::L1
         int maxLen = 48;
     };
 
-    class LstmG2pRuntimeOptions : public LangMgr::InferenceRuntimeOptions {
+    class LstmG2pRuntimeOptions : public LangMgr::TaskRuntimeOptions {
     public:
-        LstmG2pRuntimeOptions() : InferenceRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pRuntimeOptions() : TaskRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::string device = "cpu";
         bool optimizePerformance = false;
     };
 
-    class LstmG2pInitArgs : public LangMgr::InferenceInitArgs {
+    class LstmG2pInitArgs : public LangMgr::TaskInitArgs {
     public:
-        LstmG2pInitArgs() : InferenceInitArgs(API_NAME) {}
+        LstmG2pInitArgs() : TaskInitArgs(API_NAME) {}
 
         LangMgr::NO<LstmG2pRuntimeOptions> runtimeOptions;
     };

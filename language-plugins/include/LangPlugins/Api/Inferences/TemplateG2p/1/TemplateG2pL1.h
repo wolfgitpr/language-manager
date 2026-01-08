@@ -4,9 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <LangMgr/Tool/Inference.h>
-#include <LangMgr/Tool/InferenceContrib.h>
-
+#include <LangMgr/Task/Task.h>
 #include <LangPlugins/Api/Inferences/Common/1/CommonApiL1.h>
 
 namespace LangPlugins::Api::TemplateG2p::L1
@@ -23,23 +21,23 @@ namespace LangPlugins::Api::TemplateG2p::L1
     constexpr int API_LEVEL = 1;
 
 
-    class TemplateG2pConfiguration : public LangMgr::InferenceConfiguration {
+    class TemplateG2pConfiguration : public LangMgr::TaskConfiguration {
     public:
-        TemplateG2pConfiguration() : InferenceConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        TemplateG2pConfiguration() : TaskConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::vector<VerifyEntry> verifyEntry;
         std::filesystem::path dictPath;
         std::string onnxInferenceId;
     };
 
-    class TemplateG2pRuntimeOptions : public LangMgr::InferenceRuntimeOptions {
+    class TemplateG2pRuntimeOptions : public LangMgr::TaskRuntimeOptions {
     public:
-        TemplateG2pRuntimeOptions() : InferenceRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        TemplateG2pRuntimeOptions() : TaskRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
     };
 
-    class TemplateG2pInitArgs : public LangMgr::InferenceInitArgs {
+    class TemplateG2pInitArgs : public LangMgr::TaskInitArgs {
     public:
-        TemplateG2pInitArgs() : InferenceInitArgs(API_NAME) {}
+        TemplateG2pInitArgs() : TaskInitArgs(API_NAME) {}
 
         LangMgr::NO<TemplateG2pRuntimeOptions> runtimeOptions;
     };

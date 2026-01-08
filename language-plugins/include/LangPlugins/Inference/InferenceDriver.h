@@ -17,7 +17,7 @@ namespace LangPlugins
 
     /// InferenceDriver - G2p inference driver interface.
     ///
-    /// \note An instance of \c InferenceDriver needs to be added to the \c InferenceCategory with
+    /// \note An instance of \c InferenceDriver needs to be added to the \c G2pCategory with
     /// the ID "g2pOnnxDriver" before it can be called by the inference interpreters.
     ///
     /// It is used like the following.

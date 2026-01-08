@@ -9,27 +9,27 @@
 
 #include "DisplayText.h"
 #include "Expected.h"
-#include "PackageRef.h"
+#include "Package.h"
 
 namespace LangMgr
 {
 
-    class ContribSpec;
+    class ModuleDefinition;
 
-    class ContribCategory;
+    class ModuleCategory;
 
     class PackageData {
     public:
-        explicit PackageData(LanguageManager *mgr) : mgr(mgr) {}
+        explicit PackageData(Manager *mgr) : mgr(mgr) {}
         ~PackageData();
 
         Expected<void> parse(const std::filesystem::path &dir,
-                             const std::map<std::string, ContribCategory *, std::less<>> &categories,
-                             llvm::SmallVectorImpl<ContribSpec *> *outContributes);
+                             const std::map<std::string, ModuleCategory *, std::less<>> &categories,
+                             llvm::SmallVectorImpl<ModuleDefinition *> *outModules);
 
         static Expected<JsonObject> readDesc(const std::filesystem::path &dir);
 
-        LanguageManager *mgr;
+        Manager *mgr;
 
         std::filesystem::path path;
         std::string id;
@@ -43,8 +43,8 @@ namespace LangMgr
         std::filesystem::path readme;
         std::string url;
 
-        std::map<std::string, std::map<std::string, ContribSpec *, std::less<>>, std::less<>>
-            contributes; // category -> [ name -> spec ]
+        std::map<std::string, std::map<std::string, ModuleDefinition *, std::less<>>, std::less<>>
+            moduleSpecs; // category -> [ name -> spec ]
 
         llvm::SmallVector<PackageDependency> dependencies;
 
