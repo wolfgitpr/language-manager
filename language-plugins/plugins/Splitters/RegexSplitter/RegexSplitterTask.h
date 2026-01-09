@@ -1,10 +1,10 @@
 #ifndef LANG_PLUGINS_REGEXSPLITTERTASK_H
 #define LANG_PLUGINS_REGEXSPLITTERTASK_H
 
-#include <LangMgr/Task/Task.h>
+#include <../../../../language-manager/include/LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
-#include <LangPlugins/Api/Inferences/RegexSplitter/1/RegexSplitterL1.h>
+#include <LangPlugins/Api/Splitters/RegexSplitter/1/RegexSplitterL1.h>
 
 namespace LangPlugins
 {

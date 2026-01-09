@@ -8,7 +8,7 @@
 
 #include <stdcorelib/adt/array_view.h>
 
-#include <LangMgr/Core/NamedObject.h>
+#include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Support/Expected.h>
 
 #include <LangPlugins/LangPluginsGlobal.h>

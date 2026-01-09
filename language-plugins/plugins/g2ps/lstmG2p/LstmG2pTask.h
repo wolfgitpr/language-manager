@@ -1,15 +1,19 @@
 #ifndef LANG_PLUGINS_LSTMG2PTASK_H
 #define LANG_PLUGINS_LSTMG2PTASK_H
 
-#include <LangMgr/Task/Task.h>
+#include <../../../../language-manager/include/LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h>
+#include <LangPlugins/Api/G2ps/LstmG2p/1/LstmG2pL1.h>
 
 #include <stdcorelib/str.h>
 
 
+namespace LangMgr
+{
+    class DriverSession;
+}
 namespace LangPlugins
 {
     namespace Lstm = Api::LstmG2p::L1;
@@ -47,7 +51,7 @@ namespace LangPlugins
 
         // Run decoder with autoregressive generation
         static LangMgr::Expected<std::vector<int64_t>>
-        runDecoder(const LangMgr::NO<InferenceSession> &decodeSession, const LangMgr::NO<ITensor> &encoderOutputs,
+        runDecoder(const LangMgr::NO<LangMgr::SessionTask> &decodeSession, const LangMgr::NO<ITensor> &encoderOutputs,
                    const LangMgr::NO<ITensor> &hidden, const LangMgr::NO<ITensor> &cell,
                    const LangMgr::NO<Lstm::LstmG2pConfiguration> &config);
 

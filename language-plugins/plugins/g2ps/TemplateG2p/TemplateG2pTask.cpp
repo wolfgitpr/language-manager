@@ -13,10 +13,11 @@
 #include <re2/re2.h>
 #include <stdcorelib/console.h>
 
-#include "LangMgr/Core/Module.h"
-#include "LangMgr/Modules/G2pModule.h"
-#include "LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h"
-#include "LangPlugins/Support/PhonemeDict.h"
+#include <../../../../language-manager/include/LangMgr/Module/Module.h>
+#include <LangMgr/Module/G2pModule.h>
+
+#include <LangPlugins/Api/G2ps/LstmG2p/1/LstmG2pL1.h>
+#include <LangPlugins/Support/PhonemeDict.h>
 
 namespace LangPlugins
 {

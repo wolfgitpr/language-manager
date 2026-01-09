@@ -1,18 +1,18 @@
 #ifndef LANGMGR_ONNXSESSION_H
 #define LANGMGR_ONNXSESSION_H
 
-#include <LangPlugins/Inference/InferenceSession.h>
+#include <../../../../language-manager/include/LangMgr/Task/Task.h>
 
 namespace LangPlugins
 {
 
-    class OnnxSession : public InferenceSession {
+    class OnnxSession : public LangMgr::SessionTask {
     public:
         OnnxSession();
         ~OnnxSession() override;
 
         LangMgr::Expected<void> open(const std::filesystem::path &path,
-                                     const LangMgr::NO<InferenceSessionOpenArgs> &args) override;
+                                     const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;
         LangMgr::Expected<void> close() override;
         bool isOpen() const override;
 

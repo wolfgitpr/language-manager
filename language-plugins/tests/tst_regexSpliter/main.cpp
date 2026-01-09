@@ -2,21 +2,21 @@
 #include <iostream>
 #include <string>
 
-#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <re2/re2.h>
 #include <stdcorelib/str.h>
-
-#include <LangMgr/Core/Manager.h>
-#include <LangMgr/Core/Module.h>
-#include <LangMgr/Core/NamedObject.h>
 #include <stdcorelib/system.h>
 
-#include <LangMgr/Modules/EngineFactoryPlugin.h>
-#include <LangMgr/Modules/G2pModule.h>
+#include <LangMgr/Base/NamedObject.h>
+#include <LangMgr/Core/Manager.h>
+#include <LangMgr/Module/G2pModule.h>
+#include <LangMgr/Module/Module.h>
+#include <LangMgr/Package/Package.h>
 #include <LangMgr/Task/Task.h>
-#include <LangPlugins/Api/Inferences/RegexSplitter/1/RegexSplitterL1.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 
-#include <LangMgr/Core/Package.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
+#include <LangPlugins/Api/Splitters/RegexSplitter/1/RegexSplitterL1.h>
+
 
 using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
 
@@ -33,12 +33,12 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::Manager &mgr) {
     const auto defaultPluginDir = pluginRootDir / _TSTR("LangPlugins");
 
     // Set default plugin directories
-    mgr.addPluginPath("org.openvpi.EngineFactory", defaultPluginDir / _TSTR("g2ps"));
-    mgr.addPluginPath("org.openvpi.EngineFactory", defaultPluginDir / _TSTR("spliters"));
+    mgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("g2ps"));
+    mgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("spliters"));
 
     // Load RegexSpliterInterpreter
     const auto regexSpliterInterpreterPlugin =
-        mgr.plugin<LangMgr::EngineFactoryPlugin>("spliter.regex.RegexSpliterInference");
+        mgr.plugin<LangMgr::TaskFactoryPlugin>("spliter.regex.RegexSpliterInference");
     if (!regexSpliterInterpreterPlugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load RegexSplitter interpreter plugin");
     }
@@ -90,7 +90,7 @@ int main() {
 
     const auto &inferenceCategory = *langMgr.category("inference");
     const auto regexSpliterInterpreter =
-        inferenceCategory.getFirstObject("regexSpliterInterpreter").as<LangMgr::EngineFactory>();
+        inferenceCategory.getFirstObject("regexSpliterInterpreter").as<LangMgr::TaskFactory>();
 
     if (!regexSpliterInterpreter) {
         std::cerr << "RegexSplitter interpreter not found" << std::endl;

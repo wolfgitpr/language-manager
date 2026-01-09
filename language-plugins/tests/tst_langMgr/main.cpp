@@ -2,24 +2,20 @@
 #include <iostream>
 #include <string>
 
-#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Inference/InferenceDriver.h>
-#include <LangPlugins/Inference/InferenceDriverPlugin.h>
 #include <stdcorelib/str.h>
-
-#include <LangMgr/Core/Manager.h>
-#include <LangMgr/Core/Module.h>
-#include <LangMgr/Core/NamedObject.h>
 #include <stdcorelib/system.h>
 
-#include <LangMgr/Core/Package.h>
-
-#include <LangMgr/Modules/EngineFactoryPlugin.h>
-#include <LangMgr/Modules/G2pModule.h>
+#include <LangMgr/Base/NamedObject.h>
+#include <LangMgr/Core/Manager.h>
+#include <LangMgr/Module/G2pModule.h>
+#include <LangMgr/Module/Module.h>
+#include <LangMgr/Package/Package.h>
 #include <LangMgr/Task/Task.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 
-#include <LangPlugins/Api/Inferences/LstmG2p/1/LstmG2pL1.h>
-#include "LangPlugins/Api/Inferences/TemplateG2p/1/TemplateG2pL1.h"
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
+#include <LangPlugins/Api/G2ps/LstmG2p/1/LstmG2pL1.h>
+#include "LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h"
 
 #ifdef WIN32
 #include <Windows.h>
@@ -34,7 +30,7 @@ public:
     static LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
     create(LangMgr::ModuleCategory &inferenceCategory, const std::string &interpreterName,
            LangMgr::ModuleDefinition *inferenceSpec, const std::string &inferenceName) {
-        const auto interpreter = inferenceCategory.getFirstObject(interpreterName).as<LangMgr::EngineFactory>();
+        const auto interpreter = inferenceCategory.getFirstObject(interpreterName).as<LangMgr::TaskFactory>();
 
         if (!interpreter) {
             return LangMgr::Error(LangMgr::Error::InterpreterNotFound,
@@ -115,9 +111,9 @@ std::filesystem::path getPluginRootDirectory() {
 #endif
 }
 
-LangMgr::Expected<LangMgr::NO<LangPlugins::InferenceDriver>>
+LangMgr::Expected<LangMgr::NO<LangMgr::SessionFactory>>
 initializeOnnxDriver(const LangMgr::Manager &mgr, const EP ep, const int deviceIndex, const bool loadFromProgress) {
-    const auto onnxDriverPlugin = mgr.plugin<LangPlugins::InferenceDriverPlugin>("onnx");
+    const auto onnxDriverPlugin = mgr.plugin<LangMgr::DriverFactoryPlugin>("onnx");
     if (!onnxDriverPlugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load ONNX inference driver");
     }
@@ -142,9 +138,9 @@ initializeOnnxDriver(const LangMgr::Manager &mgr, const EP ep, const int deviceI
     return onnxDriver;
 }
 
-LangMgr::Expected<LangMgr::NO<LangMgr::EngineFactory>>
+LangMgr::Expected<LangMgr::NO<LangMgr::TaskFactory>>
 loadInterpreter(const LangMgr::Manager &mgr, const std::string &pluginName, const std::string &errorMsg) {
-    const auto plugin = mgr.plugin<LangMgr::EngineFactoryPlugin>(pluginName.c_str());
+    const auto plugin = mgr.plugin<LangMgr::TaskFactoryPlugin>(pluginName.c_str());
     if (!plugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, errorMsg);
     }
@@ -156,8 +152,8 @@ LangMgr::Expected<void> initializeMgr(LangMgr::Manager &mgr, const EP ep, const 
     const auto pluginRootDir = getPluginRootDirectory();
     const auto defaultPluginDir = pluginRootDir / _TSTR("LangPlugins");
 
-    mgr.addPluginPath("org.openvpi.InferenceDriver", defaultPluginDir / _TSTR("InferenceDrivers"));
-    mgr.addPluginPath("org.openvpi.EngineFactory", defaultPluginDir / _TSTR("G2ps"));
+    mgr.addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("InferenceDrivers"));
+    mgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
 
     auto onnxDriverExp = initializeOnnxDriver(mgr, ep, deviceIndex, loadFromProgress);
     if (!onnxDriverExp) {

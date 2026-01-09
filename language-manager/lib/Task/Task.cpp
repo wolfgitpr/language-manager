@@ -1,9 +1,9 @@
-#include "Task.h"
+#include "../../include/LangMgr/Task/Task.h"
 #include "Task_p.h"
 
 #include <stdcorelib/pimpl.h>
 
-#include <LangMgr/Core/Module.h>
+#include <../../include/LangMgr/Module/Module.h>
 
 namespace LangMgr
 {

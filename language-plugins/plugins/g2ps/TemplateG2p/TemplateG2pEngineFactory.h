@@ -1,11 +1,11 @@
 #ifndef LANGPLUGINS_TEMPLATEG2PENGINEFACTORY_H
 #define LANGPLUGINS_TEMPLATEG2PENGINEFACTORY_H
 
-#include <LangMgr/Modules/EngineFactory.h>
+#include <../../../../language-manager/include/LangMgr/Task/TaskFactory.h>
 
 namespace LangPlugins
 {
-    class TemplateG2pEngineFactory : public LangMgr::EngineFactory {
+    class TemplateG2pEngineFactory : public LangMgr::TaskFactory {
     public:
         TemplateG2pEngineFactory();
         ~TemplateG2pEngineFactory() override;

@@ -1,9 +1,10 @@
 #ifndef LANGMGR_ITASK_H
 #define LANGMGR_ITASK_H
 
+#include <filesystem>
 #include <functional>
 
-#include <LangMgr/Core/NamedObject.h>
+#include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/LangMgrGlobal.h>
 #include <LangMgr/Support/Expected.h>
 
@@ -94,6 +95,16 @@ namespace LangMgr
 
         class Impl;
         explicit Task(Impl &impl);
+    };
+
+    /// SessionTask - Provides a basic interface for the memory image of an AI model.
+    class SessionTask : public Task {
+    public:
+        virtual Expected<void> open(const std::filesystem::path &path, const NO<TaskInitArgs> &args) = 0;
+        virtual Expected<void> close() = 0;
+        virtual bool isOpen() const = 0;
+
+        virtual int64_t id() const = 0;
     };
 
 } // namespace LangMgr

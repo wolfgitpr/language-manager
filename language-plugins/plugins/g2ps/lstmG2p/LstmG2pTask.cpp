@@ -7,13 +7,12 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
+#include <../../../../language-manager/include/LangMgr/Task/Task.h>
+#include <LangMgr/Module/G2pModule.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 #include <LangPlugins/Core/Tensor.h>
-#include <LangPlugins/Inference/InferenceDriver.h>
-#include <LangPlugins/Inference/InferenceSession.h>
 
 #include <inferutil/TensorHelper.h>
-
-#include "LangMgr/Modules/G2pModule.h"
 
 namespace LangPlugins
 {
@@ -33,9 +32,9 @@ namespace LangPlugins
     class LstmG2pTask::Impl {
     public:
         LangMgr::NO<Lstm::LstmG2pResult> result;
-        LangMgr::NO<InferenceDriver> driver;
-        LangMgr::NO<InferenceSession> encoderSession;
-        LangMgr::NO<InferenceSession> decodeSession;
+        LangMgr::NO<LangMgr::SessionFactory> driver;
+        LangMgr::NO<LangMgr::SessionTask> encoderSession;
+        LangMgr::NO<LangMgr::SessionTask> decodeSession;
         mutable std::shared_mutex mutex;
     };
 
@@ -62,7 +61,7 @@ namespace LangPlugins
         impl.result.reset();
 
         if (auto res = getObject("driver", "g2pOnnxDriver"); res) {
-            impl.driver = res.take().as<InferenceDriver>();
+            impl.driver = res.take().as<LangMgr::SessionFactory>();
         } else {
             setState(Failed);
             return res.takeError();
@@ -275,7 +274,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<std::vector<int64_t>>
-    LstmG2pInferenceHelper::runDecoder(const LangMgr::NO<InferenceSession> &decodeSession,
+    LstmG2pInferenceHelper::runDecoder(const LangMgr::NO<LangMgr::SessionTask> &decodeSession,
                                        const LangMgr::NO<ITensor> &encoderOutputs, const LangMgr::NO<ITensor> &hidden,
                                        const LangMgr::NO<ITensor> &cell,
                                        const LangMgr::NO<Lstm::LstmG2pConfiguration> &config) {

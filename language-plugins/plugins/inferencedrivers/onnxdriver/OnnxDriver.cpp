@@ -177,7 +177,7 @@ namespace LangPlugins
 
     std::string OnnxDriver::backend() const { return Onnx::L1::API_NAME; }
 
-    LangMgr::Expected<void> OnnxDriver::initialize(const LangMgr::NO<InferenceDriverInitArgs> &args) {
+    LangMgr::Expected<void> OnnxDriver::initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) {
         __stdc_impl_t;
 
         if (args->objectName() != Onnx::L1::API_NAME) {
@@ -221,7 +221,7 @@ namespace LangPlugins
 
     LangMgr::Expected<void> OnnxDriver::loadFromProcess() const { return _impl->loadFromProcess(); }
 
-    LangMgr::NO<InferenceSession> OnnxDriver::createSession() {
+    LangMgr::NO<LangMgr::SessionTask> OnnxDriver::createSession() {
         auto session = LangMgr::NO<OnnxSession>::create();
         return session;
     }

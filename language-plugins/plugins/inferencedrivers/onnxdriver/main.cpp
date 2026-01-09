@@ -1,18 +1,18 @@
-#include <LangPlugins/Inference/InferenceDriverPlugin.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 
 #include "OnnxDriver.h"
 
 namespace LangPlugins
 {
 
-    class OnnxDriverPlugin : public InferenceDriverPlugin {
+    class OnnxDriverPlugin : public LangMgr::DriverFactoryPlugin {
     public:
         OnnxDriverPlugin() = default;
 
     public:
         const char *key() const override { return "onnx"; }
 
-        LangMgr::NO<InferenceDriver> create() override { return LangMgr::NO<OnnxDriver>::create(); }
+        LangMgr::NO<LangMgr::SessionFactory> create() override { return LangMgr::NO<OnnxDriver>::create(); }
     };
 
 } // namespace LangPlugins

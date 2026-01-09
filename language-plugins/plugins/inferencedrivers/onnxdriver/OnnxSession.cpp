@@ -22,7 +22,7 @@ namespace LangPlugins
     OnnxSession::~OnnxSession() { __stdc_impl_t; }
 
     LangMgr::Expected<void> OnnxSession::open(const std::filesystem::path &path,
-                                              const LangMgr::NO<InferenceSessionOpenArgs> &args) {
+                                              const LangMgr::NO<LangMgr::TaskInitArgs> &args) {
         __stdc_impl_t;
         const auto openArgs = args.as<Api::Onnx::L1::SessionOpenArgs>();
         if (!openArgs) {

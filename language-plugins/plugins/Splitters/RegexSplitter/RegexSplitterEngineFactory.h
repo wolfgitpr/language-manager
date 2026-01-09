@@ -1,11 +1,11 @@
 #ifndef LANGPLUGINS_REGEXSPLITTERENGINEFACTORY_H
 #define LANGPLUGINS_REGEXSPLITTERENGINEFACTORY_H
 
-#include <LangMgr/Modules/EngineFactory.h>
+#include <../../../../language-manager/include/LangMgr/Task/TaskFactory.h>
 
 namespace LangPlugins
 {
-    class RegexSplitterEngineFactory : public LangMgr::EngineFactory {
+    class RegexSplitterEngineFactory : public LangMgr::TaskFactory {
     public:
         RegexSplitterEngineFactory();
         ~RegexSplitterEngineFactory() override;

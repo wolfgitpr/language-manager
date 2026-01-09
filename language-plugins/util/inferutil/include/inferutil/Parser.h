@@ -6,7 +6,7 @@
 
 #include <inferutil/ErrorCollector.h>
 
-#include "LangPlugins/Api/Inferences/TemplateG2p/1/TemplateG2pL1.h"
+#include "LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h"
 
 namespace LangPlugins::inferUtil
 {

@@ -7,18 +7,20 @@
 
 #include <stdcorelib/support/versionnumber.h>
 
-#include <LangMgr/Core/LangCommon.h>
+#include <LangMgr/Base/NamedObject.h>
+#include <LangMgr/Core/PluginFactory.h>
 #include <LangMgr/LangMgrGlobal.h>
-#include <LangMgr/Plugin/PluginFactory.h>
-#include <LangMgr/Support/Expected.h>
-#include <LangMgr/Task/Task.h>
-
-#include "NamedObject.h"
 
 namespace LangMgr
 {
+
     class Package;
     class ModuleCategory;
+    class Task;
+    class TaggerRes;
+
+    template <class T>
+    class Expected;
 
     template <class T>
     class ModuleCategoryRegistrar;
@@ -67,6 +69,7 @@ namespace LangMgr
 
         friend class Package;
         friend class ModuleCategory;
+
         template <class T>
         friend class ModuleCategoryRegistrar;
     };

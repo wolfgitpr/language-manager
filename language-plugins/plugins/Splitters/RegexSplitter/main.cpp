@@ -1,17 +1,17 @@
-#include <LangMgr/Modules/EngineFactoryPlugin.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 
 #include "RegexSplitterEngineFactory.h"
 
 namespace LangPlugins
 {
 
-    class RegexSpliterInterpreterPlugin final : public LangMgr::EngineFactoryPlugin {
+    class RegexSpliterInterpreterPlugin final : public LangMgr::TaskFactoryPlugin {
     public:
         RegexSpliterInterpreterPlugin() = default;
 
         const char *key() const override { return "spliter.regex.RegexSpliterInference"; }
 
-        LangMgr::NO<LangMgr::EngineFactory> create() override {
+        LangMgr::NO<LangMgr::TaskFactory> create() override {
             return LangMgr::NO<RegexSplitterEngineFactory>::create();
         }
     };

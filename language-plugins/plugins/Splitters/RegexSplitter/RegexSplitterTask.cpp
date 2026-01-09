@@ -9,8 +9,8 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
+#include <../../../../language-manager/include/LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
-#include <LangPlugins/Inference/InferenceSession.h>
 
 namespace LangPlugins
 {

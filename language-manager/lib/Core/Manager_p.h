@@ -9,7 +9,8 @@
 
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
 
-#include "Manager.h"
+#include <LangMgr/Core/Manager.h>
+
 #include "PluginFactory_p.h"
 
 namespace LangMgr
@@ -18,7 +19,7 @@ namespace LangMgr
     class ModuleDefinition;
     class PackageData;
 
-    class Manager::Impl : public PluginFactory::Impl {
+    class LANGMGR_EXPORT Manager::Impl : public PluginFactory::Impl {
     public:
         explicit Impl(Manager *decl);
         ~Impl() override;

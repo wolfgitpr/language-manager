@@ -9,11 +9,13 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/stlextra/algorithms.h>
 
-#include "JSON.h"
+#include <../../include/LangMgr/Task/Task.h>
+#include <LangMgr/Base/LangCommon.h>
+#include <LangMgr/Support/Expected.h>
+#include <LangMgr/Support/JSON.h>
 
 #include "Module_p.h"
-#include "PackageRef_p.h"
-#include "Task.h"
+#include "Package_p.h"
 
 namespace fs = std::filesystem;
 
@@ -204,76 +206,6 @@ namespace LangMgr
             }
             return res;
         };
-        do {
-            Error error1;
-            for (const auto &dep : std::as_const(pd->dependencies)) {
-
-                // Try to load all matched packages
-                fs::path foundPath;
-                auto depPaths = searchDependencies(dep.id, dep.version);
-                for (auto it = depPaths.rbegin(); it != depPaths.rend(); ++it) {
-                    const auto &depPath = *it;
-
-                    // Test
-                    auto depPkg = open(depPath, true);
-                    if (!depPkg) {
-                        continue; // ignore
-                    }
-                    std::ignore = close(depPkg.get());
-                    foundPath = depPath;
-                    break;
-                }
-
-                if (foundPath.empty()) {
-                    if (!dep.required) {
-                        continue; // ignore
-                    }
-
-                    // Not found
-                    error1 = {
-                        Error::FileNotFound,
-                        stdc::formatN(R"(required package "%1[%2]" not found)", dep.id, dep.version.toString()),
-                    };
-                    goto out_deps;
-                }
-
-                {
-                    // Load
-                    auto depPkg = open(foundPath, false);
-                    if (!depPkg) {
-                        error1 = {
-                            Error::FileNotOpen,
-                            stdc::formatN(R"(required package "%1[%2]" not valid: %3)", dep.id, dep.version.toString(),
-                                          depPkg.error().message()),
-                        };
-                        goto out_deps;
-                    }
-
-                    auto depSpec = depPkg.get();
-                    if (!depSpec->loaded) {
-                        error1 = {
-                            Error::FileNotOpen,
-                            stdc::formatN(R"(required package "%1[%2]" not loaded: %3)", dep.id, dep.version.toString(),
-                                          depSpec->err.message()),
-                        };
-                        std::ignore = close(depSpec);
-                        goto out_deps;
-                    }
-                    dependencies.push_back(depSpec);
-                }
-            }
-            break;
-
-        out_deps:
-            closeDependencies();
-            pd->err = error1;
-
-            std::unique_lock lock(su_mtx);
-            removePending();
-            resourcePackages.insert(pd);
-            return pd;
-        }
-        while (false);
 
         // Initialize
         {

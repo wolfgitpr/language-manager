@@ -1,9 +1,9 @@
 #ifndef LANGMGR_ITask_P_H
 #define LANGMGR_ITask_P_H
 
-#include <LangMgr/Task/Task.h>
+#include <../../include/LangMgr/Task/Task.h>
 
-#include "Core/NamedObject_p.h"
+#include "NamedObject_p.h"
 
 namespace LangMgr
 {

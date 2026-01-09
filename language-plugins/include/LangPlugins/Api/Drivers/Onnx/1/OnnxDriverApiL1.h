@@ -5,9 +5,8 @@
 #include <map>
 #include <set>
 
+#include <LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
-#include <LangPlugins/Inference/InferenceDriver.h>
-#include <LangPlugins/Inference/InferenceSession.h>
 
 namespace LangPlugins::Api::Onnx::L1
 {
@@ -23,9 +22,9 @@ namespace LangPlugins::Api::Onnx::L1
         CoreMLExecutionProvider,
     };
 
-    class DriverInitArgs : public InferenceDriverInitArgs {
+    class DriverInitArgs : public LangMgr::TaskInitArgs {
     public:
-        DriverInitArgs() : InferenceDriverInitArgs(API_NAME, API_VERSION) {}
+        DriverInitArgs() : TaskInitArgs(API_NAME) {}
 
         /// Load from progress
         bool loadFromProgress = false;
@@ -40,17 +39,17 @@ namespace LangPlugins::Api::Onnx::L1
         std::filesystem::path runtimePath;
     };
 
-    class SessionOpenArgs : public InferenceSessionOpenArgs {
+    class SessionOpenArgs : public LangMgr::TaskInitArgs {
     public:
-        SessionOpenArgs() : InferenceSessionOpenArgs(API_NAME, API_VERSION) {}
+        SessionOpenArgs() : TaskInitArgs(API_NAME) {}
 
         /// Whether to force the use of the CPU for the session.
         bool useCpu = false;
     };
 
-    class SessionStartInput : public InferenceSessionStartInput {
+    class SessionStartInput : public LangMgr::TaskStartInput {
     public:
-        SessionStartInput() : InferenceSessionStartInput(API_NAME, API_VERSION) {}
+        SessionStartInput() : TaskStartInput(API_NAME) {}
 
         /// The input port names and the input tensors.
         std::map<std::string, LangMgr::NO<ITensor>> inputs;
@@ -59,9 +58,9 @@ namespace LangPlugins::Api::Onnx::L1
         std::set<std::string> outputs;
     };
 
-    class SessionResult : public InferenceSessionResult {
+    class SessionResult : public LangMgr::TaskResult {
     public:
-        SessionResult() : InferenceSessionResult(API_NAME, API_VERSION) {}
+        SessionResult() : TaskResult(API_NAME) {}
 
         std::map<std::string, LangMgr::NO<ITensor>> outputs;
     };

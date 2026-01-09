@@ -1,4 +1,4 @@
-#include "Module.h"
+#include "../../include/LangMgr/Module/Module.h"
 #include "Module_p.h"
 
 #include <cstdlib>
@@ -10,11 +10,11 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include "EngineFactory.h"
-#include "EngineFactoryPlugin.h"
+#include <../../include/LangMgr/Task/TaskFactory.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 
 #include "Manager_p.h"
-#include "PackageRef_p.h"
+#include "Package_p.h"
 
 namespace fs = std::filesystem;
 
@@ -487,14 +487,14 @@ namespace LangMgr
         case ModuleDefinition::Initialized:
             {
                 const auto &key = spec->className();
-                NO<EngineFactory> interp;
+                NO<TaskFactory> interp;
 
                 // Search interpreter cache
                 if (const auto it = impl.interpreters.find(key); it != impl.interpreters.end()) {
                     interp = it->second;
                 } else {
                     // Search interpreter
-                    const auto plugin = Mgr()->plugin<EngineFactoryPlugin>(spec->className().c_str());
+                    const auto plugin = Mgr()->plugin<TaskFactoryPlugin>(spec->className().c_str());
                     if (!plugin) {
                         return Error{
                             Error::FeatureNotSupported,

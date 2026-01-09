@@ -3,12 +3,12 @@
 
 #include <filesystem>
 
-#include <LangPlugins/Inference/InferenceDriver.h>
+#include <LangMgr/Task/TaskFactoryPlugin.h>
 
 namespace LangPlugins
 {
 
-    class OnnxDriver : public InferenceDriver {
+    class OnnxDriver : public LangMgr::SessionFactory {
     public:
         OnnxDriver();
         ~OnnxDriver() override;
@@ -16,8 +16,8 @@ namespace LangPlugins
         std::string arch() const override;
         std::string backend() const override;
 
-        LangMgr::Expected<void> initialize(const LangMgr::NO<InferenceDriverInitArgs> &args) override;
-        LangMgr::NO<InferenceSession> createSession() override;
+        LangMgr::Expected<void> initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;
+        LangMgr::NO<LangMgr::SessionTask> createSession() override;
         LangMgr::Expected<void> loadFromProcess() const;
 
     protected:

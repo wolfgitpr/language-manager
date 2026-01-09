@@ -1,11 +1,11 @@
 #ifndef LANGPLUGINS_LSTMG2PENGINEFACTORY_H
 #define LANGPLUGINS_LSTMG2PENGINEFACTORY_H
 
-#include <LangMgr/Modules/EngineFactory.h>
+#include <../../../../language-manager/include/LangMgr/Task/TaskFactory.h>
 
 namespace LangPlugins
 {
-    class LstmG2pEngineFactory : public LangMgr::EngineFactory {
+    class LstmG2pEngineFactory : public LangMgr::TaskFactory {
     public:
         LstmG2pEngineFactory();
         ~LstmG2pEngineFactory() override;
