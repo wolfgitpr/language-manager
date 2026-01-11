@@ -9,7 +9,7 @@ namespace LangPlugins
     public:
         TemplateG2pInterpreterPlugin() = default;
 
-        const char *key() const override { return "g2p.template.TemplateInference"; }
+        const char *key() const override { return "g2p.template.TemplateG2pInference"; }
 
         LangMgr::NO<LangMgr::TaskFactory> create() override {
             return LangMgr::NO<TemplateG2pEngineFactory>::create();

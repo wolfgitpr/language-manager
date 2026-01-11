@@ -1,7 +1,7 @@
 #ifndef LANG_PLUGINS_REGEXSPLITTERTASK_H
 #define LANG_PLUGINS_REGEXSPLITTERTASK_H
 
-#include <../../../../language-manager/include/LangMgr/Task/Task.h>
+#include <LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
 #include <LangPlugins/Api/Splitters/RegexSplitter/1/RegexSplitterL1.h>

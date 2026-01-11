@@ -1,7 +1,7 @@
 #ifndef LANGMGR_ONNXSESSION_H
 #define LANGMGR_ONNXSESSION_H
 
-#include <../../../../language-manager/include/LangMgr/Task/Task.h>
+#include <LangMgr/Task/Task.h>
 
 namespace LangPlugins
 {

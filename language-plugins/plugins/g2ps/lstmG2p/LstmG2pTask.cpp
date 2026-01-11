@@ -1,18 +1,21 @@
 #include "LstmG2pTask.h"
 
 #include <mutex>
+#include <numeric>
 #include <shared_mutex>
 
 #include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <../../../../language-manager/include/LangMgr/Task/Task.h>
 #include <LangMgr/Module/G2pModule.h>
+#include <LangMgr/Task/Task.h>
 #include <LangMgr/Task/TaskFactoryPlugin.h>
 #include <LangPlugins/Core/Tensor.h>
 
 #include <inferutil/TensorHelper.h>
+
+#include "LangMgr/Task/G2pTask.h"
 
 namespace LangPlugins
 {
@@ -23,15 +26,15 @@ namespace LangPlugins
         if (!genericConfig) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "LstmG2p configuration is nullptr");
         }
-        if (!(genericConfig->className() == Lstm::API_CLASS && genericConfig->objectName() == Lstm::API_NAME)) {
-            return LangMgr::Error(LangMgr::Error::InvalidArgument, "invalid LstmG2p configuration");
-        }
+        // if (!(genericConfig->className() == Lstm::API_CLASS && genericConfig->objectName() == Lstm::API_NAME)) {
+        //     return LangMgr::Error(LangMgr::Error::InvalidArgument, "invalid LstmG2p configuration");
+        // }
         return genericConfig.as<Lstm::LstmG2pConfiguration>();
     }
 
     class LstmG2pTask::Impl {
     public:
-        LangMgr::NO<Lstm::LstmG2pResult> result;
+        LangMgr::NO<LangMgr::G2pResult> result;
         LangMgr::NO<LangMgr::SessionFactory> driver;
         LangMgr::NO<LangMgr::SessionTask> encoderSession;
         LangMgr::NO<LangMgr::SessionTask> decodeSession;
@@ -50,11 +53,12 @@ namespace LangPlugins
         if (!args) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "LstmG2p task init args is nullptr");
         }
-        if (auto name = args->objectName(); name != Lstm::API_NAME) {
-            return LangMgr::Error(
-                LangMgr::Error::InvalidArgument,
-                stdc::formatN(R"(invalid LstmG2p task init args name: expected "%1", got "%2")", Lstm::API_NAME, name));
-        }
+        // if (auto name = args->objectName(); name != Lstm::API_NAME) {
+        //     return LangMgr::Error(
+        //         LangMgr::Error::InvalidArgument,
+        //         stdc::formatN(R"(invalid LstmG2p task init args name: expected "%1", got "%2")", Lstm::API_NAME,
+        //         name));
+        // }
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
@@ -125,24 +129,24 @@ namespace LangPlugins
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "g2p input is nullptr");
         }
 
-        if (const auto &name = input->objectName(); name != Lstm::API_NAME) {
-            setState(Failed);
-            return LangMgr::Error(
-                LangMgr::Error::InvalidArgument,
-                stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Lstm::API_NAME, name));
-        }
+        // if (const auto &name = input->objectName(); name != Lstm::API_NAME) {
+        //     setState(Failed);
+        //     return LangMgr::Error(
+        //         LangMgr::Error::InvalidArgument,
+        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Lstm::API_NAME, name));
+        // }
 
-        const auto g2pInput = input.as<Lstm::LstmG2pStartInput>();
+        const auto g2pInput = input.as<LangMgr::G2pStartInput>();
 
         // Preprocess input word
-        if (g2pInput->words.empty()) {
+        if (g2pInput->g2pInput.empty()) {
             setState(Failed);
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "input words are empty");
         }
 
         // For now, process only the first word
-        const auto &word = g2pInput->words[0];
-        auto preprocessedInput = LstmG2pInferenceHelper::preprocessWord(word.text, config);
+        const auto &[lyric, g2pId] = g2pInput->g2pInput[0];
+        auto preprocessedInput = LstmG2pInferenceHelper::preprocessWord(lyric, config);
         if (!preprocessedInput) {
             setState(Failed);
             return preprocessedInput.takeError();
@@ -200,9 +204,15 @@ namespace LangPlugins
             return phonemes.takeError();
         }
 
+        auto phonemes_ = phonemes.take();
+
         // Create result
-        auto g2pResult = LangMgr::NO<Lstm::LstmG2pResult>::create();
-        g2pResult->phonemes = phonemes.take();
+        auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create();
+        g2pResult->g2pResult = {
+            LangMgr::G2pRes(lyric, "eng",
+                            std::accumulate(phonemes_.begin() + 1, phonemes_.end(), phonemes_[0],
+                                            [](const std::string &a, const std::string &b) { return a + " " + b; }),
+                            {}, "copy", true)};
 
         impl.result = g2pResult;
         setState(Idle);

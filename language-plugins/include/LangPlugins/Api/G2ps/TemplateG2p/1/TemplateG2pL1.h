@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <LangMgr/Base/LangCommon.h>
 #include <LangMgr/Task/Task.h>
-#include <LangPlugins/Api/Common/1/CommonApiL1.h>
 
 namespace LangPlugins::Api::TemplateG2p::L1
 {
@@ -17,7 +17,7 @@ namespace LangPlugins::Api::TemplateG2p::L1
     };
 
     constexpr char API_NAME[] = "templateG2p";
-    constexpr char API_CLASS[] = "g2p.template.TemplateInference";
+    constexpr char API_CLASS[] = "g2p.template.TemplateG2pInference";
     constexpr int API_LEVEL = 1;
 
 
@@ -47,14 +47,14 @@ namespace LangPlugins::Api::TemplateG2p::L1
     public:
         TemplateG2pStartInput() : TaskStartInput(API_NAME) {}
 
-        std::vector<Common::L1::G2pInput> g2pInput;
+        std::vector<LangMgr::G2pInput> g2pInput;
     };
 
     class TemplateG2pResult : public LangMgr::TaskResult {
     public:
         TemplateG2pResult() : TaskResult(API_NAME) {}
 
-        std::vector<Common::L1::G2pRes> g2pResult;
+        std::vector<LangMgr::G2pRes> g2pResult;
         std::string errorMessage;
     };
 

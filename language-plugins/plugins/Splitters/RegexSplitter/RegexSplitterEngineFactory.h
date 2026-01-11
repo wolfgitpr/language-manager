@@ -1,7 +1,7 @@
 #ifndef LANGPLUGINS_REGEXSPLITTERENGINEFACTORY_H
 #define LANGPLUGINS_REGEXSPLITTERENGINEFACTORY_H
 
-#include <../../../../language-manager/include/LangMgr/Task/TaskFactory.h>
+#include <LangMgr/Task/TaskFactory.h>
 
 namespace LangPlugins
 {

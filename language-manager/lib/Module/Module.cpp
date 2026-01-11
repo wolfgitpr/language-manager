@@ -1,4 +1,4 @@
-#include "../../include/LangMgr/Module/Module.h"
+#include "LangMgr/Module/Module.h"
 #include "Module_p.h"
 
 #include <cstdlib>
@@ -10,7 +10,8 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <../../include/LangMgr/Task/TaskFactory.h>
+#include <LangMgr/Core/Manager.h>
+#include <LangMgr/Task/TaskFactory.h>
 #include <LangMgr/Task/TaskFactoryPlugin.h>
 
 #include "Manager_p.h"

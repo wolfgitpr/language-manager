@@ -10,7 +10,7 @@
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Task/TaskFactory.h>
 
-#include "Manager_p.h"
+#include "../Core/Manager_p.h"
 #include "ObjectPool_p.h"
 
 namespace LangMgr

@@ -1,4 +1,4 @@
-project(tst_regexSpliter)
+project(tst_regexSplitter)
 
 file(GLOB _src *.h *.cpp)
 add_executable(${PROJECT_NAME} ${_src})

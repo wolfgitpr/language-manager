@@ -31,7 +31,7 @@ namespace LangMgr
 
     G2pCategory::~G2pCategory() = default;
 
-    std::string G2pCategory::key() const { return "g2ps"; }
+    std::string G2pCategory::key() const { return "g2p"; }
     std::string G2pCategory::category() const { return "g2p"; }
 
     G2pCategory::G2pCategory(Manager *env) : ModuleCategory(G2pCategory::category(), env) {}

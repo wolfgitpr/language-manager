@@ -7,7 +7,6 @@
 
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Base/ObjectPool.h>
-#include <LangMgr/Core/Manager.h>
 #include <LangMgr/Support/DisplayText.h>
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Support/JSON.h>
@@ -63,7 +62,6 @@ namespace LangMgr
         std::string _id;
     };
 
-    class Manager;
 
     class PackageData;
 
@@ -182,22 +180,6 @@ namespace LangMgr
         static_assert(std::is_base_of_v<ModuleCategory, T>, "T should inherit from LangMgr::ModuleCategory");
         return static_cast<const T *>(this);
     }
-
-    template <class T>
-    class ModuleCategoryRegistrar {
-        static_assert(std::is_base_of_v<ModuleCategory, T>, "T should inherit from LangMgr::ModuleCategory");
-
-    public:
-        ModuleCategoryRegistrar(ModuleCategory *(*fac)(Manager *)) { Manager::registerCategoryFactory(fac); }
-
-        ModuleCategoryRegistrar() {
-            Manager::registerCategoryFactory(
-                [](Manager *mgr) -> ModuleCategory *
-                {
-                    return new T(mgr); //
-                });
-        }
-    };
 
 } // namespace LangMgr
 

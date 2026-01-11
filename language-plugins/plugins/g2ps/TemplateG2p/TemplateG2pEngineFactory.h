@@ -1,7 +1,7 @@
 #ifndef LANGPLUGINS_TEMPLATEG2PENGINEFACTORY_H
 #define LANGPLUGINS_TEMPLATEG2PENGINEFACTORY_H
 
-#include <../../../../language-manager/include/LangMgr/Task/TaskFactory.h>
+#include <LangMgr/Task/TaskFactory.h>
 
 namespace LangPlugins
 {

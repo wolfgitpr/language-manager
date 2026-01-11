@@ -1,13 +1,12 @@
 #ifndef LANG_PLUGINS_TEMPLATEG2PTASK_H
 #define LANG_PLUGINS_TEMPLATEG2PTASK_H
 
-#include <../../../../language-manager/include/LangMgr/Task/Task.h>
+#include <LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
 #include <LangPlugins/Api/Common/1/CommonApiL1.h>
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
-#include <stdcorelib/str.h>
 
 namespace LangPlugins
 {

@@ -29,11 +29,14 @@ namespace LangMgr
         std::vector<std::filesystem::path> pluginPaths(const char *iid) const;
 
         Plugin *plugin(const char *iid, const char *key) const;
+        std::vector<Plugin *> plugins(const char *iid) const;
 
         template <class T>
         T *plugin(const char *key) const;
         template <class T>
         T *plugin(const char *iid, const char *key) const;
+        template <class T>
+        std::vector<T *> plugins(const char *iid) const;
 
     protected:
         class Impl;
@@ -54,6 +57,12 @@ namespace LangMgr
     T *PluginFactory::plugin(const char *iid, const char *key) const {
         static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangMgr::Plugin");
         return static_cast<T *>(plugin(iid, key));
+    }
+
+    template <class T>
+    std::vector<T *> PluginFactory::plugins(const char *iid) const {
+        static_assert(std::is_base_of_v<std::vector<Plugin>, T>, "T should inherit from LangMgr::Plugin");
+        return static_cast<std::vector<T *>>(plugins(iid));
     }
 
 } // namespace LangMgr

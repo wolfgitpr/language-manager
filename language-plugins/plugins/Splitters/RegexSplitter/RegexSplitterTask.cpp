@@ -9,7 +9,7 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <../../../../language-manager/include/LangMgr/Task/Task.h>
+#include <LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
 namespace LangPlugins
@@ -21,9 +21,9 @@ namespace LangPlugins
         if (!genericConfig) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "RegexSplitter configuration is nullptr");
         }
-        if (!(genericConfig->className() == Regex::API_CLASS && genericConfig->objectName() == Regex::API_NAME)) {
-            return LangMgr::Error(LangMgr::Error::InvalidArgument, "invalid RegexSplitter configuration");
-        }
+        // if (!(genericConfig->className() == Regex::API_CLASS && genericConfig->objectName() == Regex::API_NAME)) {
+        //     return LangMgr::Error(LangMgr::Error::InvalidArgument, "invalid RegexSplitter configuration");
+        // }
         return genericConfig.as<Regex::RegexSplitterConfiguration>();
     }
 
@@ -47,11 +47,11 @@ namespace LangPlugins
         if (!args) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "RegexSplitter task init args is nullptr");
         }
-        if (auto name = args->objectName(); name != Regex::API_NAME) {
-            return LangMgr::Error(LangMgr::Error::InvalidArgument,
-                                  stdc::formatN(R"(invalid RegexSplitter task init args name: expected "%1", got "%2")",
-                                                Regex::API_NAME, name));
-        }
+        // if (auto name = args->objectName(); name != Regex::API_NAME) {
+        //     return LangMgr::Error(LangMgr::Error::InvalidArgument,
+        //                           stdc::formatN(R"(invalid RegexSplitter task init args name: expected "%1", got "%2")",
+        //                                         Regex::API_NAME, name));
+        // }
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
@@ -93,27 +93,27 @@ namespace LangPlugins
 
         if (!input) {
             setState(Failed);
-            return LangMgr::Error(LangMgr::Error::InvalidArgument, "spliter input is nullptr");
+            return LangMgr::Error(LangMgr::Error::InvalidArgument, "splitter input is nullptr");
         }
 
         if (const auto &name = input->objectName(); name != Regex::API_NAME) {
             setState(Failed);
             return LangMgr::Error(LangMgr::Error::InvalidArgument,
-                                  stdc::formatN(R"(invalid spliter task init args name: expected "%1", got "%2")",
+                                  stdc::formatN(R"(invalid splitter task init args name: expected "%1", got "%2")",
                                                 Regex::API_NAME, name));
         }
 
-        const auto spliterInput = input.as<Regex::RegexSplitterStartInput>();
+        const auto splitterInput = input.as<Regex::RegexSplitterStartInput>();
 
         // Preprocess input word
-        if (spliterInput->rawStrVec.empty()) {
+        if (splitterInput->rawStrVec.empty()) {
             setState(Failed);
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "input words are empty");
         }
 
         const auto regexResult = LangMgr::NO<Regex::RegexSplitterResult>::create();
 
-        for (auto rawStr : spliterInput->rawStrVec) {
+        for (auto rawStr : splitterInput->rawStrVec) {
             std::vector<std::string> result;
 
             if (rawStr.empty())

@@ -28,13 +28,13 @@ namespace LangMgr
         std::string g2pId = "unknown";
         std::string pronunciation = lyric;
         std::vector<std::string> candidates = {pronunciation};
-        g2pMode mode = Copy;
+        std::string mode = "copy";
         bool error = true;
 
         explicit G2pRes(std::string lyric, std::string g2pId, std::string pronunciation,
-                        std::vector<std::string> candidates = {}, const g2pMode mode = Copy, const bool error = true) :
+                        std::vector<std::string> candidates = {}, std::string mode = "copy", const bool error = true) :
             lyric(std::move(lyric)), g2pId(std::move(g2pId)), pronunciation(std::move(pronunciation)),
-            candidates(std::move(candidates)), mode(mode), error{error} {}
+            candidates(std::move(candidates)), mode(std::move(mode)), error{error} {}
     };
 } // namespace LangMgr
 #endif // LANGCOMMON_H

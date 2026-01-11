@@ -1,6 +1,7 @@
 #ifndef LANGMGR_DRIVERMODULE_H
 #define LANGMGR_DRIVERMODULE_H
 
+#include <LangMgr/Core/Manager.h>
 #include <LangMgr/Module/Module.h>
 #include <LangMgr/Task/Task.h>
 

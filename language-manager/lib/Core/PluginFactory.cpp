@@ -245,6 +245,24 @@ namespace LangMgr
         return it2->second;
     }
 
+    std::vector<Plugin *> PluginFactory::plugins(const char *iid) const {
+        __stdc_impl_t;
+
+        std::unique_lock lock(impl.plugins_mtx);
+        if (impl.pluginsDirty.count(iid))
+            impl.scanPlugins(iid);
+
+        const auto it = impl.allPlugins.find(iid);
+        if (it == impl.allPlugins.end())
+            return {};
+
+        const auto &pluginsMap = it->second;
+        std::vector<Plugin *> pluginsVec;
+        for (const auto &[fst, snd] : pluginsMap)
+            pluginsVec.push_back(snd);
+        return pluginsVec;
+    }
+
     /*!
         \internal
     */

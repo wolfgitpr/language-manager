@@ -1,6 +1,7 @@
 #ifndef LANGMGR_INFERENCECONTRIB_H
 #define LANGMGR_INFERENCECONTRIB_H
 
+#include <LangMgr/Core/Manager.h>
 #include <LangMgr/Module/Module.h>
 
 namespace LangMgr

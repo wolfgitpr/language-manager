@@ -7,23 +7,23 @@
 
 #include <stdcorelib/support/versionnumber.h>
 
+#include <LangMgr/Base/LangCommon.h>
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Core/PluginFactory.h>
 #include <LangMgr/LangMgrGlobal.h>
+#include <LangMgr/Module/Dependency.h>
+#include <LangMgr/Module/Module.h>
 
 namespace LangMgr
 {
 
     class Package;
-    class ModuleCategory;
     class Task;
-    class TaggerRes;
+    struct TaggerRes;
+    class ModuleCategory;
 
     template <class T>
     class Expected;
-
-    template <class T>
-    class ModuleCategoryRegistrar;
 
     class LANGMGR_EXPORT Manager : public PluginFactory {
     public:
@@ -63,9 +63,17 @@ namespace LangMgr
         std::vector<Package> find(const std::string_view &id) const;
         std::vector<Package> packages() const;
 
+        std::vector<ModuleInfo> getModuleInfos();
+
     protected:
         class Impl;
         static void registerCategoryFactory(ModuleCategory *(*fac)(Manager *));
+
+        void collectModuleInfo(const std::string &packageId, const std::string &packageVersion,
+                               const std::filesystem::path &packagePath, const JsonObject &modulesObj);
+        static void extractModuleInfoFromJson(const std::string &packageId, const std::string &packageVersion,
+                                              const JsonObject &moduleEntry, ModuleInfo &info);
+
 
         friend class Package;
         friend class ModuleCategory;
@@ -75,6 +83,18 @@ namespace LangMgr
     };
 
     inline void Manager::addPackagePath(const std::filesystem::path &path) { addPackagePaths({path}); }
+
+    template <class T>
+    class ModuleCategoryRegistrar {
+        static_assert(std::is_base_of_v<ModuleCategory, T>, "T should inherit from LangMgr::ModuleCategory");
+
+    public:
+        ModuleCategoryRegistrar(ModuleCategory *(*fac)(Manager *)) { Manager::registerCategoryFactory(fac); }
+
+        ModuleCategoryRegistrar() {
+            Manager::registerCategoryFactory([](Manager *mgr) -> ModuleCategory * { return new T(mgr); });
+        }
+    };
 
 } // namespace LangMgr
 

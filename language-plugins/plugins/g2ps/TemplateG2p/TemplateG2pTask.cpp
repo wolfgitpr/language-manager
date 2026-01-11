@@ -13,11 +13,13 @@
 #include <re2/re2.h>
 #include <stdcorelib/console.h>
 
-#include <../../../../language-manager/include/LangMgr/Module/Module.h>
 #include <LangMgr/Module/G2pModule.h>
+#include <LangMgr/Module/Module.h>
 
 #include <LangPlugins/Api/G2ps/LstmG2p/1/LstmG2pL1.h>
 #include <LangPlugins/Support/PhonemeDict.h>
+
+#include "LangMgr/Task/G2pTask.h"
 
 namespace LangPlugins
 {
@@ -37,7 +39,7 @@ namespace LangPlugins
     public:
         explicit VerifyBase(Api::TemplateG2p::L1::VerifyEntry entry) : entry_(std::move(entry)) {}
         virtual ~VerifyBase() = default;
-        virtual void verify(std::vector<Common::G2pRes> &input) {}
+        virtual void verify(std::vector<LangMgr::G2pRes> &input) {}
 
     protected:
         Api::TemplateG2p::L1::VerifyEntry entry_;
@@ -56,7 +58,7 @@ namespace LangPlugins
         }
         ~VerifyRegex() override = default;
 
-        void verify(std::vector<Common::G2pRes> &input) override {
+        void verify(std::vector<LangMgr::G2pRes> &input) override {
             std::string pattern = regex_->pattern();
             for (auto &it : input) {
                 if (!it.error)
@@ -91,7 +93,7 @@ namespace LangPlugins
         }
         ~VerifyArray() override = default;
 
-        void verify(std::vector<Common::G2pRes> &input) override {
+        void verify(std::vector<LangMgr::G2pRes> &input) override {
             for (auto &it : input) {
                 if (!it.error)
                     continue;
@@ -150,7 +152,7 @@ namespace LangPlugins
 
     class TemplateG2pTask::Impl {
     public:
-        LangMgr::NO<Template::TemplateG2pResult> result;
+        LangMgr::NO<LangMgr::G2pResult> result;
         LangMgr::NO<Task> g2pInference;
         std::vector<std::unique_ptr<VerifyBase>> verifiers;
         PhonemeDict phonemeDict;
@@ -169,17 +171,18 @@ namespace LangPlugins
         if (!args) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "TemplateG2p task init args is nullptr");
         }
-        if (auto name = args->objectName(); name != Template::API_NAME) {
-            return LangMgr::Error(LangMgr::Error::InvalidArgument,
-                                  stdc::formatN(R"(invalid TemplateG2p task init args name: expected "%1", got "%2")",
-                                                Template::API_NAME, name));
-        }
+        // if (auto name = args->objectName(); name != Template::API_NAME) {
+        //     return LangMgr::Error(LangMgr::Error::InvalidArgument,
+        //                           stdc::formatN(R"(invalid TemplateG2p task init args name: expected "%1", got
+        //                           "%2")",
+        //                                         Template::API_NAME, name));
+        // }
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        if (auto res = getObject("g2p", "lstmG2pInference"); res) {
+        if (auto res = getObject("g2p", "g2p-official-eng"); res) {
             impl.g2pInference = res.take().as<Task>();
         } else {
             setState(Failed);
@@ -238,7 +241,7 @@ namespace LangPlugins
             std::shared_lock lock(impl.mutex);
             if (!impl.g2pInference) {
                 setState(Failed);
-                return LangMgr::Error(LangMgr::Error::SessionError, "onnx g2p inference not initialized");
+                return LangMgr::Error(LangMgr::Error::SessionError, "TemplateG2pTask: g2p inference not initialized");
             }
         }
 
@@ -255,17 +258,18 @@ namespace LangPlugins
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "g2p input is nullptr");
         }
 
-        if (const auto &name = input->objectName(); name != Template::API_NAME) {
-            setState(Failed);
-            return LangMgr::Error(
-                LangMgr::Error::InvalidArgument,
-                stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Template::API_NAME, name));
-        }
+        // if (const auto &name = input->objectName(); name != Template::API_NAME) {
+        //     setState(Failed);
+        //     return LangMgr::Error(
+        //         LangMgr::Error::InvalidArgument,
+        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Template::API_NAME,
+        //         name));
+        // }
 
-        const auto g2pInput = input.as<Template::TemplateG2pStartInput>();
-        std::vector<Common::G2pRes> res;
+        const auto g2pInput = input.as<LangMgr::G2pStartInput>();
+        std::vector<LangMgr::G2pRes> res;
         for (const auto &[lyric, g2pid] : g2pInput->g2pInput)
-            res.push_back(Common::G2pRes(lyric, g2pid, "", {}, "copy", true));
+            res.push_back(LangMgr::G2pRes(lyric, g2pid, "", {}, "copy", true));
 
         for (const auto &verifier : impl.verifiers)
             verifier->verify(res);
@@ -276,9 +280,8 @@ namespace LangPlugins
                 it.candidates = {it.pronunciation};
             } else if (it.mode == "convert") {
                 if (const auto findResult = lookup(it.lyric); findResult.empty()) {
-                    const auto lstmInput = LangMgr::NO<Api::LstmG2p::L1::LstmG2pStartInput>::create();
-                    lstmInput->words.push_back(Api::LstmG2p::L1::G2pWord{it.lyric});
-                    lstmInput->returnDetailedInfo = true;
+                    const auto lstmInput = LangMgr::NO<LangMgr::G2pStartInput>::create();
+                    lstmInput->g2pInput.push_back(LangMgr::G2pInput{it.lyric, it.g2pId});
 
                     std::cout << "Dict not contains word: " << it.lyric << "; Starting lstmG2p inference..."
                               << std::endl;
@@ -309,7 +312,7 @@ namespace LangPlugins
         }
 
         // Create result
-        auto g2pResult = LangMgr::NO<Template::TemplateG2pResult>::create();
+        auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create();
         g2pResult->g2pResult = res;
 
         impl.result = g2pResult;

@@ -10,6 +10,7 @@
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
 
 #include <LangMgr/Core/Manager.h>
+#include <LangMgr/Module/Module.h>
 
 #include "PluginFactory_p.h"
 
@@ -76,6 +77,9 @@ namespace LangMgr
                                                        "linebreak",  "unknown"};
         std::map<std::string, NO<Task>> taggers;
         std::string m_pinyinDictPath;
+
+        std::unordered_set<ModuleInfo, ModuleInfo::MainModuleHash, ModuleInfo::MainModuleEqual> moduleInfoSet;
+        std::vector<ModuleInfo> moduleInfos;
 
         mutable std::shared_mutex su_mtx;
 

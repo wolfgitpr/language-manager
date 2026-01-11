@@ -34,20 +34,20 @@ static LangMgr::Expected<void> initializeMgr(LangMgr::Manager &mgr) {
 
     // Set default plugin directories
     mgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("g2ps"));
-    mgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("spliters"));
+    mgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("splitters"));
 
-    // Load RegexSpliterInterpreter
-    const auto regexSpliterInterpreterPlugin =
-        mgr.plugin<LangMgr::TaskFactoryPlugin>("spliter.regex.RegexSpliterInference");
-    if (!regexSpliterInterpreterPlugin) {
+    // Load RegexSplitterInterpreter
+    const auto regexSplitterInterpreterPlugin =
+        mgr.plugin<LangMgr::TaskFactoryPlugin>("splitter.regex.RegexSplitterInference");
+    if (!regexSplitterInterpreterPlugin) {
         return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load RegexSplitter interpreter plugin");
     }
 
-    const auto regexSpliterInterpreter = regexSpliterInterpreterPlugin->create();
+    const auto regexSplitterInterpreter = regexSplitterInterpreterPlugin->create();
 
     // Add drivers and interpreters to manager
     auto &ic = *mgr.category("inference");
-    ic.addObject("regexSpliterInterpreter", regexSpliterInterpreter);
+    ic.addObject("regexSplitterInterpreter", regexSplitterInterpreter);
     return {};
 }
 
@@ -60,7 +60,7 @@ int main() {
 
     const auto modelBasePath = std::filesystem::path(R"(D:\projects\language-manager\tst_package)");
 
-    const LangMgr::G2pDefinition *spliterSpec = nullptr;
+    const LangMgr::G2pDefinition *splitterSpec = nullptr;
     std::vector<LangMgr::Package> pkgs;
 
     auto loadPackage = [&](const std::filesystem::path &path)
@@ -71,13 +71,13 @@ int main() {
         } else {
             const auto pkg = exp.take();
             pkgs.push_back(pkg);
-            const auto regexSpliterG2pContrib = pkg.moduleSpecs("inference");
-            if (regexSpliterG2pContrib.empty()) {
+            const auto regexSplitterG2pContrib = pkg.moduleSpecs("inference");
+            if (regexSplitterG2pContrib.empty()) {
                 std::cerr << "no inference contributions found in package" << std::endl;
                 return false;
             }
-            spliterSpec = dynamic_cast<LangMgr::G2pDefinition *>(regexSpliterG2pContrib.front());
-            if (!spliterSpec) {
+            splitterSpec = dynamic_cast<LangMgr::G2pDefinition *>(regexSplitterG2pContrib.front());
+            if (!splitterSpec) {
                 std::cerr << "failed to cast to InferenceDefinition" << std::endl;
                 return false;
             }
@@ -85,25 +85,25 @@ int main() {
         return true;
     };
 
-    // loadPackage(modelBasePath / "spliter-cmn");
-    loadPackage(modelBasePath / "spliter-num");
+    // loadPackage(modelBasePath / "splitter-cmn");
+    loadPackage(modelBasePath / "splitter-num");
 
     const auto &inferenceCategory = *langMgr.category("inference");
-    const auto regexSpliterInterpreter =
-        inferenceCategory.getFirstObject("regexSpliterInterpreter").as<LangMgr::TaskFactory>();
+    const auto regexSplitterInterpreter =
+        inferenceCategory.getFirstObject("regexSplitterInterpreter").as<LangMgr::TaskFactory>();
 
-    if (!regexSpliterInterpreter) {
+    if (!regexSplitterInterpreter) {
         std::cerr << "RegexSplitter interpreter not found" << std::endl;
         return -1;
     }
 
-    std::cout << "Found inference spec: " << spliterSpec->name().text() << std::endl;
-    std::cout << "Class name: " << spliterSpec->className() << std::endl;
-    std::cout << "API Level: " << spliterSpec->apiLevel() << std::endl;
+    std::cout << "Found inference spec: " << splitterSpec->name().text() << std::endl;
+    std::cout << "Class name: " << splitterSpec->className() << std::endl;
+    std::cout << "API Level: " << splitterSpec->apiLevel() << std::endl;
 
     const auto runtimeOptions = LangMgr::NO<LangPlugins::Api::RegexSplitter::L1::RegexSplitterRuntimeOptions>::create();
 
-    auto inferenceExp = regexSpliterInterpreter->createTask(spliterSpec, runtimeOptions);
+    auto inferenceExp = regexSplitterInterpreter->createTask(splitterSpec, runtimeOptions);
     if (!inferenceExp) {
         std::cerr << "failed to create inference: " << inferenceExp.error().message() << std::endl;
         return -1;
@@ -130,16 +130,16 @@ int main() {
     }
 
     const auto result = resultExp.take();
-    if (const auto spliterResult = result.as<LangPlugins::Api::RegexSplitter::L1::RegexSplitterResult>()) {
+    if (const auto splitterResult = result.as<LangPlugins::Api::RegexSplitter::L1::RegexSplitterResult>()) {
         std::cout << "Input: " << input->rawStrVec.front() << std::endl;
         std::cout << "Res: ";
-        for (const auto &resStr : spliterResult->resStrVec) {
+        for (const auto &resStr : splitterResult->resStrVec) {
             std::cout << resStr << " ";
         }
         std::cout << std::endl;
 
-        if (!spliterResult->errorMessage.empty()) {
-            std::cout << "Error: " << spliterResult->errorMessage << std::endl;
+        if (!splitterResult->errorMessage.empty()) {
+            std::cout << "Error: " << splitterResult->errorMessage << std::endl;
         }
     } else {
         std::cerr << "unexpected result type" << std::endl;
