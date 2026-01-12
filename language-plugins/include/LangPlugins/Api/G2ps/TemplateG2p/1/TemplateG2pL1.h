@@ -4,11 +4,16 @@
 #include <string>
 #include <vector>
 
-#include <LangMgr/Base/LangCommon.h>
 #include <LangMgr/Task/Task.h>
+
+#include "LangMgr/Task/G2pTask.h"
 
 namespace LangPlugins::Api::TemplateG2p::L1
 {
+
+    constexpr char API_NAME[] = "templateG2p";
+    constexpr char API_CLASS[] = "g2p.template.TemplateG2pInference";
+    constexpr int API_LEVEL = 1;
 
     struct VerifyEntry {
         std::string type;
@@ -16,46 +21,25 @@ namespace LangPlugins::Api::TemplateG2p::L1
         std::string mode;
     };
 
-    constexpr char API_NAME[] = "templateG2p";
-    constexpr char API_CLASS[] = "g2p.template.TemplateG2pInference";
-    constexpr int API_LEVEL = 1;
-
-
-    class TemplateG2pConfiguration : public LangMgr::TaskConfiguration {
+    class TemplateG2pConfiguration : public LangMgr::G2pConfiguration {
     public:
-        TemplateG2pConfiguration() : TaskConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        TemplateG2pConfiguration() : G2pConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::vector<VerifyEntry> verifyEntry;
         std::filesystem::path dictPath;
         std::string onnxInferenceId;
     };
 
-    class TemplateG2pRuntimeOptions : public LangMgr::TaskRuntimeOptions {
+    class TemplateG2pRuntimeOptions : public LangMgr::G2pRuntimeOptions {
     public:
-        TemplateG2pRuntimeOptions() : TaskRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        TemplateG2pRuntimeOptions() : G2pRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
     };
 
-    class TemplateG2pInitArgs : public LangMgr::TaskInitArgs {
+    class TemplateG2pInitArgs : public LangMgr::G2pInitArgs {
     public:
-        TemplateG2pInitArgs() : TaskInitArgs(API_NAME) {}
+        TemplateG2pInitArgs() : G2pInitArgs(API_NAME, API_CLASS, API_LEVEL) {}
 
         LangMgr::NO<TemplateG2pRuntimeOptions> runtimeOptions;
-    };
-
-
-    class TemplateG2pStartInput : public LangMgr::TaskStartInput {
-    public:
-        TemplateG2pStartInput() : TaskStartInput(API_NAME) {}
-
-        std::vector<LangMgr::G2pInput> g2pInput;
-    };
-
-    class TemplateG2pResult : public LangMgr::TaskResult {
-    public:
-        TemplateG2pResult() : TaskResult(API_NAME) {}
-
-        std::vector<LangMgr::G2pRes> g2pResult;
-        std::string errorMessage;
     };
 
 } // namespace LangPlugins::Api::TemplateG2p::L1

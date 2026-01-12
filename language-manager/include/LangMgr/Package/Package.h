@@ -3,42 +3,32 @@
 
 #include <filesystem>
 #include <string>
-#include <utility>
-
-#include <stdcorelib/adt/array_view.h>
-#include <stdcorelib/support/versionnumber.h>
+#include <vector>
 
 #include <LangMgr/Support/DisplayText.h>
 #include <LangMgr/Support/Expected.h>
+#include <stdcorelib/adt/array_view.h>
+#include <stdcorelib/support/versionnumber.h>
 
 namespace LangMgr
 {
-
     class Manager;
     class ModuleDefinition;
     class PackageData;
     class ScopedPackageRef;
 
-    /// PackageRef - Represents a reference to a package opened by \c Manager, does not own the
-    /// package resources.
     class LANGMGR_EXPORT Package {
     public:
         Package();
         ~Package();
 
         bool isValid() const { return Mgr() != nullptr; }
-
-        /// Close the package or reduce its reference count in \c Manager. When all \c PackageRef
-        /// instances opened using \c Manager::open are closed, its shared internal data will be
-        /// deleted. Anyone creating a \c PackageRef instance using a copy construct should be aware
-        /// of the lifetime of the internal data.
         bool close();
 
         const std::string &id() const;
         stdc::VersionNumber version() const;
-        stdc::VersionNumber compatVersion() const; // maybe not used
+        stdc::VersionNumber compatVersion() const;
 
-        /// Author information, for display purposes only.
         DisplayText description() const;
         DisplayText vendor() const;
         DisplayText copyright() const;
@@ -48,25 +38,13 @@ namespace LangMgr
         std::vector<ModuleDefinition *> moduleSpecs(const std::string_view &category) const;
         ModuleDefinition *moduleSpec(const std::string_view &category, const std::string_view &id) const;
 
-        /// Loader-specific
         const std::filesystem::path &path() const;
-
-        /// The error will be set if the package is not opened or loaded correctly.
         Error error() const;
-
-        /// Returns true if and only if the \c noLoad option is not specified when opening the
-        /// package and the loading is successful.
-        ///
-        /// If the package is successfully loaded, its resources are managed by \c Manager, which
-        /// maintains its reference count.
         bool isLoaded() const;
-
-        /// Returns the \c Manager instance that loaded this package.
         Manager *Mgr() const;
 
     private:
         explicit Package(PackageData *data) : _data(data) {}
-
         PackageData *_data;
 
         friend class ModuleDefinition;
@@ -74,14 +52,10 @@ namespace LangMgr
         friend class ScopedPackageRef;
     };
 
-    /// ScopedPackageRef - Represents a unique reference to a package opened by \c Manager, and
-    /// closes it upon destruction.
     class ScopedPackageRef : public Package {
     public:
         ScopedPackageRef() = default;
-
         explicit ScopedPackageRef(Package &&RHS) { std::swap(_data, RHS._data); }
-
         ~ScopedPackageRef() { forceClose(); }
 
         ScopedPackageRef &operator=(Package &&RHS) {
@@ -100,10 +74,7 @@ namespace LangMgr
 
     private:
         LANGMGR_EXPORT void forceClose();
-
         STDCORELIB_DISABLE_COPY(ScopedPackageRef);
     };
-
 } // namespace LangMgr
-
-#endif // LANGUAGE_MANAGER_PACKAGEREF_H
+#endif

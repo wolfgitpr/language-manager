@@ -35,6 +35,7 @@ namespace LangMgr
         // packages func
         void closeAllLoadedPackages();
         void refreshPackageIndexes();
+        bool resolveModuleDependencies();
 
         std::map<std::string, ModuleCategory *, std::less<>> categories;
         std::map<std::string, ModuleCategory *, std::less<>> cateKeyMap;
@@ -81,8 +82,10 @@ namespace LangMgr
         std::unordered_set<ModuleInfo, ModuleInfo::MainModuleHash, ModuleInfo::MainModuleEqual> moduleInfoSet;
         std::vector<ModuleInfo> moduleInfos;
 
-        mutable std::shared_mutex su_mtx;
+        bool dependencyResolutionSuccessful = true;
+        std::vector<std::string> dependencyErrors;
 
+        mutable std::shared_mutex su_mtx;
         static llvm::SmallVector<ModuleCategory *(*)(Manager *)> categoryFactories;
     };
 

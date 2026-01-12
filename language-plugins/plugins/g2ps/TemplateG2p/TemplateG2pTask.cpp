@@ -15,11 +15,10 @@
 
 #include <LangMgr/Module/G2pModule.h>
 #include <LangMgr/Module/Module.h>
+#include <LangMgr/Task/G2pTask.h>
 
-#include <LangPlugins/Api/G2ps/LstmG2p/1/LstmG2pL1.h>
 #include <LangPlugins/Support/PhonemeDict.h>
 
-#include "LangMgr/Task/G2pTask.h"
 
 namespace LangPlugins
 {
@@ -280,7 +279,8 @@ namespace LangPlugins
                 it.candidates = {it.pronunciation};
             } else if (it.mode == "convert") {
                 if (const auto findResult = lookup(it.lyric); findResult.empty()) {
-                    const auto lstmInput = LangMgr::NO<LangMgr::G2pStartInput>::create();
+                    const auto lstmInput = LangMgr::NO<LangMgr::G2pStartInput>::create(
+                        LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS, LangMgr::G2P_API_LEVEL);
                     lstmInput->g2pInput.push_back(LangMgr::G2pInput{it.lyric, it.g2pId});
 
                     std::cout << "Dict not contains word: " << it.lyric << "; Starting lstmG2p inference..."
@@ -290,12 +290,8 @@ namespace LangPlugins
                         std::cerr << "lstmG2p inference failed: " << resultExp.error().message() << std::endl;
 
                     auto result = resultExp.take();
-                    if (const auto g2pResult = result.as<Api::LstmG2p::L1::LstmG2pResult>()) {
-                        const auto phonemes = g2pResult->phonemes;
-                        it.pronunciation = std::accumulate(phonemes.begin(), phonemes.end(), std::string(),
-                                                           [](const std::string &a, const std::string &b)
-                                                           { return a.empty() ? b : a + " " + b; });
-
+                    if (const auto g2pResult = result.as<LangMgr::G2pResult>()) {
+                        it.pronunciation = g2pResult->g2pResult[0].pronunciation;
                     } else {
                         if (!g2pResult->errorMessage.empty())
                             std::cout << "Error: " << g2pResult->errorMessage << std::endl;
@@ -312,7 +308,8 @@ namespace LangPlugins
         }
 
         // Create result
-        auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create();
+        auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create(LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS,
+                                                                 LangMgr::G2P_API_LEVEL);
         g2pResult->g2pResult = res;
 
         impl.result = g2pResult;

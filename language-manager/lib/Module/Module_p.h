@@ -1,5 +1,5 @@
-#ifndef LANGUAGE_MANAGER_CONTRIBUTE_P_H
-#define LANGUAGE_MANAGER_CONTRIBUTE_P_H
+#ifndef LANGUAGE_MODULE_P_H
+#define LANGUAGE_MODULE_P_H
 
 #include <list>
 #include <map>
@@ -10,7 +10,7 @@
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Task/TaskFactory.h>
 
-#include "../Core/Manager_p.h"
+#include "Manager_p.h"
 #include "ObjectPool_p.h"
 
 namespace LangMgr
@@ -67,4 +67,4 @@ namespace LangMgr
 
 } // namespace LangMgr
 
-#endif // LANGUAGE_MANAGER_CONTRIBUTE_P_H
+#endif // LANGUAGE_MODULE_P_H

@@ -2,8 +2,9 @@
 #define LANGUAGE_MANAGER_MODULE_H
 
 #include <filesystem>
-
-#include <stdcorelib/support/versionnumber.h>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Base/ObjectPool.h>
@@ -11,16 +12,10 @@
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Support/JSON.h>
 #include <LangMgr/Task/Task.h>
+#include <stdcorelib/support/versionnumber.h>
 
 namespace LangMgr
 {
-
-    /// Package contribution locator.
-    ///
-    /// Syntax:
-    ///  - <package>[<version>]/<contrib>:  e.g. \c foo[1.0]/bar
-    ///  - <package>/<id>:                  e.g. \c foo/bar
-    ///  - <contrib>:                       e.g. \c bar
     class ModuleLocator {
     public:
         ModuleLocator(std::string package, stdc::VersionNumber version, std::string id) :
@@ -32,22 +27,13 @@ namespace LangMgr
 
         ModuleLocator() = default;
 
-        /// Returns the package name.
         const std::string &package() const { return _package; }
-
-        /// Returns the package version.
         stdc::VersionNumber version() const { return _version; }
-
-        /// Returns the contribution ID.
         const std::string &id() const { return _id; }
-
         bool isEmpty() const { return _id.empty(); }
 
         std::string toString() const;
-
-        /// Parses the contribution locator from the given string.
         static ModuleLocator fromString(const std::string_view &token);
-
         static bool isValidLocator(const std::string_view &token);
 
         bool operator==(const ModuleLocator &other) const {
@@ -56,18 +42,16 @@ namespace LangMgr
 
         bool operator!=(const ModuleLocator &other) const { return !(*this == other); }
 
-    protected:
+    private:
         std::string _package;
         stdc::VersionNumber _version;
         std::string _id;
     };
 
-
     class PackageData;
-
     class Package;
-
     class ModuleCategory;
+    class Manager;
 
     class LANGMGR_EXPORT ModuleDefinition {
     public:
@@ -83,24 +67,18 @@ namespace LangMgr
 
         const std::string &id() const;
         const std::string &category() const;
-
         const std::string &className() const;
         DisplayText name() const;
         int apiLevel() const;
 
         const JsonObject &manifestConfiguration() const;
         NO<TaskConfiguration> configuration() const;
-
         const std::filesystem::path &path() const;
 
-        /// Creates an inference interface with the given options.
         Expected<NO<Task>> createTask(const NO<TaskRuntimeOptions> &runtimeOptions) const;
 
-        /// Load state. Internal use only.
         State state() const;
-        /// Related package.
         Package parent() const;
-        /// Related \c Manager instance.
         Manager *Mgr() const;
 
         template <class T>
@@ -121,13 +99,13 @@ namespace LangMgr
 
     template <class T>
     constexpr T *ModuleDefinition::as() {
-        static_assert(std::is_base_of_v<ModuleDefinition, T>, "T should inherit from LangMgr::ModuleDefinition");
+        static_assert(std::is_base_of_v<ModuleDefinition, T>, "T must inherit from LangMgr::ModuleDefinition");
         return static_cast<T *>(this);
     }
 
     template <class T>
     constexpr const T *ModuleDefinition::as() const {
-        static_assert(std::is_base_of_v<ModuleDefinition, T>, "T should inherit from LangMgr::ModuleDefinition");
+        static_assert(std::is_base_of_v<ModuleDefinition, T>, "T must inherit from LangMgr::ModuleDefinition");
         return static_cast<const T *>(this);
     }
 
@@ -136,8 +114,6 @@ namespace LangMgr
         ~ModuleCategory() override;
 
         const std::string &name() const;
-
-        /// Returns the related \c Manager instance.
         Manager *Mgr() const;
 
         std::vector<ModuleDefinition *> findDefinitions(const ModuleLocator &identifier) const;
@@ -171,16 +147,14 @@ namespace LangMgr
 
     template <class T>
     constexpr T *ModuleCategory::as() {
-        static_assert(std::is_base_of_v<ModuleCategory, T>, "T should inherit from LangMgr::ModuleCategory");
+        static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangMgr::ModuleCategory");
         return static_cast<T *>(this);
     }
 
     template <class T>
     constexpr const T *ModuleCategory::as() const {
-        static_assert(std::is_base_of_v<ModuleCategory, T>, "T should inherit from LangMgr::ModuleCategory");
+        static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangMgr::ModuleCategory");
         return static_cast<const T *>(this);
     }
-
 } // namespace LangMgr
-
-#endif // LANGUAGE_MANAGER_MODULE_H
+#endif

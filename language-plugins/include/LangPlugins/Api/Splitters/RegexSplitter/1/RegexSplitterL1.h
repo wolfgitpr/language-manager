@@ -4,46 +4,44 @@
 #include <string>
 #include <vector>
 
-#include <LangMgr/Module/G2pModule.h>
-
+#include <LangMgr/Task/SplitterTask.h>
 
 namespace LangPlugins::Api::RegexSplitter::L1
 {
-
     constexpr char API_NAME[] = "regexSplitter";
     constexpr char API_CLASS[] = "splitter.regex.RegexSplitterInference";
     constexpr int API_LEVEL = 1;
 
 
-    class RegexSplitterConfiguration : public LangMgr::TaskConfiguration {
+    class RegexSplitterConfiguration : public LangMgr::SplitterConfiguration {
     public:
-        RegexSplitterConfiguration() : TaskConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        RegexSplitterConfiguration() : SplitterConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::string regexStr;
     };
 
-    class RegexSplitterRuntimeOptions : public LangMgr::TaskRuntimeOptions {
+    class RegexSplitterRuntimeOptions : public LangMgr::SplitterRuntimeOptions {
     public:
-        RegexSplitterRuntimeOptions() : TaskRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        RegexSplitterRuntimeOptions() : SplitterRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
     };
 
-    class RegexSplitterInitArgs : public LangMgr::TaskInitArgs {
+    class RegexSplitterInitArgs : public LangMgr::SplitterInitArgs {
     public:
-        RegexSplitterInitArgs() : TaskInitArgs(API_NAME) {}
+        RegexSplitterInitArgs() : SplitterInitArgs(API_NAME, API_CLASS, API_LEVEL) {}
 
         LangMgr::NO<RegexSplitterRuntimeOptions> runtimeOptions;
     };
 
-    class RegexSplitterStartInput : public LangMgr::TaskStartInput {
+    class RegexSplitterStartInput : public LangMgr::SplitterStartInput {
     public:
-        RegexSplitterStartInput() : TaskStartInput(API_NAME) {}
+        RegexSplitterStartInput() : SplitterStartInput(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::vector<std::string> rawStrVec;
     };
 
-    class RegexSplitterResult : public LangMgr::TaskResult {
+    class RegexSplitterResult : public LangMgr::SplitterResult {
     public:
-        RegexSplitterResult() : TaskResult(API_NAME) {}
+        RegexSplitterResult() : SplitterResult(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::vector<std::string> resStrVec;
 

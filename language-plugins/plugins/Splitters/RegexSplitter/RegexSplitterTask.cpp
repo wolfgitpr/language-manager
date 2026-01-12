@@ -9,13 +9,15 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
+#include <LangMgr/Module/SplitterModule.h>
 #include <LangMgr/Task/Task.h>
+
 #include <LangPlugins/Core/Tensor.h>
 
 namespace LangPlugins
 {
     static LangMgr::Expected<LangMgr::NO<Regex::RegexSplitterConfiguration>>
-    getConfig(const LangMgr::G2pDefinition *spec) {
+    getConfig(const LangMgr::SplitterDefinition *spec) {
 
         const auto genericConfig = spec->configuration();
         if (!genericConfig) {
@@ -49,7 +51,8 @@ namespace LangPlugins
         }
         // if (auto name = args->objectName(); name != Regex::API_NAME) {
         //     return LangMgr::Error(LangMgr::Error::InvalidArgument,
-        //                           stdc::formatN(R"(invalid RegexSplitter task init args name: expected "%1", got "%2")",
+        //                           stdc::formatN(R"(invalid RegexSplitter task init args name: expected "%1", got
+        //                           "%2")",
         //                                         Regex::API_NAME, name));
         // }
         std::unique_lock lock(impl.mutex);
@@ -58,7 +61,7 @@ namespace LangPlugins
         impl.result.reset();
 
         // Get RegexSplitter config
-        auto expConfig = getConfig(spec()->as<LangMgr::G2pDefinition>());
+        auto expConfig = getConfig(spec()->as<LangMgr::SplitterDefinition>());
         if (!expConfig) {
             setState(Failed);
             return expConfig.takeError();
@@ -86,7 +89,7 @@ namespace LangPlugins
         setState(Running);
 
         // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangMgr::G2pDefinition>()); !expConfig) {
+        if (auto expConfig = getConfig(spec()->as<LangMgr::SplitterDefinition>()); !expConfig) {
             setState(Failed);
             return expConfig.takeError();
         }

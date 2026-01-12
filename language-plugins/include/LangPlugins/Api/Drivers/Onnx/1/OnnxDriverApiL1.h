@@ -11,9 +11,9 @@
 namespace LangPlugins::Api::Onnx::L1
 {
 
-    inline constexpr char API_NAME[] = "onnx";
-
-    inline constexpr int API_VERSION = 1;
+    constexpr char API_NAME[] = "Onnx";
+    constexpr char API_CLASS[] = "driver.onnx.OnnxInference";
+    constexpr int API_LEVEL = 1;
 
     enum ExecutionProvider {
         CPUExecutionProvider = 0,
@@ -24,7 +24,7 @@ namespace LangPlugins::Api::Onnx::L1
 
     class DriverInitArgs : public LangMgr::TaskInitArgs {
     public:
-        DriverInitArgs() : TaskInitArgs(API_NAME) {}
+        DriverInitArgs() : TaskInitArgs(API_NAME, API_CLASS, API_LEVEL) {}
 
         /// Load from progress
         bool loadFromProgress = false;
@@ -41,7 +41,7 @@ namespace LangPlugins::Api::Onnx::L1
 
     class SessionOpenArgs : public LangMgr::TaskInitArgs {
     public:
-        SessionOpenArgs() : TaskInitArgs(API_NAME) {}
+        SessionOpenArgs() : TaskInitArgs(API_NAME, API_CLASS, API_LEVEL) {}
 
         /// Whether to force the use of the CPU for the session.
         bool useCpu = false;
@@ -49,7 +49,7 @@ namespace LangPlugins::Api::Onnx::L1
 
     class SessionStartInput : public LangMgr::TaskStartInput {
     public:
-        SessionStartInput() : TaskStartInput(API_NAME) {}
+        SessionStartInput() : TaskStartInput(API_NAME, API_CLASS, API_LEVEL) {}
 
         /// The input port names and the input tensors.
         std::map<std::string, LangMgr::NO<ITensor>> inputs;
@@ -60,7 +60,7 @@ namespace LangPlugins::Api::Onnx::L1
 
     class SessionResult : public LangMgr::TaskResult {
     public:
-        SessionResult() : TaskResult(API_NAME) {}
+        SessionResult() : TaskResult(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::map<std::string, LangMgr::NO<ITensor>> outputs;
     };

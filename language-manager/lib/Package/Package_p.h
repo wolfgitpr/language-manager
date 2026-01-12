@@ -26,7 +26,7 @@ namespace LangMgr
                              const std::map<std::string, ModuleCategory *, std::less<>> &categories,
                              llvm::SmallVectorImpl<ModuleDefinition *> *outModules);
 
-        static Expected<JsonObject> readDesc(const std::filesystem::path &dir);
+        static Expected<JsonObject> readDesc(const std::filesystem::path &descPath);
 
         Manager *mgr;
 

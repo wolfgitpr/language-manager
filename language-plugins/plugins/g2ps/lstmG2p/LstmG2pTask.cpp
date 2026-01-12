@@ -207,7 +207,8 @@ namespace LangPlugins
         auto phonemes_ = phonemes.take();
 
         // Create result
-        auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create();
+        auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create(LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS,
+                                                                 LangMgr::G2P_API_LEVEL);
         g2pResult->g2pResult = {
             LangMgr::G2pRes(lyric, "eng",
                             std::accumulate(phonemes_.begin() + 1, phonemes_.end(), phonemes_[0],

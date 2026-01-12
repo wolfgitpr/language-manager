@@ -3,18 +3,20 @@
 
 #include <filesystem>
 
+#include <LangMgr/Base/LangCommon.h>
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Task/Task.h>
 
 namespace LangMgr
 {
-    constexpr char API_NAME[] = "G2p";
-    constexpr char API_CLASS[] = "g2p.common.G2pInference";
-    constexpr int API_LEVEL = 1;
+    constexpr char G2P_API_NAME[] = "G2p";
+    constexpr char G2P_API_CLASS[] = "g2p.common.G2pInference";
+    constexpr int G2P_API_LEVEL = 1;
 
     class G2pOutput : public TaskResult {
     public:
-        G2pOutput() : TaskResult("G2pOutput") {}
+        G2pOutput(std::string name, std::string iid, const int apiLevel) :
+            TaskResult(std::move(name), std::move(iid), apiLevel) {}
 
         std::vector<G2pRes> g2pResult;
         std::string errorMessage;
@@ -22,33 +24,38 @@ namespace LangMgr
 
     class G2pConfiguration : public TaskConfiguration {
     public:
-        G2pConfiguration() : TaskConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        G2pConfiguration(std::string name, std::string iid, const int apiLevel) :
+            TaskConfiguration(std::move(name), std::move(iid), apiLevel) {}
 
         std::string regexStr;
     };
 
     class G2pRuntimeOptions : public TaskRuntimeOptions {
     public:
-        G2pRuntimeOptions() : TaskRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        G2pRuntimeOptions(std::string name, std::string iid, const int apiLevel) :
+            TaskRuntimeOptions(std::move(name), std::move(iid), apiLevel) {}
     };
 
     class G2pInitArgs : public TaskInitArgs {
     public:
-        G2pInitArgs() : TaskInitArgs(API_NAME) {}
+        G2pInitArgs(std::string name, std::string iid, const int apiLevel) :
+            TaskInitArgs(std::move(name), std::move(iid), apiLevel) {}
 
         NO<G2pRuntimeOptions> runtimeOptions;
     };
 
     class G2pStartInput : public TaskStartInput {
     public:
-        G2pStartInput() : TaskStartInput(API_NAME) {}
+        G2pStartInput(std::string name, std::string iid, const int apiLevel) :
+            TaskStartInput(std::move(name), std::move(iid), apiLevel) {}
 
         std::vector<G2pInput> g2pInput;
     };
 
     class G2pResult : public TaskResult {
     public:
-        G2pResult() : TaskResult(API_NAME) {}
+        G2pResult(std::string name, std::string iid, const int apiLevel) :
+            TaskResult(std::move(name), std::move(iid), apiLevel) {}
 
         std::vector<G2pRes> g2pResult;
         std::string errorMessage;

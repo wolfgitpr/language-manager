@@ -14,23 +14,6 @@ namespace LangMgr
     class ModuleDefinition;
     class Manager;
 
-    class TaskInitArgs : public NamedObject {
-    public:
-        explicit TaskInitArgs(std::string name) : NamedObject(std::move(name)) {}
-    };
-
-    class TaskStartInput : public NamedObject {
-    public:
-        explicit TaskStartInput(std::string name) : NamedObject(std::move(name)) {}
-    };
-
-    class TaskResult : public NamedObject {
-    public:
-        explicit TaskResult(std::string name) : NamedObject(std::move(name)) {}
-
-        Error error;
-    };
-
     /// TaskInfoBase - The base class storing inference information which should be created
     /// by a specific inference interpreter.
     class TaskInfoBase : public NamedObject {
@@ -46,6 +29,26 @@ namespace LangMgr
     protected:
         std::string _className;
         int _apiLevel;
+    };
+
+    class TaskInitArgs : public TaskInfoBase {
+    public:
+        explicit TaskInitArgs(std::string name, std::string iid, const int apiLevel) :
+            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+    };
+
+    class TaskStartInput : public TaskInfoBase {
+    public:
+        explicit TaskStartInput(std::string name, std::string iid, const int apiLevel) :
+            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+    };
+
+    class TaskResult : public TaskInfoBase {
+    public:
+        explicit TaskResult(std::string name, std::string iid, const int apiLevel) :
+            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+
+        Error error;
     };
 
     class TaskConfiguration : public TaskInfoBase {

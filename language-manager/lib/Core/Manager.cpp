@@ -1,4 +1,7 @@
 #include "Manager.h"
+
+#include <fstream>
+
 #include "Manager_p.h"
 
 #include <iostream>
@@ -9,7 +12,9 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/stlextra/algorithms.h>
 
-#include <LangMgr/Base/LangCommon.h>
+#include <LangMgr/Module/Dependency/DependencyResolver.h>
+#include <LangMgr/Module/Dependency/VersionUtils.h>
+
 #include <LangMgr/Support/Expected.h>
 #include <LangMgr/Support/JSON.h>
 #include <LangMgr/Task/Task.h>
@@ -645,74 +650,101 @@ namespace LangMgr
 
     void Manager::registerCategoryFactory(ModuleCategory *(*fac)(Manager *)) { Impl::categoryFactories.push_back(fac); }
 
-    std::vector<ModuleInfo> Manager::getModuleInfos() {
+    Expected<JsonObject> readJsonFile(const std::filesystem::path &path) {
+        const std::ifstream file(path);
+        if (!file.is_open()) {
+            return Error{
+                Error::FileNotOpen,
+                stdc::formatN(R"("%1": failed to open package manifest)", path),
+            };
+        }
+
+        std::stringstream ss;
+        ss << file.rdbuf();
+
+        std::string error2;
+        const auto root = JsonValue::fromJson(ss.str(), true, &error2);
+        if (!error2.empty()) {
+            return Error{
+                Error::InvalidFormat,
+                stdc::formatN(R"("%1": invalid package manifest format: %2)", path, error2),
+            };
+        }
+        if (!root.isObject()) {
+            return Error{
+                Error::InvalidFormat,
+                stdc::formatN(R"("%1": invalid package manifest format: not an object)", path),
+            };
+        }
+        return root.toObject();
+    }
+
+    void Manager::collectModuleInfo(const std::string &packageId, const std::string &packageVersion,
+                                    const std::filesystem::path &packageDir, const JsonObject &modulesObj) {
         __stdc_impl_t;
-        std::shared_lock lock(impl.su_mtx);
+        if (!fs::is_directory(packageDir)) {
+            std::cerr << stdc::formatN(R"(invalid package path "%1")", packageDir).c_str() << std::endl;
+        }
 
-        impl.moduleInfos.clear();
-        impl.moduleInfoSet.clear();
+        for (const auto &[moduleType, moduleArray] : modulesObj) {
+            const auto &modules = moduleArray.toArray();
 
-        std::vector<std::filesystem::path> uniquePaths;
-        {
-            std::unordered_set<std::string> seenPaths;
-            for (const auto &path : impl.packagePaths) {
-                std::error_code ec;
-                auto canonical = fs::canonical(path, ec);
-                if (ec || !fs::exists(canonical) || !fs::is_directory(canonical)) {
+            for (const auto &moduleEntry : modules) {
+                const auto &moduleObj = moduleEntry.toObject();
+                ModuleInfo info;
+                info.packageId = packageId;
+                info.packagePath = packageDir;
+                info.type = moduleType;
+                info.level = 0;
+
+                extractModuleInfoFromJson(packageId, packageVersion, moduleObj, info);
+
+                if (!info.configuration.empty()) {
+                    if (std::filesystem::path configPath = packageDir / info.configuration;
+                        fs::exists(configPath) && fs::is_regular_file(configPath)) {
+                        try {
+                            if (auto configExp = readJsonFile(configPath)) {
+                                const auto &configObj = configExp.take();
+
+                                if (auto verIt = configObj.find("$version"); verIt != configObj.end()) {
+                                    info.version = verIt->second.toString();
+                                }
+
+                                if (auto levelIt = configObj.find("level"); levelIt != configObj.end()) {
+                                    info.level = levelIt->second.toInt();
+                                }
+                            }
+                        }
+                        catch (...) {
+                        }
+                    }
+                }
+
+                if (info.moduleId.empty() || info.iid.empty() || info.type.empty()) {
+                    std::cerr << "Warning: Module missing required fields in package " << packageId << std::endl;
                     continue;
                 }
-                std::string pathStr = canonical.string();
-                if (seenPaths.insert(pathStr).second) {
-                    uniquePaths.push_back(canonical);
+
+                if (auto [it, inserted] = impl.moduleInfoSet.insert(info); !inserted) {
+                    const ModuleInfo &existing = *it;
+                    std::ostringstream oss;
+                    oss << "Error: Duplicate main module found!" << std::endl
+                        << "  ModuleId: " << info.moduleId << std::endl
+                        << "  Class: " << info.iid << std::endl
+                        << "  Type: " << info.type << std::endl
+                        << "  Level: " << info.level << std::endl
+                        << "  Version: " << info.version << std::endl
+                        << "  Configuration: " << (info.configuration.empty() ? "(empty)" : info.configuration)
+                        << std::endl
+                        << "  Existing location: Package=" << existing.packageId << " (v" << existing.version << ")"
+                        << std::endl
+                        << "  New location: Package=" << info.packageId << " (v" << info.version << ")" << std::endl;
+                    std::cerr << oss.str() << std::endl;
+                } else {
+                    impl.moduleInfos.push_back(info);
                 }
             }
         }
-
-        for (const auto &basePath : uniquePaths) {
-            if (!fs::exists(basePath) || !fs::is_directory(basePath)) {
-                continue;
-            }
-
-            for (const auto &entry : fs::directory_iterator(basePath)) {
-                if (!entry.is_directory()) {
-                    continue;
-                }
-
-                if (auto descPath = entry.path() / "package.json";
-                    !fs::exists(descPath) || !fs::is_regular_file(descPath)) {
-                    continue;
-                }
-
-                auto exp = PackageData::readDesc(entry.path());
-                if (!exp) {
-                    continue;
-                }
-
-                JsonObject obj = exp.take();
-
-                std::string id_;
-                stdc::VersionNumber version_;
-
-                auto idIt = obj.find("packageId");
-                if (idIt == obj.end()) {
-                    continue;
-                }
-                id_ = idIt->second.toString();
-
-                auto versionIt = obj.find("version");
-                if (versionIt == obj.end()) {
-                    continue;
-                }
-                version_ = stdc::VersionNumber::fromString(versionIt->second.toString());
-
-                if (auto modulesIt = obj.find("modules"); modulesIt != obj.end()) {
-                    const auto &modulesObj = modulesIt->second.toObject();
-                    this->collectModuleInfo(id_, version_.toString(), entry.path(), modulesObj);
-                }
-            }
-        }
-
-        return impl.moduleInfos;
     }
 
     void Manager::extractModuleInfoFromJson(const std::string &packageId, const std::string &packageVersion,
@@ -731,71 +763,190 @@ namespace LangMgr
             info.configuration = configIt->second.toString();
         }
 
+        if (const auto levelInit = moduleEntry.find("level"); levelInit != moduleEntry.end()) {
+            info.level = levelInit->second.toInt();
+        }
+
         if (const auto depsIt = moduleEntry.find("dependencies"); depsIt != moduleEntry.end()) {
             const auto &depsArray = depsIt->second.toArray();
             for (const auto &dep : depsArray) {
                 const auto &depObj = dep.toObject();
 
-                auto depPackageIdIt = depObj.find("packageId");
+                DependencyRaw depRaw;
 
-                if (auto depModuleIdIt = depObj.find("moduleId");
-                    depPackageIdIt != depObj.end() && depModuleIdIt != depObj.end()) {
-                    DependencyInfo depInfo;
-                    depInfo.packageId = depPackageIdIt->second.toString();
-                    depInfo.moduleId = depModuleIdIt->second.toString();
+                if (auto depPackageIdIt = depObj.find("packageId"); depPackageIdIt != depObj.end()) {
+                    depRaw.packageId = depPackageIdIt->second.toString();
+                }
 
-                    if (auto depVersionIt = depObj.find("level"); depVersionIt != depObj.end())
-                        depInfo.level = depVersionIt->second.toInt();
-                    else
-                        depInfo.level = -1;
+                if (auto depModuleIdIt = depObj.find("moduleId"); depModuleIdIt != depObj.end()) {
+                    depRaw.moduleId = depModuleIdIt->second.toString();
+                }
 
+                if (auto levelIt = depObj.find("level"); levelIt != depObj.end()) {
+                    depRaw.level = levelIt->second.toInt();
+                }
 
-                    info.dependencies.push_back(depInfo);
+                if (auto versionIt = depObj.find("version"); versionIt != depObj.end()) {
+                    depRaw.versionRange = versionIt->second.toString();
+                }
+
+                if (!depRaw.packageId.empty() && !depRaw.moduleId.empty()) {
+                    info.dependenciesRaw.push_back(depRaw);
                 }
             }
         }
     }
 
-    void Manager::collectModuleInfo(const std::string &packageId, const std::string &packageVersion,
-                                    const fs::path &packagePath, const JsonObject &modulesObj) {
+    std::vector<ModuleInfo> Manager::getModuleInfos() {
         __stdc_impl_t;
-        for (const auto &[moduleType, moduleArray] : modulesObj) {
-            const auto &modules = moduleArray.toArray();
+        std::shared_lock lock(impl.su_mtx);
 
-            for (const auto &moduleEntry : modules) {
-                const auto &moduleObj = moduleEntry.toObject();
-                ModuleInfo info;
-                info.packageId = packageId;
-                info.packagePath = packagePath;
-                info.type = moduleType;
+        if (impl.dependencyResolutionSuccessful && !impl.moduleInfos.empty()) {
+            return impl.moduleInfos;
+        }
 
-                extractModuleInfoFromJson(packageId, packageVersion, moduleObj, info);
+        impl.moduleInfos.clear();
+        impl.moduleInfoSet.clear();
+        impl.dependencyErrors.clear();
+        impl.dependencyResolutionSuccessful = true;
 
-                if (info.moduleId.empty() || info.iid.empty() || info.type.empty()) {
-                    std::cerr << "Warning: Module missing required fields (moduleId or class or type) in package "
-                              << packageId << std::endl;
+        std::vector<std::filesystem::path> uniquePaths;
+        {
+            std::unordered_set<std::string> seenPaths;
+            for (const auto &path : impl.packagePaths) {
+                std::error_code ec;
+                auto canonical = fs::canonical(path, ec);
+                if (ec || !fs::exists(canonical) || !fs::is_directory(canonical)) {
                     continue;
                 }
-
-                if (auto [it, inserted] = impl.moduleInfoSet.insert(info); !inserted) {
-                    const ModuleInfo &existing = *it;
-
-                    std::ostringstream oss;
-                    oss << "Error: Duplicate main module found!" << std::endl
-                        << "  ModuleId: " << info.moduleId << std::endl
-                        << "  Class: " << info.iid << std::endl
-                        << "  Type: " << info.type << std::endl
-                        << "  Configuration: " << (info.configuration.empty() ? "(empty)" : info.configuration)
-                        << std::endl
-                        << "  Existing location: Package=" << existing.packageId << std::endl
-                        << "  New location: Package=" << info.packageId << std::endl;
-
-                    std::cerr << oss.str() << std::endl;
-                } else {
-                    impl.moduleInfos.push_back(info);
+                if (std::string pathStr = canonical.string(); seenPaths.insert(pathStr).second) {
+                    uniquePaths.push_back(canonical);
                 }
             }
         }
+
+        for (const auto &basePath : uniquePaths) {
+            scanPackageDirectory(basePath);
+        }
+
+        printDiscoveryInfo(uniquePaths.size(), impl.moduleInfos.size());
+
+        if (!impl.moduleInfos.empty()) {
+            impl.resolveModuleDependencies();
+        }
+
+        return impl.moduleInfos;
     }
 
+    bool Manager::Impl::resolveModuleDependencies() {
+        DependencyResolver resolver;
+
+        dependencyErrors.clear();
+        dependencyResolutionSuccessful = true;
+
+        if (!resolver.resolveAllDependencies(moduleInfos)) {
+            dependencyResolutionSuccessful = false;
+            dependencyErrors = resolver.getErrors();
+
+            if (!dependencyErrors.empty()) {
+                std::cerr << "\n⚠️  DEPENDENCY RESOLUTION FAILED" << std::endl;
+                std::cerr << "Cannot proceed with module initialization." << std::endl;
+                std::cerr << "========================================" << std::endl;
+
+                for (size_t i = 0; i < dependencyErrors.size(); ++i) {
+                    std::cerr << dependencyErrors[i];
+                    if (i < dependencyErrors.size() - 1) {
+                        std::cerr << std::endl;
+                    }
+                }
+
+                std::cerr << "========================================" << std::endl;
+                std::cerr << dependencyErrors.size() << " dependency errors found" << std::endl;
+            }
+
+            return false;
+        }
+
+        moduleInfos = resolver.getResolvedModules();
+
+        moduleInfoSet.clear();
+        moduleInfoSet.insert(moduleInfos.begin(), moduleInfos.end());
+
+        return true;
+    }
+
+    void Manager::scanPackageDirectory(const std::filesystem::path &basePath) {
+        if (!fs::exists(basePath) || !fs::is_directory(basePath)) {
+            return;
+        }
+
+        for (const auto &entry : fs::directory_iterator(basePath)) {
+            if (!entry.is_directory()) {
+                continue;
+            }
+
+            if (auto descPath = entry.path() / "package.json";
+                !fs::exists(descPath) || !fs::is_regular_file(descPath)) {
+                continue;
+            }
+
+            processPackageJson(entry.path());
+        }
+    }
+
+    void Manager::processPackageJson(const std::filesystem::path &packageDir) {
+        const auto &descPath = packageDir / _TSTR("package.json");
+        auto exp = PackageData::readDesc(descPath);
+        if (!exp)
+            return;
+
+        JsonObject obj = exp.take();
+
+        const auto idIt = obj.find("packageId");
+        if (idIt == obj.end()) {
+            return;
+        }
+        const std::string id_ = idIt->second.toString();
+
+        const auto versionIt = obj.find("version");
+        if (versionIt == obj.end()) {
+            return;
+        }
+        const stdc::VersionNumber version_ = stdc::VersionNumber::fromString(versionIt->second.toString());
+
+        if (const auto modulesIt = obj.find("modules"); modulesIt != obj.end()) {
+            const auto &modulesObj = modulesIt->second.toObject();
+            this->collectModuleInfo(id_, version_.toString(), descPath.parent_path(), modulesObj);
+        }
+    }
+
+    void Manager::printDiscoveryInfo(const size_t pathCount, const size_t moduleCount) {
+        __stdc_impl_t;
+        if (moduleCount == 0) {
+            std::cout << "\n" << std::endl;
+            std::cout << "================================================================================"
+                      << std::endl;
+            std::cout << "⚠️  NO MODULES FOUND" << std::endl;
+            std::cout << "--------------------------------------------------------------------------------"
+                      << std::endl;
+            std::cout << "No modules were discovered in the package paths." << std::endl;
+            std::cout << "Package paths searched:" << std::endl;
+            for (const auto &path : impl.packagePaths) {
+                std::cout << "  - " << path.string() << std::endl;
+            }
+            std::cout << "================================================================================"
+                      << std::endl;
+        } else {
+            std::cout << "\n" << std::endl;
+            std::cout << "================================================================================"
+                      << std::endl;
+            std::cout << "📦  MODULE DISCOVERY COMPLETE" << std::endl;
+            std::cout << "--------------------------------------------------------------------------------"
+                      << std::endl;
+            std::cout << "Scanned " << pathCount << " package path(s)" << std::endl;
+            std::cout << "Discovered " << moduleCount << " module(s)" << std::endl;
+            std::cout << "================================================================================"
+                      << std::endl;
+        }
+    }
 } // namespace LangMgr

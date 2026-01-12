@@ -36,16 +36,16 @@ namespace LangMgr
         std::string url_;
         llvm::SmallVector<ModuleDefinition *> modules_;
 
+        auto canonicalDir = fs::canonical(dir);
+        const auto &descPath = canonicalDir / _TSTR("package.json");
+
         // Read desc
         JsonObject obj;
-        if (auto exp = readDesc(dir); !exp) {
+        if (auto exp = readDesc(descPath); !exp) {
             return exp.error();
         } else {
             obj = exp.take();
         }
-
-        auto canonicalDir = fs::canonical(dir);
-        const auto &descPath = canonicalDir / _TSTR("package.json");
 
         // id
         {
@@ -203,8 +203,7 @@ namespace LangMgr
         return Expected<void>();
     }
 
-    Expected<JsonObject> PackageData::readDesc(const std::filesystem::path &dir) {
-        const auto &descPath = dir / _TSTR("package.json");
+    Expected<JsonObject> PackageData::readDesc(const std::filesystem::path &descPath) {
         const std::ifstream file(descPath);
         if (!file.is_open()) {
             return Error{

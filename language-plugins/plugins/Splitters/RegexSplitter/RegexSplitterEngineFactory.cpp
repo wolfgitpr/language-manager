@@ -1,10 +1,10 @@
 #include "RegexSplitterEngineFactory.h"
-
-#include <stdcorelib/str.h>
+#include "RegexSplitterTask.h"
 
 #include <inferutil/Parser.h>
+#include <stdcorelib/str.h>
 
-#include "RegexSplitterTask.h"
+#include <LangMgr/Module/SplitterModule.h>
 
 namespace LangPlugins
 {
@@ -29,7 +29,7 @@ namespace LangPlugins
 
         // Collect all the errors and return to user
         inferUtil::ErrorCollector ec;
-        inferUtil::ConfigurationParser parser(spec->as<LangMgr::G2pDefinition>(), &ec);
+        inferUtil::ConfigurationParser parser(spec->as<LangMgr::SplitterDefinition>(), &ec);
 
         // [REQUIRED] regex, string (json value is string)
         {
@@ -49,7 +49,7 @@ namespace LangPlugins
     LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
     RegexSplitterEngineFactory::createTask(const LangMgr::ModuleDefinition *spec,
                                            const LangMgr::NO<LangMgr::TaskRuntimeOptions> &runtimeOptions) {
-        return LangMgr::NO<RegexSplitterTask>::create(spec->as<LangMgr::G2pDefinition>());
+        return LangMgr::NO<RegexSplitterTask>::create(spec->as<LangMgr::SplitterDefinition>());
     }
 
 } // namespace LangPlugins

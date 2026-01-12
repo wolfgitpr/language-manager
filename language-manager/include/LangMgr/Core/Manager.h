@@ -11,7 +11,7 @@
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Core/PluginFactory.h>
 #include <LangMgr/LangMgrGlobal.h>
-#include <LangMgr/Module/Dependency.h>
+#include <LangMgr/Module/Dependency/Dependency.h>
 #include <LangMgr/Module/Module.h>
 
 namespace LangMgr
@@ -70,7 +70,7 @@ namespace LangMgr
         static void registerCategoryFactory(ModuleCategory *(*fac)(Manager *));
 
         void collectModuleInfo(const std::string &packageId, const std::string &packageVersion,
-                               const std::filesystem::path &packagePath, const JsonObject &modulesObj);
+                               const std::filesystem::path &packageDir, const JsonObject &modulesObj);
         static void extractModuleInfoFromJson(const std::string &packageId, const std::string &packageVersion,
                                               const JsonObject &moduleEntry, ModuleInfo &info);
 
@@ -80,6 +80,11 @@ namespace LangMgr
 
         template <class T>
         friend class ModuleCategoryRegistrar;
+
+    private:
+        void scanPackageDirectory(const std::filesystem::path &basePath);
+        void processPackageJson(const std::filesystem::path &packageDir);
+        void printDiscoveryInfo(size_t pathCount, size_t moduleCount);
     };
 
     inline void Manager::addPackagePath(const std::filesystem::path &path) { addPackagePaths({path}); }

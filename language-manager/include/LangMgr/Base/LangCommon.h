@@ -22,7 +22,6 @@ namespace LangMgr
         std::string g2pId;
     };
 
-    enum g2pMode { Convert, Copy };
     struct LANGMGR_EXPORT G2pRes {
         std::string lyric;
         std::string g2pId = "unknown";

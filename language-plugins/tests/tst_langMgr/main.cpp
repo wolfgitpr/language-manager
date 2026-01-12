@@ -9,17 +9,16 @@
 
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Core/Manager.h>
-#include <LangMgr/Module/Dependency.h>
+#include <LangMgr/Module/Dependency/Dependency.h>
+#include <LangMgr/Module/G2pModule.h>
 #include <LangMgr/Module/Module.h>
 #include <LangMgr/Package/Package.h>
+#include <LangMgr/Task/G2pTask.h>
 #include <LangMgr/Task/Task.h>
 #include <LangMgr/Task/TaskFactoryPlugin.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 
-#include <LangMgr/Task/G2pTask.h>
-#include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
-#include <LangPlugins/Api/Splitters/RegexSplitter/1/RegexSplitterL1.h>
 
 #ifdef WIN32
 #include <Windows.h>
@@ -53,10 +52,14 @@ public:
 
     LangMgr::Expected<std::vector<LangMgr::Package>> loadPackagesInOrder(const std::filesystem::path &packagesRootDir) {
         mgr_.addPackagePath(packagesRootDir);
+        const auto moduleInfos = mgr_.getModuleInfos();
 
-        auto moduleInfos = mgr_.getModuleInfos();
+        if (moduleInfos.empty()) {
+            return LangMgr::Error(LangMgr::Error::InvalidArgument,
+                                  "Dependency resolution failed. Cannot load packages.");
+        }
 
-        LangMgr::Dependency dependency;
+        const LangMgr::Dependency dependency;
         for (const auto &info : moduleInfos) {
             if (!dependency.addModule(info)) {
                 std::cerr << "Failed to add module: " << info.key() << std::endl;
@@ -64,7 +67,7 @@ public:
         }
 
         if (!dependency.validate()) {
-            if (auto cycles = dependency.getCycles(); !cycles.empty()) {
+            if (const auto cycles = dependency.getCycles(); !cycles.empty()) {
                 std::cerr << "Dependency cycles detected:" << std::endl;
                 for (const auto &cycle : cycles) {
                     std::cerr << "  Cycle: ";
@@ -77,7 +80,7 @@ public:
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "Dependency validation failed");
         }
 
-        auto packageOrder = dependency.getPackageInitializationOrder();
+        const auto packageOrder = dependency.getPackageInitializationOrder();
         if (packageOrder.empty())
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "Failed to determine package initialization order");
 
@@ -193,7 +196,8 @@ private:
 
         auto task = taskExp.take();
 
-        const auto initArgs = LangMgr::NO<LangMgr::TaskInitArgs>::create(moduleDef->className());
+        const auto initArgs =
+            LangMgr::NO<LangMgr::TaskInitArgs>::create("", moduleDef->className(), moduleDef->apiLevel());
         if (const auto exp = task->initialize(initArgs); !exp) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument,
                                   stdc::formatN("Failed to initialize task: %1", exp.error().message()));
@@ -264,7 +268,8 @@ EP parseExecutionProvider(const std::string &provider) {
 
 
 void executeTemplateInference(const LangMgr::NO<LangMgr::Task> &templateInference) {
-    const auto input = LangMgr::NO<LangMgr::G2pStartInput>::create();
+    const auto input = LangMgr::NO<LangMgr::G2pStartInput>::create(LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS,
+                                                                   LangMgr::G2P_API_LEVEL);
     input->g2pInput = {LangMgr::G2pInput({"hellobazhahei", "eng"}), LangMgr::G2pInput({"hello", "eng"})};
 
     std::cout << "Starting inference - Id: " << templateInference->spec()->as<LangMgr::G2pDefinition>()->name().text()

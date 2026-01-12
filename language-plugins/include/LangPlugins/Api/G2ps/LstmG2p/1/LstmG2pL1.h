@@ -4,7 +4,8 @@
 #include <filesystem>
 #include <map>
 #include <string>
-#include <vector>
+
+#include <LangMgr/Task/G2pTask.h>
 
 namespace LangPlugins::Api::LstmG2p::L1
 {
@@ -13,10 +14,9 @@ namespace LangPlugins::Api::LstmG2p::L1
     constexpr char API_CLASS[] = "g2p.model.LstmG2pInference";
     constexpr int API_LEVEL = 1;
 
-
-    class LstmG2pConfiguration : public LangMgr::TaskConfiguration {
+    class LstmG2pConfiguration : public LangMgr::G2pConfiguration {
     public:
-        LstmG2pConfiguration() : TaskConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pConfiguration() : G2pConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::map<std::string, int> charVocab;
         std::map<std::string, int> phonemeVocab;
@@ -32,43 +32,19 @@ namespace LangPlugins::Api::LstmG2p::L1
         int maxLen = 48;
     };
 
-    class LstmG2pRuntimeOptions : public LangMgr::TaskRuntimeOptions {
+    class LstmG2pRuntimeOptions : public LangMgr::G2pRuntimeOptions {
     public:
-        LstmG2pRuntimeOptions() : TaskRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
+        LstmG2pRuntimeOptions() : G2pRuntimeOptions(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::string device = "cpu";
         bool optimizePerformance = false;
     };
 
-    class LstmG2pInitArgs : public LangMgr::TaskInitArgs {
+    class LstmG2pInitArgs : public LangMgr::G2pInitArgs {
     public:
-        LstmG2pInitArgs() : TaskInitArgs(API_NAME) {}
+        LstmG2pInitArgs() : G2pInitArgs(API_NAME, API_CLASS, API_LEVEL) {}
 
         LangMgr::NO<LstmG2pRuntimeOptions> runtimeOptions;
-    };
-
-    struct G2pWord {
-        std::string text;
-        std::string language;
-        std::vector<std::string> expectedPhonemes;
-    };
-
-    class LstmG2pStartInput : public LangMgr::TaskStartInput {
-    public:
-        LstmG2pStartInput() : TaskStartInput(API_NAME) {}
-
-        std::vector<G2pWord> words;
-        bool returnDetailedInfo = false;
-    };
-
-    class LstmG2pResult : public LangMgr::TaskResult {
-    public:
-        LstmG2pResult() : TaskResult(API_NAME) {}
-
-        std::string word;
-        std::vector<std::string> phonemes;
-
-        std::string errorMessage;
     };
 
 } // namespace LangPlugins::Api::LstmG2p::L1
