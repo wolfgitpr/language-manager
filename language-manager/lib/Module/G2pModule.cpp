@@ -18,8 +18,8 @@ namespace LangMgr
 
     class G2pCategory::Impl : public ModuleCategory::Impl {
     public:
-        explicit Impl(G2pCategory *decl, const std::string &category, Manager *su) :
-            ModuleCategory::Impl(decl, category, su) {}
+        explicit Impl(G2pCategory *decl, const std::string &category, PackageManager *mgr) :
+            ModuleCategory::Impl(decl, category, mgr) {}
 
         ~Impl() override = default;
     };
@@ -34,7 +34,7 @@ namespace LangMgr
     std::string G2pCategory::key() const { return "g2p"; }
     std::string G2pCategory::category() const { return "g2p"; }
 
-    G2pCategory::G2pCategory(Manager *env) : ModuleCategory(G2pCategory::category(), env) {}
+    G2pCategory::G2pCategory(PackageManager *env) : ModuleCategory(G2pCategory::category(), env) {}
 
     ModuleCategoryRegistrar<G2pCategory> registrar;
 

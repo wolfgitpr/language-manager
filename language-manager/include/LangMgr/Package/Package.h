@@ -41,14 +41,14 @@ namespace LangMgr
         const std::filesystem::path &path() const;
         Error error() const;
         bool isLoaded() const;
-        Manager *Mgr() const;
+        PackageManager *Mgr() const;
 
     private:
         explicit Package(PackageData *data) : _data(data) {}
         PackageData *_data;
 
         friend class ModuleDefinition;
-        friend class Manager;
+        friend class PackageManager;
         friend class ScopedPackageRef;
     };
 

@@ -9,7 +9,7 @@
 
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Core/Manager.h>
-#include <LangMgr/Module/Dependency/Dependency.h>
+#include <LangMgr/Module/Dependency/DependencyGraph.h>
 #include <LangMgr/Module/G2pModule.h>
 #include <LangMgr/Module/Module.h>
 #include <LangMgr/Package/Package.h>
@@ -18,7 +18,6 @@
 #include <LangMgr/Task/TaskFactoryPlugin.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-
 
 #ifdef WIN32
 #include <Windows.h>
@@ -52,35 +51,9 @@ public:
 
     LangMgr::Expected<std::vector<LangMgr::Package>> loadPackagesInOrder(const std::filesystem::path &packagesRootDir) {
         mgr_.addPackagePath(packagesRootDir);
-        const auto moduleInfos = mgr_.getModuleInfos();
+        mgr_.checkDependencies();
 
-        if (moduleInfos.empty()) {
-            return LangMgr::Error(LangMgr::Error::InvalidArgument,
-                                  "Dependency resolution failed. Cannot load packages.");
-        }
-
-        const LangMgr::Dependency dependency;
-        for (const auto &info : moduleInfos) {
-            if (!dependency.addModule(info)) {
-                std::cerr << "Failed to add module: " << info.key() << std::endl;
-            }
-        }
-
-        if (!dependency.validate()) {
-            if (const auto cycles = dependency.getCycles(); !cycles.empty()) {
-                std::cerr << "Dependency cycles detected:" << std::endl;
-                for (const auto &cycle : cycles) {
-                    std::cerr << "  Cycle: ";
-                    for (const auto &mod : cycle) {
-                        std::cerr << mod.packageId << ":" << mod.moduleId << " -> ";
-                    }
-                    std::cerr << std::endl;
-                }
-            }
-            return LangMgr::Error(LangMgr::Error::InvalidArgument, "Dependency validation failed");
-        }
-
-        const auto packageOrder = dependency.getPackageInitializationOrder();
+        const auto packageOrder = mgr_.getPackageInitializationOrder();
         if (packageOrder.empty())
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "Failed to determine package initialization order");
 
@@ -120,7 +93,7 @@ public:
             std::cout << "Loading package: " << packageInfo.packageId << " from " << packageInfo.packagePath
                       << std::endl;
 
-            auto exp = mgr_.open(packageInfo.packagePath, false);
+            auto exp = mgr_.open(packageInfo.packagePath);
             if (!exp) {
                 std::cerr << "Failed to open package " << packageInfo.packageId << ": " << exp.error().message()
                           << std::endl;
@@ -169,7 +142,7 @@ private:
     bool loadFromProgress_;
     std::unordered_map<std::string, LangMgr::NO<LangMgr::Task>> loadedTasks_;
 
-    LangMgr::Expected<LangMgr::NO<LangMgr::Task>> createModuleTask(const LangMgr::ModuleInfo &moduleInfo,
+    LangMgr::Expected<LangMgr::NO<LangMgr::Task>> createModuleTask(const LangMgr::ModuleMetadata &moduleInfo,
                                                                    const LangMgr::Package &pkg) const {
         const auto moduleDef = pkg.moduleSpec(moduleInfo.type, moduleInfo.moduleId);
         if (!moduleDef) {
@@ -308,7 +281,8 @@ int main() {
 
         auto packagesExp = initializer.loadPackagesInOrder(packagesRootDir);
         if (!packagesExp) {
-            return -1;
+            std::cerr << packagesExp.error().message() << std::endl;
+            return -2;
         }
 
         auto packages = packagesExp.take();
@@ -328,11 +302,11 @@ int main() {
 
         const auto inferenceCate = langMgr.category("g2p");
         if (!inferenceCate)
-            return -1;
+            return -3;
 
-        const auto inferenceObject = inferenceCate->getFirstObject("g2p-official-eng");
+        const auto inferenceObject = inferenceCate->getFirstObject("g2p-template-eng");
         if (!inferenceObject)
-            return -1;
+            throw std::runtime_error(stdc::formatN("g2p-template-eng not found"));
 
         auto task = inferenceObject.as<LangMgr::Task>();
         if (!task)
@@ -340,16 +314,11 @@ int main() {
 
         executeTemplateInference(task);
 
-        for (const auto &[key, task] : allTasks) {
-            if (key == "g2p-template-eng" || key == "g2p-official-eng")
-                // Starting inference
-                executeTemplateInference(task);
-        }
         std::cout << "G2pTask completed successfully" << std::endl;
         return 0;
     }
     catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
-        return -1;
+        return -4;
     }
 }

@@ -8,7 +8,7 @@
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
 #include <stdcorelib/support/sharedlibrary.h>
 
-#include <../../include/LangMgr/Core/PluginFactory.h>
+#include <LangMgr/Core/PluginFactory.h>
 
 namespace LangMgr
 {

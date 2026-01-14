@@ -322,7 +322,7 @@ namespace LangMgr
 
     bool Package::isLoaded() const { return _data->loaded; }
 
-    Manager *Package::Mgr() const { return _data->mgr; }
+    PackageManager *Package::Mgr() const { return _data->mgr; }
 
     void ScopedPackageRef::forceClose() {
         if (!close()) {

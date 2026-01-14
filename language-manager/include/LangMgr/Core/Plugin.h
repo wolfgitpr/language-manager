@@ -10,15 +10,12 @@
 namespace LangMgr
 {
 
-    /// Plugin - Base class for all plugins.
     class LANGMGR_EXPORT Plugin {
     public:
         virtual ~Plugin() = default;
 
-        /// Returns the interface identifier of the plugin.
         virtual const char *iid() const = 0;
 
-        /// Returns the key of the plugin.
         virtual const char *key() const = 0;
 
         std::filesystem::path path() const { return stdc::SharedLibrary::locateLibraryPath(this); }

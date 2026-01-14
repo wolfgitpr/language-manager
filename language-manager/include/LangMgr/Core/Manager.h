@@ -5,13 +5,10 @@
 #include <string>
 #include <vector>
 
-#include <stdcorelib/support/versionnumber.h>
-
 #include <LangMgr/Base/LangCommon.h>
 #include <LangMgr/Base/NamedObject.h>
-#include <LangMgr/Core/PluginFactory.h>
+#include <LangMgr/Core/PackageManager.h>
 #include <LangMgr/LangMgrGlobal.h>
-#include <LangMgr/Module/Dependency/Dependency.h>
 #include <LangMgr/Module/Module.h>
 
 namespace LangMgr
@@ -25,12 +22,10 @@ namespace LangMgr
     template <class T>
     class Expected;
 
-    class LANGMGR_EXPORT Manager : public PluginFactory {
+    class LANGMGR_EXPORT Manager : public PackageManager {
     public:
         Manager();
         ~Manager() override;
-
-        ModuleCategory *category(const std::string_view &name) const;
 
         static Manager *instance();
 
@@ -52,53 +47,10 @@ namespace LangMgr
                                      const std::vector<std::string> &priorityTaggerIds = {},
                                      const std::vector<std::string> &reservedTokens = {}) const;
 
-    public:
-        void addPackagePath(const std::filesystem::path &path);
-        void addPackagePaths(stdc::array_view<std::filesystem::path> paths);
-        void setPackagePaths(stdc::array_view<std::filesystem::path> paths);
-        std::vector<std::filesystem::path> packagePaths() const;
-
-        Expected<Package> open(const std::filesystem::path &path, bool noLoad);
-        Package find(const std::string_view &id, const stdc::VersionNumber &version) const;
-        std::vector<Package> find(const std::string_view &id) const;
-        std::vector<Package> packages() const;
-
-        std::vector<ModuleInfo> getModuleInfos();
-
     protected:
         class Impl;
-        static void registerCategoryFactory(ModuleCategory *(*fac)(Manager *));
-
-        void collectModuleInfo(const std::string &packageId, const std::string &packageVersion,
-                               const std::filesystem::path &packageDir, const JsonObject &modulesObj);
-        static void extractModuleInfoFromJson(const std::string &packageId, const std::string &packageVersion,
-                                              const JsonObject &moduleEntry, ModuleInfo &info);
-
-
         friend class Package;
         friend class ModuleCategory;
-
-        template <class T>
-        friend class ModuleCategoryRegistrar;
-
-    private:
-        void scanPackageDirectory(const std::filesystem::path &basePath);
-        void processPackageJson(const std::filesystem::path &packageDir);
-        void printDiscoveryInfo(size_t pathCount, size_t moduleCount);
-    };
-
-    inline void Manager::addPackagePath(const std::filesystem::path &path) { addPackagePaths({path}); }
-
-    template <class T>
-    class ModuleCategoryRegistrar {
-        static_assert(std::is_base_of_v<ModuleCategory, T>, "T should inherit from LangMgr::ModuleCategory");
-
-    public:
-        ModuleCategoryRegistrar(ModuleCategory *(*fac)(Manager *)) { Manager::registerCategoryFactory(fac); }
-
-        ModuleCategoryRegistrar() {
-            Manager::registerCategoryFactory([](Manager *mgr) -> ModuleCategory * { return new T(mgr); });
-        }
     };
 
 } // namespace LangMgr

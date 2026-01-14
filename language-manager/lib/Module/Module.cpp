@@ -162,7 +162,7 @@ namespace LangMgr
         return Package(impl.package);
     }
 
-    Manager *ModuleDefinition::Mgr() const {
+    PackageManager *ModuleDefinition::Mgr() const {
         __stdc_impl_t;
         return impl.package->mgr;
     }
@@ -178,30 +178,39 @@ namespace LangMgr
         if (loc.package().empty() || loc.version().isEmpty()) {
             return {};
         }
+
         const auto it = indexes.find(loc.package());
         if (it == indexes.end()) {
             return {};
         }
-        const auto &versionMap = it->second;
 
+        const auto &versionMap = it->second;
         const auto it2 = versionMap.find(loc.version());
         if (it2 == versionMap.end()) {
             return {};
         }
-        const auto &inferenceMap = it2->second;
+
+        const auto &moduleMap = it2->second;
 
         if (!loc.id().empty()) {
-            const auto it3 = inferenceMap.find(loc.id());
-            if (it3 == inferenceMap.end()) {
+            // 查找指定moduleId的所有level版本
+            const auto it3 = moduleMap.find(loc.id());
+            if (it3 == moduleMap.end()) {
                 return {};
             }
-            return {*it3->second};
+
+            std::vector<ModuleDefinition *> res;
+            for (const auto &[level, iter] : it3->second) {
+                res.push_back(*iter);
+            }
+            return res;
         }
 
         std::vector<ModuleDefinition *> res;
-        res.reserve(inferenceMap.size());
-        for (const auto &[fst, snd] : inferenceMap) {
-            res.push_back(*snd);
+        for (const auto &[moduleId, levelMap] : moduleMap) {
+            for (const auto &[level, iter] : levelMap) {
+                res.push_back(*iter);
+            }
         }
         return res;
     }
@@ -213,7 +222,7 @@ namespace LangMgr
         return impl.name;
     }
 
-    Manager *ModuleCategory::Mgr() const {
+    PackageManager *ModuleCategory::Mgr() const {
         __stdc_impl_t;
         return impl.mgr;
     }
@@ -437,13 +446,9 @@ namespace LangMgr
                 std::unique_lock lock(impl.su_mtx());
                 const auto lib = spec_impl->package;
                 const auto it = impl.modules.insert(impl.modules.end(), definition);
-                impl.indexes[lib->id][lib->version][spec_impl->id] = it;
-                return Expected<void>();
-            }
 
-        case ModuleDefinition::Ready:
-        case ModuleDefinition::Finished:
-            {
+                // 修改索引结构，增加level层
+                impl.indexes[lib->id][lib->version][spec_impl->id][spec_impl->apiLevel] = it;
                 return Expected<void>();
             }
 
@@ -455,23 +460,36 @@ namespace LangMgr
                 if (it == impl.indexes.end()) {
                     return Expected<void>();
                 }
+
                 auto &versionMap = it->second;
                 const auto it2 = versionMap.find(lib->version);
                 if (it2 == versionMap.end()) {
                     return Expected<void>();
                 }
-                auto &inferenceMap = it2->second;
-                const auto it3 = inferenceMap.find(spec_impl->id);
-                if (it3 == inferenceMap.end()) {
+
+                auto &moduleMap = it2->second;
+                const auto it3 = moduleMap.find(spec_impl->id);
+                if (it3 == moduleMap.end()) {
                     return Expected<void>();
                 }
-                impl.modules.erase(it3->second);
-                inferenceMap.erase(it3);
-                if (inferenceMap.empty()) {
+
+                auto &levelMap = it3->second;
+                const auto it4 = levelMap.find(spec_impl->apiLevel);
+                if (it4 == levelMap.end()) {
+                    return Expected<void>();
+                }
+
+                impl.modules.erase(it4->second);
+                levelMap.erase(it4);
+
+                if (levelMap.empty()) {
+                    moduleMap.erase(it3);
+                }
+                if (moduleMap.empty()) {
                     versionMap.erase(it2);
-                    if (versionMap.empty()) {
-                        impl.indexes.erase(it);
-                    }
+                }
+                if (versionMap.empty()) {
+                    impl.indexes.erase(it);
                 }
                 return Expected<void>();
             }
@@ -549,7 +567,7 @@ namespace LangMgr
 
     ModuleCategory::ModuleCategory(Impl &impl) : ObjectPool(impl) {}
 
-    ModuleCategory::ModuleCategory(std::string name, Manager *mgr) :
+    ModuleCategory::ModuleCategory(std::string name, PackageManager *mgr) :
         ObjectPool(*new Impl(this, std::move(name), mgr)) {}
 
 } // namespace LangMgr

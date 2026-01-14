@@ -29,9 +29,9 @@ namespace LangMgr
         std::string category() const override;
 
         class Impl;
-        explicit SplitterCategory(Manager *env);
+        explicit SplitterCategory(PackageManager *env);
 
-        friend class Manager;
+        friend class PackageManager;
         friend class ModuleCategoryRegistrar<SplitterCategory>;
     };
 

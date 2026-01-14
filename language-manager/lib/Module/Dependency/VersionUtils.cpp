@@ -1,13 +1,11 @@
-#include <LangMgr/Module/Dependency/Dependency.h>
-#include <LangMgr/Module/Dependency/VersionUtils.h>
+#include "VersionUtils.h"
 
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
-#include <set>
+#include <map>
+#include <regex>
 #include <sstream>
-
-namespace fs = std::filesystem;
 
 namespace LangMgr
 {
@@ -57,7 +55,6 @@ namespace LangMgr
                 if (targetParts.size() >= 2) {
                     if (targetParts[0] != testParts[0] || targetParts[1] != testParts[1])
                         return false;
-
                     int targetPatch = targetParts.size() > 2 ? std::stoi(targetParts[2]) : 0;
                     int testPatch = testParts.size() > 2 ? std::stoi(testParts[2]) : 0;
                     return testPatch >= targetPatch;
@@ -97,9 +94,8 @@ namespace LangMgr
         for (const auto &[opStr, opType] : operators) {
             if (rangeStr.find(opStr) == 0) {
                 std::string version = rangeStr.substr(opStr.length());
-                if (version.empty()) {
+                if (version.empty())
                     throw std::invalid_argument("Missing version number after operator '" + opStr + "'");
-                }
                 constraints_.push_back({opType, version});
                 parsed = true;
                 break;
@@ -150,19 +146,15 @@ namespace LangMgr
     }
 
     std::string VersionRange::toString() const {
-        if (constraints_.empty()) {
+        if (constraints_.empty())
             return "*";
-        }
-
-        if (constraints_.size() == 1) {
+        if (constraints_.size() == 1)
             return constraints_[0].toString();
-        }
 
         std::string result;
         for (size_t i = 0; i < constraints_.size(); ++i) {
-            if (i > 0) {
+            if (i > 0)
                 result += " ";
-            }
             result += constraints_[i].toString();
         }
         return result;
@@ -173,30 +165,17 @@ namespace LangMgr
             return false;
         if (other.op == Op::ANY)
             return true;
-
         if (op == Op::EQUAL && other.op != Op::EQUAL)
             return true;
-
-        if (op == Op::COMPATIBLE && other.op == Op::HYPHEN_RANGE) {
+        if (op == Op::COMPATIBLE && other.op == Op::HYPHEN_RANGE)
             return true;
-        }
-
         return false;
-    }
-
-    bool VersionRange::matches(const std::string &version) const {
-        for (const auto &constraint : constraints_) {
-            if (!constraint.matches(version)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     std::vector<std::string> VersionRange::getVersionsInRange(const std::vector<std::string> &availableVersions) const {
         std::vector<std::string> result;
-
         std::vector<std::string> sortedVersions = availableVersions;
+
         std::sort(sortedVersions.begin(), sortedVersions.end(),
                   [](const std::string &a, const std::string &b) { return compareVersions(a, b) > 0; });
 
@@ -208,20 +187,11 @@ namespace LangMgr
                     break;
                 }
             }
-            if (allMatch) {
+            if (allMatch)
                 result.push_back(version);
-            }
         }
 
         return result;
-    }
-
-    std::string VersionRange::getBestMatch(const std::vector<std::string> &availableVersions) const {
-        auto versionsInRange = getVersionsInRange(availableVersions);
-        if (versionsInRange.empty()) {
-            return "";
-        }
-        return versionsInRange.front();
     }
 
     std::string VersionRange::normalizeVersion(const std::string &version) {
@@ -229,7 +199,6 @@ namespace LangMgr
             return "0.0.0";
 
         std::string normalized = version;
-
         if (!normalized.empty() && (normalized[0] == 'v' || normalized[0] == 'V')) {
             normalized = normalized.substr(1);
         }
@@ -247,9 +216,8 @@ namespace LangMgr
                 if (std::isdigit(c))
                     numPart += c;
             }
-            if (!numPart.empty()) {
+            if (!numPart.empty())
                 parts.push_back(numPart);
-            }
         }
 
         while (parts.size() < 3)
@@ -281,34 +249,6 @@ namespace LangMgr
         }
 
         throw std::invalid_argument("Invalid version constraint format: '" + constraintStr + "'");
-    }
-
-    std::vector<std::string> VersionResolver::getPackageModules(const std::vector<ModuleInfo> &allModules,
-                                                                const std::string &packageId) {
-        std::vector<std::string> modules;
-        for (const auto &module : allModules) {
-            if (module.packageId == packageId) {
-                modules.push_back(module.moduleId + " [v" + module.version + ", level " + std::to_string(module.level) +
-                                  ", class: " + module.iid +
-                                  ", config: " + (module.configuration.empty() ? "none" : module.configuration) + "]");
-            }
-        }
-
-        std::sort(modules.begin(), modules.end(),
-                  [](const std::string &a, const std::string &b)
-                  {
-                      size_t vStart = a.find("v");
-                      size_t vEnd = a.find(",", vStart);
-                      const std::string vA = a.substr(vStart + 1, vEnd - vStart - 1);
-
-                      vStart = b.find("v");
-                      vEnd = b.find(",", vStart);
-                      const std::string vB = b.substr(vStart + 1, vEnd - vStart - 1);
-
-                      return VersionRange::compareVersions(vA, vB) > 0;
-                  });
-
-        return modules;
     }
 
     int VersionRange::compareVersions(const std::string &v1, const std::string &v2) {
@@ -345,22 +285,20 @@ namespace LangMgr
         return 0;
     }
 
-    ResolutionResult VersionResolver::resolveDependency(const std::vector<ModuleInfo> &allModules,
-                                                        const DependencyRaw &dependency,
-                                                        const ModuleInfo &requestingModule) {
+    ResolutionResult VersionResolver::resolveDependency(const std::vector<ModuleMetadata> &allModules,
+                                                        const DependencyRequirement &dependency,
+                                                        const ModuleMetadata &requestingModule) {
         ResolutionResult result;
         result.requestedPackageId = dependency.packageId;
         result.requestedModuleId = dependency.moduleId;
         result.versionRange = dependency.versionRange;
         result.requestedLevel = dependency.level;
 
-        std::vector<ModuleInfo> candidates;
+        std::vector<ModuleMetadata> candidates;
 
         for (const auto &module : allModules) {
-            if (module.packageId != dependency.packageId || module.moduleId != dependency.moduleId) {
+            if (module.packageId != dependency.packageId || module.moduleId != dependency.moduleId)
                 continue;
-            }
-
             if (module.level == -1) {
                 std::ostringstream oss;
                 oss << "[ERROR] Module " << module.packageId << ":" << module.moduleId << " has invalid level -1"
@@ -369,17 +307,13 @@ namespace LangMgr
                 result.error = oss.str();
                 return result;
             }
-
-            if (dependency.level != -1 && module.level != dependency.level) {
+            if (dependency.level != -1 && module.level != dependency.level)
                 continue;
-            }
-
             candidates.push_back(module);
         }
 
         if (candidates.empty()) {
             result.success = false;
-
             std::ostringstream oss;
             oss << "[ERROR] Dependency not found" << std::endl;
             oss << "  Requesting module: " << requestingModule.packageId << "::" << requestingModule.moduleId << " (v"
@@ -415,9 +349,8 @@ namespace LangMgr
                               return VersionRange::compareVersions(vA, vB) > 0;
                           });
 
-                for (const auto &mod : availableModules) {
+                for (const auto &mod : availableModules)
                     oss << "    - " << mod << std::endl;
-                }
             }
 
             result.error = oss.str();
@@ -460,7 +393,6 @@ namespace LangMgr
                     oss << allVersions[i];
                 }
                 oss << std::endl;
-
                 result.error = oss.str();
                 return result;
             }
@@ -481,7 +413,6 @@ namespace LangMgr
                 oss << allVersions[i];
             }
             oss << std::endl;
-
             result.error = oss.str();
             return result;
         }
@@ -491,9 +422,8 @@ namespace LangMgr
         std::vector<std::string> versionsByLevel;
         if (dependency.level != -1) {
             for (const auto &version : versionsInRange) {
-                if (versionToLevel[version] == dependency.level) {
+                if (versionToLevel[version] == dependency.level)
                     versionsByLevel.push_back(version);
-                }
             }
 
             if (versionsByLevel.empty()) {
@@ -511,15 +441,13 @@ namespace LangMgr
                         oss << ", ";
                     oss << versionsInRange[i] << " (level " << versionToLevel[versionsInRange[i]] << ")";
                 }
-
                 result.error = oss.str();
                 return result;
             }
         } else {
             for (const auto &version : versionsInRange) {
-                if (versionToLevel[version] == requestingModule.level) {
+                if (versionToLevel[version] == requestingModule.level)
                     versionsByLevel.push_back(version);
-                }
             }
 
             if (versionsByLevel.empty()) {
@@ -537,7 +465,6 @@ namespace LangMgr
                         oss << ", ";
                     oss << versionsInRange[i] << " (level " << versionToLevel[versionsInRange[i]] << ")";
                 }
-
                 result.error = oss.str();
                 return result;
             }
@@ -558,7 +485,6 @@ namespace LangMgr
                     oss << ", ";
                 oss << versionsByLevel[i];
             }
-
             result.error = oss.str();
             return result;
         }
@@ -566,64 +492,6 @@ namespace LangMgr
         result.success = true;
         result.resolvedVersion = bestVersion;
         result.resolvedLevel = versionToLevel[bestVersion];
-
-        return result;
-    }
-
-    bool VersionResolver::checkVersionConflicts(const std::vector<ModuleInfo> &modules,
-                                                std::vector<std::string> &conflicts) {
-        std::map<std::string, std::vector<std::string>> moduleVersions;
-
-        for (const auto &module : modules) {
-            std::string key = module.packageId + ":" + module.moduleId;
-            moduleVersions[key].push_back(module.version);
-        }
-
-        bool hasConflicts = false;
-        for (const auto &[key, versions] : moduleVersions) {
-            if (versions.size() > 1) {
-                std::string conflict = "Version conflict for " + key + ": ";
-                for (size_t i = 0; i < versions.size(); ++i) {
-                    if (i > 0)
-                        conflict += ", ";
-                    conflict += versions[i];
-                }
-                conflicts.push_back(conflict);
-                hasConflicts = true;
-            }
-        }
-
-        return hasConflicts;
-    }
-
-    std::string VersionResolver::selectBestVersionInRange(const std::vector<std::string> &versions,
-                                                          const VersionRange &range) {
-        if (versions.empty()) {
-            std::cerr << "Error: No versions provided for selection" << std::endl;
-            return "";
-        }
-
-        const auto versionsInRange = range.getVersionsInRange(versions);
-        if (versionsInRange.empty()) {
-            std::cerr << "Error: No versions found within the specified range" << std::endl;
-            return "";
-        }
-
-        return selectHighestVersion(versionsInRange);
-    }
-
-    std::vector<std::string> VersionResolver::filterByApiLevel(const std::vector<std::string> &versions,
-                                                               const int targetApiLevel,
-                                                               const std::map<std::string, int> &versionToApiLevel) {
-        std::vector<std::string> result;
-
-        for (const auto &version : versions) {
-            if (auto it = versionToApiLevel.find(version);
-                it != versionToApiLevel.end() && it->second == targetApiLevel) {
-                result.push_back(version);
-            }
-        }
-
         return result;
     }
 
@@ -638,11 +506,5 @@ namespace LangMgr
                   [](const std::string &a, const std::string &b) { return VersionRange::compareVersions(a, b) > 0; });
 
         return sortedVersions.front();
-    }
-
-    bool VersionResolver::checkCompatibility(const std::string &version1, const std::string &version2,
-                                             const std::string &compatibilityRule) {
-        const VersionRange range(compatibilityRule + version1);
-        return range.matches(version2);
     }
 } // namespace LangMgr

@@ -50,8 +50,7 @@ namespace LangMgr
 
     class PackageData;
     class Package;
-    class ModuleCategory;
-    class Manager;
+    class PackageManager;
 
     class LANGMGR_EXPORT ModuleDefinition {
     public:
@@ -79,7 +78,7 @@ namespace LangMgr
 
         State state() const;
         Package parent() const;
-        Manager *Mgr() const;
+        PackageManager *Mgr() const;
 
         template <class T>
         constexpr T *as();
@@ -94,7 +93,7 @@ namespace LangMgr
         explicit ModuleDefinition(std::string category);
 
         friend class ModuleCategory;
-        friend class Manager;
+        friend class PackageManager;
     };
 
     template <class T>
@@ -114,7 +113,7 @@ namespace LangMgr
         ~ModuleCategory() override;
 
         const std::string &name() const;
-        Manager *Mgr() const;
+        PackageManager *Mgr() const;
 
         std::vector<ModuleDefinition *> findDefinitions(const ModuleLocator &identifier) const;
         std::vector<ModuleDefinition *> definitions() const;
@@ -138,9 +137,9 @@ namespace LangMgr
 
         class Impl;
         explicit ModuleCategory(Impl &impl);
-        ModuleCategory(std::string name, Manager *mgr);
+        ModuleCategory(std::string name, PackageManager *mgr);
 
-        friend class Manager;
+        friend class PackageManager;
         friend class Package;
         friend class PackageData;
     };

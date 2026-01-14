@@ -34,7 +34,7 @@ namespace LangMgr
     std::string TaggerCategory::key() const { return "tagger"; }
     std::string TaggerCategory::category() const { return "tagger"; }
 
-    TaggerCategory::TaggerCategory(Manager *env) : ModuleCategory(TaggerCategory::category(), env) {}
+    TaggerCategory::TaggerCategory(PackageManager *env) : ModuleCategory(TaggerCategory::category(), env) {}
 
     ModuleCategoryRegistrar<TaggerCategory> registrar;
 

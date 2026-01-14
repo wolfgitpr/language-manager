@@ -18,7 +18,7 @@ namespace LangMgr
 
     class SplitterCategory::Impl : public ModuleCategory::Impl {
     public:
-        explicit Impl(SplitterCategory *decl, const std::string &category, Manager *su) :
+        explicit Impl(SplitterCategory *decl, const std::string &category, PackageManager *su) :
             ModuleCategory::Impl(decl, category, su) {}
 
         ~Impl() override = default;
@@ -34,7 +34,7 @@ namespace LangMgr
     std::string SplitterCategory::key() const { return "splitter"; }
     std::string SplitterCategory::category() const { return "splitter"; }
 
-    SplitterCategory::SplitterCategory(Manager *env) : ModuleCategory(SplitterCategory::category(), env) {}
+    SplitterCategory::SplitterCategory(PackageManager *env) : ModuleCategory(SplitterCategory::category(), env) {}
 
     ModuleCategoryRegistrar<SplitterCategory> registrar;
 

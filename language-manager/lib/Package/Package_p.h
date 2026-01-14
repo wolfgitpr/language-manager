@@ -12,14 +12,12 @@
 
 namespace LangMgr
 {
-
     class ModuleDefinition;
-
     class ModuleCategory;
 
     class PackageData {
     public:
-        explicit PackageData(Manager *mgr) : mgr(mgr) {}
+        explicit PackageData(PackageManager *mgr) : mgr(mgr) {}
         ~PackageData();
 
         Expected<void> parse(const std::filesystem::path &dir,
@@ -28,7 +26,7 @@ namespace LangMgr
 
         static Expected<JsonObject> readDesc(const std::filesystem::path &descPath);
 
-        Manager *mgr;
+        PackageManager *mgr;
 
         std::filesystem::path path;
         std::string id;
@@ -42,10 +40,10 @@ namespace LangMgr
         std::filesystem::path readme;
         std::string url;
 
-        std::map<std::string, std::map<std::string, ModuleDefinition *, std::less<>>, std::less<>>
-            moduleSpecs; // category -> [ name -> spec ]
+        int level = 1;
 
-        // state
+        std::map<std::string, std::map<std::string, ModuleDefinition *, std::less<>>, std::less<>> moduleSpecs;
+
         Error err;
         bool loaded = false;
     };

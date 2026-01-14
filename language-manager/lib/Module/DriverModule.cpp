@@ -17,8 +17,8 @@ namespace LangMgr
 
     class DriverCategory::Impl : public ModuleCategory::Impl {
     public:
-        explicit Impl(DriverCategory *decl, const std::string &category, Manager *su) :
-            ModuleCategory::Impl(decl, category, su) {}
+        explicit Impl(DriverCategory *decl, const std::string &category, PackageManager *mgr) :
+            ModuleCategory::Impl(decl, category, mgr) {}
 
         ~Impl() override = default;
     };
@@ -33,7 +33,7 @@ namespace LangMgr
     std::string DriverCategory::key() const { return "driver"; }
     std::string DriverCategory::category() const { return "driver"; }
 
-    DriverCategory::DriverCategory(Manager *env) : ModuleCategory(DriverCategory::key(), env) {}
+    DriverCategory::DriverCategory(PackageManager *env) : ModuleCategory(DriverCategory::key(), env) {}
 
     static ModuleCategoryRegistrar<DriverCategory> registrar;
 

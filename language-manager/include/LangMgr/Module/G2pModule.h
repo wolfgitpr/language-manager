@@ -29,9 +29,9 @@ namespace LangMgr
         std::string category() const override;
 
         class Impl;
-        explicit G2pCategory(Manager *env);
+        explicit G2pCategory(PackageManager *env);
 
-        friend class Manager;
+        friend class PackageManager;
         friend class ModuleCategoryRegistrar<G2pCategory>;
     };
 

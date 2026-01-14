@@ -41,7 +41,7 @@ namespace LangMgr
         return impl.spec_;
     }
 
-    Manager *Task::Mgr() const {
+    PackageManager *Task::Mgr() const {
         __stdc_impl_t;
         return impl.spec_->Mgr();
     }

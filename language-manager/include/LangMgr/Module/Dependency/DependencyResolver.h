@@ -1,12 +1,10 @@
 #ifndef LANGMGR_DEPENDENCY_RESOLVER_H
 #define LANGMGR_DEPENDENCY_RESOLVER_H
 
-#include <sstream>
 #include <unordered_map>
 #include <vector>
 
-#include <LangMgr/Module/Dependency/Dependency.h>
-#include <LangMgr/Module/Dependency/VersionUtils.h>
+#include <LangMgr/Module/Dependency/DependencyGraph.h>
 
 namespace LangMgr
 {
@@ -14,21 +12,19 @@ namespace LangMgr
     public:
         DependencyResolver() = default;
 
-        bool resolveAllDependencies(std::vector<ModuleInfo> &modules);
-        bool resolveModuleDependencies(ModuleInfo &module, const std::vector<ModuleInfo> &allModules);
-
+        bool resolveAllDependencies(std::vector<ModuleMetadata> &modules);
         const std::vector<std::string> &getErrors() const { return errors_; }
-        const std::vector<ModuleInfo> &getResolvedModules() const { return resolvedModules_; }
+        const std::vector<ModuleMetadata> &getResolvedModules() const { return resolvedModules_; }
 
         void clear();
 
     private:
-        static bool selectBestModules(std::vector<ModuleInfo> &modules);
-        void buildIndex(const std::vector<ModuleInfo> &modules);
+        static bool selectBestModules(std::vector<ModuleMetadata> &modules);
+        void buildIndex(const std::vector<ModuleMetadata> &modules);
 
-        std::vector<ModuleInfo> resolvedModules_;
+        std::vector<ModuleMetadata> resolvedModules_;
         std::vector<std::string> errors_;
-        std::unordered_map<std::string, std::vector<ModuleInfo *>> moduleIndex_;
+        std::unordered_map<std::string, std::vector<ModuleMetadata *>> moduleIndex_;
     };
 } // namespace LangMgr
 

@@ -47,20 +47,21 @@ namespace LangMgr
 
     class LANGMGR_EXPORT ModuleCategory::Impl : public ObjectPool::Impl {
     public:
-        explicit Impl(ModuleCategory *decl, std::string name, Manager *mgr) :
+        explicit Impl(ModuleCategory *decl, std::string name, PackageManager *mgr) :
             ObjectPool::Impl(decl), name(std::move(name)), mgr(mgr) {}
         ~Impl() override;
 
         std::string name;
-        Manager *mgr;
+        PackageManager *mgr;
 
         std::list<ModuleDefinition *> modules;
         std::map<std::string, NO<TaskFactory>> interpreters;
-        std::map<std::string,
-                 std::unordered_map<stdc::VersionNumber, std::map<std::string, decltype(modules)::iterator>>>
+        std::map<
+            std::string,
+            std::unordered_map<stdc::VersionNumber, std::map<std::string, std::map<int, decltype(modules)::iterator>>>>
             indexes;
 
-        std::shared_mutex &su_mtx() const { return static_cast<Manager::Impl *>(mgr->_impl.get())->su_mtx; }
+        std::shared_mutex &su_mtx() const { return static_cast<PackageManager::Impl *>(mgr->_impl.get())->su_mtx; }
 
         std::vector<ModuleDefinition *> findModuleSpecs(const ModuleLocator &loc) const;
     };

@@ -65,7 +65,7 @@ int main() {
 
     auto loadPackage = [&](const std::filesystem::path &path)
     {
-        if (auto exp = langMgr.open(path, false); !exp) {
+        if (auto exp = langMgr.open(path); !exp) {
             std::cerr << "failed to open model package: " << exp.error().message() << std::endl;
             return false;
         } else {

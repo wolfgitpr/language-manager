@@ -12,7 +12,7 @@ namespace LangMgr
 {
 
     class ModuleDefinition;
-    class Manager;
+    class PackageManager;
 
     /// TaskInfoBase - The base class storing inference information which should be created
     /// by a specific inference interpreter.
@@ -89,7 +89,7 @@ namespace LangMgr
         virtual NO<TaskResult> result() const = 0;
 
         const ModuleDefinition *spec() const;
-        Manager *Mgr() const;
+        PackageManager *Mgr() const;
 
         Expected<NO<NamedObject>> getObject(const std::string &category, const std::string &id) const;
 

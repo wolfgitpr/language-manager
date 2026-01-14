@@ -11,11 +11,6 @@
 
 namespace LangMgr
 {
-    /// PluginFactory - Manages plugin loading and lifecycle.
-    ///
-    /// Plugins:
-    ///  - filesystem plugins: shared libraries loaded from registered directories per \c iid
-    ///  - runtime plugins   : runtime class instances (not owned by PluginFactory)
     class LANGMGR_EXPORT PluginFactory {
     public:
         PluginFactory();
