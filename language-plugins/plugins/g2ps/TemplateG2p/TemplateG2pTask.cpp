@@ -25,8 +25,8 @@ namespace LangPlugins
     namespace fs = std::filesystem;
 
     static LangMgr::Expected<LangMgr::NO<Template::TemplateG2pConfiguration>>
-    getConfig(const LangMgr::ModuleDefinition *spec) {
-        const auto genericConfig = spec->as<LangMgr::G2pDefinition>()->configuration();
+    getConfig(const LangMgr::ModuleSpec *spec) {
+        const auto genericConfig = spec->as<LangMgr::G2pSpec>()->configuration();
         if (!genericConfig)
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "TemplateG2p configuration is nullptr");
         if (!(genericConfig->className() == Template::API_CLASS && genericConfig->objectName() == Template::API_NAME))
@@ -158,8 +158,7 @@ namespace LangPlugins
         mutable std::shared_mutex mutex;
     };
 
-    TemplateG2pTask::TemplateG2pTask(const LangMgr::ModuleDefinition *spec) :
-        Task(spec), _impl(std::make_unique<Impl>()) {}
+    TemplateG2pTask::TemplateG2pTask(const LangMgr::ModuleSpec *spec) : Task(spec), _impl(std::make_unique<Impl>()) {}
 
     TemplateG2pTask::~TemplateG2pTask() = default;
 
@@ -181,20 +180,20 @@ namespace LangPlugins
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        if (auto res = getObject("g2p", "g2p-official-eng"); res) {
-            impl.g2pInference = res.take().as<Task>();
-        } else {
-            setState(Failed);
-            return res.takeError();
-        }
-
         // Get TemplateG2p config
-        auto expConfig = getConfig(spec()->as<LangMgr::G2pDefinition>());
+        auto expConfig = getConfig(spec()->as<LangMgr::G2pSpec>());
         if (!expConfig) {
             setState(Failed);
             return expConfig.takeError();
         }
         const auto config = expConfig.take();
+
+        if (auto res = getObject("g2p", config->onnxG2pId); res) {
+            impl.g2pInference = res.take().as<Task>();
+        } else {
+            setState(Failed);
+            return res.takeError();
+        }
 
         for (auto entry : config->verifyEntry) {
             if (entry.type == "regex")
@@ -247,7 +246,7 @@ namespace LangPlugins
         setState(Running);
 
         // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangMgr::G2pDefinition>()); !expConfig) {
+        if (auto expConfig = getConfig(spec()->as<LangMgr::G2pSpec>()); !expConfig) {
             setState(Failed);
             return expConfig.takeError();
         }
@@ -267,8 +266,8 @@ namespace LangPlugins
 
         const auto g2pInput = input.as<LangMgr::G2pStartInput>();
         std::vector<LangMgr::G2pRes> res;
-        for (const auto &[lyric, g2pid] : g2pInput->g2pInput)
-            res.push_back(LangMgr::G2pRes(lyric, g2pid, "", {}, "copy", true));
+        for (const auto &lyric : g2pInput->g2pInput)
+            res.push_back(LangMgr::G2pRes(lyric, spec()->name().text(), "", {}, "copy", true));
 
         for (const auto &verifier : impl.verifiers)
             verifier->verify(res);
@@ -281,7 +280,7 @@ namespace LangPlugins
                 if (const auto findResult = lookup(it.lyric); findResult.empty()) {
                     const auto lstmInput = LangMgr::NO<LangMgr::G2pStartInput>::create(
                         LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS, LangMgr::G2P_API_LEVEL);
-                    lstmInput->g2pInput.push_back(LangMgr::G2pInput{it.lyric, it.g2pId});
+                    lstmInput->g2pInput.push_back({it.lyric});
 
                     std::cout << "Dict not contains word: " << it.lyric << "; Starting lstmG2p inference..."
                               << std::endl;

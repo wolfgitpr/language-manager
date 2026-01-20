@@ -15,12 +15,12 @@ namespace LangPlugins
     int TemplateG2pEngineFactory::apiLevel() const { return 1; }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::TaskConfiguration>>
-    TemplateG2pEngineFactory::createConfiguration(const LangMgr::ModuleDefinition *spec) const {
+    TemplateG2pEngineFactory::createConfiguration(const LangMgr::ModuleSpec *spec) const {
         if (!spec) {
             // fatal error: null pointer, return immediately
             return LangMgr::Error{
                 LangMgr::Error::InvalidArgument,
-                "fatal in createConfiguration: InferenceDefinition is nullptr",
+                "fatal in createConfiguration: InferenceSpec is nullptr",
             };
         }
 
@@ -28,7 +28,7 @@ namespace LangPlugins
 
         // Collect all the errors and return to user
         inferUtil::ErrorCollector ec;
-        inferUtil::ConfigurationParser parser(spec->as<LangMgr::ModuleDefinition>(), &ec);
+        inferUtil::ConfigurationParser parser(spec->as<LangMgr::ModuleSpec>(), &ec);
 
         static_assert(std::is_same_v<decltype(result->verifyEntry), std::vector<Template::VerifyEntry>>);
         parser.parse_verify_required(result->verifyEntry, "verify");
@@ -36,8 +36,8 @@ namespace LangPlugins
         static_assert(std::is_same_v<decltype(result->dictPath), std::filesystem::path>);
         parser.parse_path_required(result->dictPath, "dictPath");
 
-        static_assert(std::is_same_v<decltype(result->onnxInferenceId), std::string>);
-        parser.parse_string_required(result->onnxInferenceId, "onnxInferenceId");
+        static_assert(std::is_same_v<decltype(result->onnxG2pId), std::string>);
+        parser.parse_string_required(result->onnxG2pId, "onnxG2pId");
 
         if (ec.hasErrors()) {
             return LangMgr::Error{
@@ -49,7 +49,7 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
-    TemplateG2pEngineFactory::createTask(const LangMgr::ModuleDefinition *spec,
+    TemplateG2pEngineFactory::createTask(const LangMgr::ModuleSpec *spec,
                                          const LangMgr::NO<LangMgr::TaskRuntimeOptions> &runtimeOptions) {
         return LangMgr::NO<TemplateG2pTask>::create(spec);
     }

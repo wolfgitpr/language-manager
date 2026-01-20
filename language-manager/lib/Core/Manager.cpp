@@ -5,22 +5,17 @@
 #include "Manager_p.h"
 
 #include <iostream>
-#include <mutex>
 #include <set>
 
+#include <LangMgr/Support/Expected.h>
+#include <LangMgr/Task/Task.h>
 #include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
-#include <stdcorelib/stlextra/algorithms.h>
 
-#include <LangMgr/Module/Dependency/DependencyResolver.h>
-#include <LangMgr/Module/Dependency/VersionUtils.h>
-
-#include <LangMgr/Support/Expected.h>
-#include <LangMgr/Support/JSON.h>
-#include <LangMgr/Task/Task.h>
-
+#include "G2pTask.h"
 #include "Module_p.h"
 #include "Package_p.h"
+#include "TaggerTask.h"
 
 namespace fs = std::filesystem;
 
@@ -30,18 +25,21 @@ namespace LangMgr
 
     Manager::Impl::~Impl() {}
 
-    std::vector<NO<Task>> Manager::Impl::priorityTaggers(const std::vector<std::string> &priorityTaggerIds) const {
+    std::vector<NO<Task>> Manager::Impl::priorityTaggers(const std::vector<std::string> &priorityTaggerIds) {
         const std::vector<std::string> order = defaultTaggerOrder;
 
+        const auto &taggers = tasks["tagger"];
+
         std::vector<NO<Task>> result;
-        for (const auto &g2pId : priorityTaggerIds) {
-            const auto it = taggers.find(g2pId);
+        for (const auto &taggerId : priorityTaggerIds) {
+            const auto it = taggers.find(taggerId);
             if (it == taggers.end())
                 continue;
             result.push_back(it->second);
         }
 
-        for (const auto &id : order) {
+        for (const auto &baseId : order) {
+            const auto id = "tagger-" + baseId;
             if (std::find(priorityTaggerIds.begin(), priorityTaggerIds.end(), id) != priorityTaggerIds.end())
                 continue;
 
@@ -61,6 +59,14 @@ namespace LangMgr
 
     bool Manager::initialize(std::string &errMsg) {
         __stdc_impl_t;
+        const auto g2ps = this->tasks("g2p").take();
+        for (const auto &g2p : g2ps)
+            impl.tasks["g2p"][g2p->spec()->name().text()] = g2p;
+
+        const auto taggers = this->tasks("tagger").take();
+        for (const auto &tagger : taggers)
+            impl.tasks["tagger"][tagger->spec()->name().text()] = tagger;
+
         impl.initialized = true;
         return true;
     }
@@ -70,25 +76,35 @@ namespace LangMgr
         return impl.initialized;
     }
 
-    Expected<NO<Task>> Manager::tagger(const std::string &id) const {
-        __stdc_impl_t;
-        const auto it = impl.taggers.find(id);
-        if (it == impl.taggers.end()) {
-            std::cerr << "LangMgr::Manager::tagger(): factory does not exist:" << id << std::endl;
-            return Expected<NO<Task>>();
-        }
-        return it->second;
+    Expected<NO<Task>> Manager::task(const std::string &category, const std::string &id) const {
+        const auto inferenceCate = this->category(category);
+        if (!inferenceCate)
+            return Error(Error::SessionError, "could not find category: " + category);
+
+        const auto inferenceObject = inferenceCate->getFirstObject(id);
+        if (!inferenceObject)
+            return Error(Error::SessionError, "could not find id: " + id);
+
+        return inferenceObject.as<Task>();
     }
 
-    std::vector<NO<Task>> Manager::taggers() const {
-        __stdc_impl_t;
-        std::vector<NO<Task>> result;
-        for (auto [id, tagger] : impl.taggers)
-            result.push_back(tagger);
-        return result;
+    Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category) const {
+        const auto inferenceCate = this->category(category);
+        if (!inferenceCate)
+            return Error(Error::SessionError, "could not find category: " + category);
+
+        const auto inferenceObject = inferenceCate->allObjects();
+        if (inferenceObject.empty())
+            return Error(Error::SessionError, "category: " + category + " is empty.");
+
+        std::vector<NO<Task>> tasks;
+        tasks.reserve(inferenceObject.size());
+        std::transform(inferenceObject.begin(), inferenceObject.end(), std::back_inserter(tasks),
+                       [](const auto &obj) { return obj.template as<Task>(); });
+        return tasks;
     }
 
-    std::vector<std::string> Manager::defaultOrder() const {
+    std::vector<std::string> Manager::defaultTaggerOrder() const {
         __stdc_impl_t;
         return impl.defaultTaggerOrder;
     }
@@ -98,68 +114,85 @@ namespace LangMgr
         impl.defaultTaggerOrder = order;
     }
 
-    std::vector<TaggerRes> Manager::split(const std::string &input,
-                                          const std::vector<std::string> &priorityTaggerIds) const {
+    std::vector<std::string> Manager::split(const std::string &input,
+                                            const std::vector<std::string> &priorityLanguages) {
+        const auto result = this->tag({input}, true, priorityLanguages);
+        std::vector<std::string> lyrics;
+        for (const auto &elem : result)
+            lyrics.push_back(elem.lyric);
+        return lyrics;
+    }
+
+    static std::vector<std::pair<std::string, std::vector<std::string>>>
+    groupLyrics(const std::vector<G2pInput *> &input) {
+        std::vector<std::pair<std::string, std::vector<std::string>>> groups;
+        std::string lastId;
+
+        for (const auto *item : input) {
+            if (groups.empty() || item->g2pId != lastId) {
+                groups.emplace_back();
+                lastId = item->g2pId;
+                groups.back().first = lastId;
+            }
+            groups.back().second.push_back(item->lyric);
+        }
+
+        return groups;
+    }
+
+    std::vector<G2pRes> Manager::convert(const std::vector<G2pInput *> &input) {
         __stdc_impl_t;
-        // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
-        // std::vector result = {TaggerRes(utf8strToU32str(input))};
-        // for (const auto &tagger : taggersList)
-        //     result = tagger->start(result);
-        // return result;
-        return {};
+        auto &g2ps = impl.tasks["g2p"];
+        const auto _lyrics = groupLyrics(input);
+        const auto _input = NO<G2pStartInput>::create(G2P_API_NAME, G2P_API_CLASS, G2P_API_LEVEL);
+        std::vector<G2pRes> result;
+
+        for (const auto &[g2pId, lyric] : _lyrics) {
+            _input->g2pInput = lyric;
+            const auto targetG2pId = "g2p-" + g2pId;
+            if (g2ps.find(targetG2pId) == g2ps.end()) {
+                std::cerr << "Error: fail to find g2p: " << g2pId << std::endl;
+                continue;
+            }
+
+            auto resultExp = g2ps[targetG2pId]->start(_input);
+            if (!resultExp)
+                throw std::runtime_error(stdc::formatN("inference failed: %1", resultExp.error().message()));
+
+            const auto _result = resultExp.take();
+            if (const auto g2pRes = _result.as<G2pOutput>()) {
+                result.insert(result.end(), g2pRes->g2pResult.begin(), g2pRes->g2pResult.end());
+
+                if (!g2pRes->errorMessage.empty())
+                    std::cout << "Error: " << g2pRes->errorMessage << std::endl;
+
+            } else {
+                throw std::runtime_error("unexpected result type");
+            }
+        }
+
+        return result;
     }
 
-    void Manager::convert(const std::vector<TaggerRes *> &input) const {
-        // __stdc_impl_t;
-        // std::map<std::string, std::vector<int>> indexMap;
-        // std::map<std::string, std::vector<std::u32string>> lyricMap;
-        //
-        // for (int i = 0; i < input.size(); ++i) {
-        //     const TaggerRes *note = input.at(i);
-        //     indexMap[note->g2pId].push_back(i);
-        //     lyricMap[note->g2pId].push_back(note->lyric);
-        // }
-        //
-        // for (const auto &[taggerId, indices] : indexMap) {
-        //     const auto &rawLyrics = lyricMap[taggerId];
-        //     auto [taggerType, configId] = impl.extractConfig(taggerId);
-        //
-        //     auto g2pFactory = this->tagger(taggerId);
-        //     if (!g2pFactory)
-        //         g2pFactory = this->tagger("unknown");
-        //
-        //     const auto &tempRes = g2pFactory->convert(rawLyrics);
-        //     for (int i = 0; i < tempRes.size(); i++) {
-        //         const auto &index = indices[i];
-        //         input[index]->error = tempRes[i].error;
-        //         input[index]->syllable = tempRes[i].syllable;
-        //         input[index]->candidates = tempRes[i].candidates;
-        //     }
-        // }
-    }
+    std::vector<TaggerRes> Manager::tag(const std::vector<std::string> &input, const bool split,
+                                        const std::vector<std::string> &priorityLanguages) {
+        __stdc_impl_t;
+        std::vector<TaggerRes> inputNote;
+        inputNote.reserve(input.size());
 
-    std::vector<std::string> Manager::tag(const std::vector<std::string> &input,
-                                          const std::vector<std::string> &priorityTaggerIds,
-                                          const std::vector<std::string> &reservedTokens) const {
-        // __stdc_impl_t;
-        // const auto &taggersList = impl.priorityTaggers(priorityTaggerIds);
-        // std::vector<TaggerRes *> inputNote;
-        // for (const auto &lyric : input) {
-        //     inputNote.push_back(new TaggerRes(utf8strToU32str(lyric)));
-        // }
-        //
-        // for (const auto &tagger : taggersList)
-        //     tagger->correct(inputNote);
-        //
-        // std::vector<std::string> result;
-        // for (const auto &note : inputNote)
-        //     result.push_back(note->language);
-        //
-        // for (const auto note : inputNote) {
-        //     delete note;
-        // }
-        //
-        // return result;
-        return {};
+        const auto &taggersList = impl.priorityTaggers(priorityLanguages);
+        const auto _input = NO<TaggerStartInput>::create(TAGGER_API_NAME, TAGGER_API_CLASS, TAGGER_API_LEVEL);
+        _input->split = split;
+
+        for (const auto &lyric : input)
+            inputNote.emplace_back(lyric);
+
+        _input->taggerInput = inputNote;
+
+        for (const auto &task : taggersList) {
+            auto resExp = task->start(_input);
+            _input->taggerInput = resExp.take().as<TaggerOutput>()->taggerResult;
+        }
+        return _input->taggerInput;
     }
 } // namespace LangMgr

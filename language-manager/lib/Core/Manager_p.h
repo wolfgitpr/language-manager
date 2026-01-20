@@ -14,7 +14,7 @@
 namespace LangMgr
 {
 
-    class ModuleDefinition;
+    class ModuleSpec;
     class PackageData;
 
     class LANGMGR_EXPORT Manager::Impl : public PackageManager::Impl {
@@ -24,13 +24,12 @@ namespace LangMgr
 
         using Decl = Manager;
 
-        std::vector<NO<Task>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {}) const;
+        std::vector<NO<Task>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {});
 
         bool initialized = false;
-        std::vector<std::string> defaultTaggerOrder = {"cmn-pinyin", "yue-jyutping", "jpn-romaji",  "eng-cmu",
-                                                       "space",      "slur",         "punctuation", "number",
-                                                       "linebreak",  "unknown"};
-        std::map<std::string, NO<Task>> taggers;
+        std::vector<std::string> defaultTaggerOrder = {"cmn",  "yue",         "jpn",    "eng",       "space",
+                                                       "slur", "punctuation", "number", "linebreak", "unknown"};
+        std::map<std::string, std::map<std::string, NO<Task>>> tasks;
         std::string m_pinyinDictPath;
 
         std::unordered_set<ModuleMetadata, ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>

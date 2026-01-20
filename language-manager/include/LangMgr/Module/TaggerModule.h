@@ -7,15 +7,14 @@
 namespace LangMgr
 {
     class TaggerTask;
-    class TaggerCategory;
 
-    class TaggerDefinition : public ModuleDefinition {
+    class TaggerSpec : public ModuleSpec {
     public:
-        ~TaggerDefinition() override;
+        ~TaggerSpec() override;
 
     protected:
         class Impl;
-        TaggerDefinition();
+        TaggerSpec();
 
         friend class TaggerCategory;
     };

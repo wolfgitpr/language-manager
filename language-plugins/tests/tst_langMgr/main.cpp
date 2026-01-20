@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -19,9 +20,6 @@
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 
-#ifdef WIN32
-#include <Windows.h>
-#endif
 
 using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
 
@@ -35,7 +33,6 @@ public:
 
         mgr_.addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("InferenceDrivers"));
         mgr_.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
-        mgr_.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Splitters"));
         mgr_.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
 
         auto onnxDriverExp = initializeOnnxDriver(ep_, deviceIndex_, loadFromProgress_);
@@ -49,42 +46,30 @@ public:
         return {};
     }
 
-    LangMgr::Expected<std::vector<LangMgr::Package>> loadPackagesInOrder(const std::filesystem::path &packagesRootDir) {
+    bool loadPackagesInOrder(const std::filesystem::path &packagesRootDir) {
         mgr_.addPackagePath(packagesRootDir);
         mgr_.checkDependencies();
 
         const auto packageOrder = mgr_.getPackageInitializationOrder();
-        if (packageOrder.empty())
-            return LangMgr::Error(LangMgr::Error::InvalidArgument, "Failed to determine package initialization order");
-
-        struct TaskFactoryInitArgs {
-            std::string id_;
-            std::string iid_;
-            std::string type_;
-
-            bool operator<(const TaskFactoryInitArgs &other) const {
-                return std::tie(id_, iid_, type_) < std::tie(other.id_, other.iid_, other.type_);
-            }
-
-            bool operator==(const TaskFactoryInitArgs &other) const {
-                return id_ == other.id_ && iid_ == other.iid_ && type_ == other.type_;
-            }
-        };
-
-        std::set<TaskFactoryInitArgs> iids;
-        for (const auto &packageInfo : packageOrder) {
-            for (const auto &moduleInfo : packageInfo.modules)
-                iids.insert(TaskFactoryInitArgs{moduleInfo.moduleId, moduleInfo.iid, moduleInfo.type});
+        if (packageOrder.empty()) {
+            std::cerr << "Failed to determine package initialization order" << std::endl;
+            return false;
         }
 
-        for (const auto &[id_, iid_, type_] : iids) {
-            const auto taskFactoryPlugin = mgr_.plugin<LangMgr::TaskFactoryPlugin>(iid_.c_str());
+        std::set<std::string> iids;
+        for (const auto &packageInfo : packageOrder)
+            for (const auto &moduleInfo : packageInfo.modules)
+                iids.insert(moduleInfo.iid);
+
+        for (const auto &iid : iids) {
+            const auto taskFactoryPlugin = mgr_.plugin<LangMgr::TaskFactoryPlugin>(iid.c_str());
             if (!taskFactoryPlugin) {
-                return LangMgr::Error(LangMgr::Error::FileNotOpen, "failed to load RegexSplitter interpreter plugin");
+                std::cerr << "Failed to load FactoryPlugin: " << iid << std::endl;
+                return false;
             }
             const auto &task = taskFactoryPlugin->create();
-            auto &ic = *mgr_.category(type_.c_str());
-            ic.addObject(id_ + "Factory", task);
+            auto &ic = *mgr_.category("engine");
+            ic.addObject(iid, task);
         }
 
         std::vector<LangMgr::Package> loadedPackages;
@@ -120,20 +105,9 @@ public:
                 }
             }
         }
-
-        return loadedPackages;
+        std::cout << "\nSuccessfully loaded " << loadedPackages.size() << " packages" << std::endl;
+        return true;
     }
-
-    template <typename TaskType>
-    std::vector<LangMgr::NO<LangMgr::Task>> getTasksByType() const {
-        std::vector<LangMgr::NO<LangMgr::Task>> result;
-        for (const auto &[key, task] : loadedTasks_) {
-            result.push_back(task);
-        }
-        return result;
-    }
-
-    const std::unordered_map<std::string, LangMgr::NO<LangMgr::Task>> &getAllTasks() const { return loadedTasks_; }
 
 private:
     LangMgr::Manager &mgr_;
@@ -144,24 +118,23 @@ private:
 
     LangMgr::Expected<LangMgr::NO<LangMgr::Task>> createModuleTask(const LangMgr::ModuleMetadata &moduleInfo,
                                                                    const LangMgr::Package &pkg) const {
-        const auto moduleDef = pkg.moduleSpec(moduleInfo.type, moduleInfo.moduleId);
-        if (!moduleDef) {
+        const auto moduleSpec = pkg.moduleSpec(moduleInfo.type, moduleInfo.moduleId);
+        if (!moduleSpec) {
             return LangMgr::Error(LangMgr::Error::FileNotFound,
                                   stdc::formatN("Module %1 not found in package %2", moduleInfo.moduleId, pkg.id()));
         }
 
-        const auto &moduleCategory = *mgr_.category(moduleInfo.type);
-        const auto moduleName = moduleDef->id();
-        const auto taskFactory = moduleCategory.getFirstObject(moduleName + "Factory").as<LangMgr::TaskFactory>();
+        const auto &moduleCategory = *mgr_.category("engine");
+        const auto taskFactory = moduleCategory.getFirstObject(moduleInfo.iid).as<LangMgr::TaskFactory>();
         if (!taskFactory) {
             return LangMgr::Error(LangMgr::Error::InterpreterNotFound,
-                                  stdc::formatN("%1 task factory not found", moduleName));
+                                  stdc::formatN("%1 task Engine not found", moduleSpec->id()));
         }
 
-        const auto runtimeOptions =
-            LangMgr::NO<LangMgr::TaskRuntimeOptions>::create("", moduleDef->id(), moduleDef->apiLevel());
+        const auto runtimeOptions = LangMgr::NO<LangMgr::TaskRuntimeOptions>::create(
+            moduleSpec->id(), moduleSpec->className(), moduleSpec->apiLevel());
 
-        auto taskExp = taskFactory->createTask(moduleDef, runtimeOptions);
+        auto taskExp = taskFactory->createTask(moduleSpec, runtimeOptions);
         if (!taskExp) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument,
                                   stdc::formatN("Failed to create task: %1", taskExp.error().message()));
@@ -169,15 +142,15 @@ private:
 
         auto task = taskExp.take();
 
-        const auto initArgs =
-            LangMgr::NO<LangMgr::TaskInitArgs>::create("", moduleDef->className(), moduleDef->apiLevel());
+        const auto initArgs = LangMgr::NO<LangMgr::TaskInitArgs>::create(moduleSpec->id(), moduleSpec->className(),
+                                                                         moduleSpec->apiLevel());
         if (const auto exp = task->initialize(initArgs); !exp) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument,
                                   stdc::formatN("Failed to initialize task: %1", exp.error().message()));
         }
 
-        auto &ic = *mgr_.category(moduleDef->category().c_str());
-        ic.addObject(moduleDef->id(), task);
+        auto &ic = *mgr_.category(moduleSpec->category().c_str());
+        ic.addObject(moduleSpec->id(), task);
         return task;
     }
 
@@ -199,6 +172,7 @@ private:
 AutoModuleInitializer::AutoModuleInitializer(LangMgr::Manager &mgr, const EP ep, const int deviceIndex,
                                              const bool loadFromProgress) :
     mgr_(mgr), ep_(ep), deviceIndex_(deviceIndex), loadFromProgress_(loadFromProgress) {}
+
 LangMgr::Expected<LangMgr::NO<LangMgr::SessionFactory>>
 AutoModuleInitializer::initializeOnnxDriver(const EP ep, const int deviceIndex, const bool loadFromProgress) const {
     const auto onnxDriverPlugin = mgr_.plugin<LangMgr::DriverFactoryPlugin>("onnx");
@@ -239,36 +213,9 @@ EP parseExecutionProvider(const std::string &provider) {
     return EP::CPUExecutionProvider;
 }
 
-
-void executeTemplateInference(const LangMgr::NO<LangMgr::Task> &templateInference) {
-    const auto input = LangMgr::NO<LangMgr::G2pStartInput>::create(LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS,
-                                                                   LangMgr::G2P_API_LEVEL);
-    input->g2pInput = {LangMgr::G2pInput({"hellobazhahei", "eng"}), LangMgr::G2pInput({"hello", "eng"})};
-
-    std::cout << "Starting inference - Id: " << templateInference->spec()->as<LangMgr::G2pDefinition>()->name().text()
-              << std::endl;
-    auto resultExp = templateInference->start(input);
-    if (!resultExp)
-        throw std::runtime_error(stdc::formatN("inference failed: %1", resultExp.error().message()));
-
-    const auto result = resultExp.take();
-    if (const auto g2pResult = result.as<LangMgr::G2pOutput>()) {
-        for (const auto &res : g2pResult->g2pResult)
-            std::cout << "\nlyric: " << res.lyric << ";\npronunciation: '" << res.pronunciation
-                      << "';\nmode: " << res.mode << std::endl
-                      << std::endl;
-
-        if (!g2pResult->errorMessage.empty())
-            std::cout << "Error: " << g2pResult->errorMessage << std::endl;
-
-    } else {
-        throw std::runtime_error("unexpected result type");
-    }
-}
-
 int main() {
     try {
-        EP g2pProvider = parseExecutionProvider("cpu");
+        const EP g2pProvider = parseExecutionProvider("cpu");
 
         LangMgr::Manager langMgr;
         AutoModuleInitializer initializer(langMgr, g2pProvider, 0, false);
@@ -277,44 +224,39 @@ int main() {
             return -1;
         }
 
-        std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\tst_package)";
-
-        auto packagesExp = initializer.loadPackagesInOrder(packagesRootDir);
-        if (!packagesExp) {
-            std::cerr << packagesExp.error().message() << std::endl;
+        const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\tst_package)";
+        if (const auto packagesExp = initializer.loadPackagesInOrder(packagesRootDir); !packagesExp)
             return -2;
+
+        std::string errorMessage;
+        langMgr.initialize(errorMessage);
+
+        const auto text = "Halloween蝉声--陪かな伴着qwe行云流浪---ka回-忆-开始132后安静遥望远方;荒草覆没的古井--枯塘;"
+                          "匀-散asdaw一缕过往";
+        auto splitRes = langMgr.split(text);
+        std::cout << "\nsplit result: "
+                  << std::accumulate(splitRes.begin(), splitRes.end(), std::string(),
+                                     [](const std::string &a, const std::string &b)
+                                     { return a.empty() ? b : a + " " + b; })
+                  << std::endl;
+
+        const auto resExp = langMgr.tag(splitRes);
+
+        std::vector<LangMgr::G2pInput *> g2pInput;
+        std::cout << "tag result: " << std::endl;
+        for (const auto &res : resExp) {
+            std::cout << "lyric: " << res.lyric << " language: " << res.language << " tag: " << res.tag << std::endl;
+            g2pInput.emplace_back(new LangMgr::G2pInput(res.lyric, res.language));
         }
 
-        auto packages = packagesExp.take();
-        std::cout << "\nSuccessfully loaded " << packages.size() << " packages" << std::endl;
+        const auto g2pResult = langMgr.convert(g2pInput);
 
-        auto allTasks = initializer.getAllTasks();
-        std::cout << "Total tasks created: " << allTasks.size() << std::endl;
-
-        std::cout << "\nAll tasks:" << std::endl;
-        for (const auto &[key, task] : allTasks) {
-            if (auto spec = task->spec()) {
-                std::cout << "  - " << spec->id() << " (category: " << spec->category()
-                          << ", class: " << spec->className() << ")" << std::endl
-                          << std::endl;
-            }
+        for (auto g2pRes : g2pResult) {
+            std::cout << "\nlyric: " << g2pRes.lyric << ";\npronunciation: '" << g2pRes.pronunciation
+                      << "';\nmode: " << g2pRes.mode << std::endl
+                      << std::endl;
         }
 
-        const auto inferenceCate = langMgr.category("g2p");
-        if (!inferenceCate)
-            return -3;
-
-        const auto inferenceObject = inferenceCate->getFirstObject("g2p-template-eng");
-        if (!inferenceObject)
-            throw std::runtime_error(stdc::formatN("g2p-template-eng not found"));
-
-        auto task = inferenceObject.as<LangMgr::Task>();
-        if (!task)
-            throw std::runtime_error("unexpected result type");
-
-        executeTemplateInference(task);
-
-        std::cout << "G2pTask completed successfully" << std::endl;
         return 0;
     }
     catch (const std::exception &e) {

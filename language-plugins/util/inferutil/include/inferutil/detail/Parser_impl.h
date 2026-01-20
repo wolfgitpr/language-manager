@@ -116,7 +116,7 @@ namespace LangPlugins::inferUtil
             if (!it->second.isString()) {
                 collectError("string field \"" + fieldName + "\" type mismatch");
             } else {
-                out = stdc::path::clean_path(definition->path() / stdc::path::from_utf8(it->second.toStringView()));
+                out = stdc::path::clean_path(spec->path() / stdc::path::from_utf8(it->second.toStringView()));
             }
         } else {
             collectError("string field \"" + fieldName + "\" is missing");
@@ -130,7 +130,7 @@ namespace LangPlugins::inferUtil
             if (!it->second.isString()) {
                 collectError(R"(string field "phonemes" type mismatch)");
             } else {
-                const auto path = definition->path() / stdc::path::from_utf8(it->second.toStringView());
+                const auto path = spec->path() / stdc::path::from_utf8(it->second.toStringView());
                 loadIdMapping(it->first, path, out);
             }
         } else {
@@ -196,6 +196,62 @@ namespace LangPlugins::inferUtil
                         }
                     } else {
                         collectError("verify entry #" + std::to_string(i) + " missing required field \"mode\"");
+                        continue;
+                    }
+                    out.push_back(std::move(entry));
+                }
+            }
+        } else {
+            collectError("array field \"" + fieldName + "\" is missing");
+        }
+    }
+
+    inline void ConfigurationParser::parse_tagger_required(std::vector<Api::RegexTagger::L1::TaggerRegexEntry> &out,
+                                                           const std::string &fieldName) {
+        const auto &config = *pConfig;
+
+        if (const auto it = config.find(fieldName); it != config.end()) {
+            if (!it->second.isArray()) {
+                collectError("array field \"" + fieldName + "\" type mismatch");
+            } else {
+                const auto &arr = it->second.toArray();
+                out.clear();
+                out.reserve(arr.size());
+
+                for (size_t i = 0; i < arr.size(); ++i) {
+                    const auto &item = arr[i];
+                    if (!item.isObject()) {
+                        collectError("tagger entry #" + std::to_string(i) + " must be an object");
+                        continue;
+                    }
+
+                    const auto &obj = item.toObject();
+                    Api::RegexTagger::L1::TaggerRegexEntry entry;
+
+                    if (const auto valueIt = obj.find("regexes"); valueIt != obj.end()) {
+                        const auto &valueArr = valueIt->second.toArray();
+                        std::string combined;
+                        for (size_t j = 0; j < valueArr.size(); ++j) {
+                            if (valueArr[j].isString())
+                                entry.regexes.push_back(valueArr[j].toString());
+                            else
+                                collectError("tagger entry #" + std::to_string(i) + " array value #" +
+                                             std::to_string(j) + " must be string");
+                        }
+                    } else {
+                        collectError("tagger entry #" + std::to_string(i) + " missing required field \"value\"");
+                        continue;
+                    }
+
+                    if (const auto tagIt = obj.find("tag"); tagIt != obj.end()) {
+                        if (tagIt->second.isString()) {
+                            entry.tag = tagIt->second.toString();
+                        } else {
+                            collectError("tagger entry #" + std::to_string(i) + " field \"tag\" must be string");
+                            continue;
+                        }
+                    } else {
+                        collectError("tagger entry #" + std::to_string(i) + " missing required field \"tag\"");
                         continue;
                     }
                     out.push_back(std::move(entry));

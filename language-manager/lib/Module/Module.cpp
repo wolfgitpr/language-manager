@@ -105,75 +105,75 @@ namespace LangMgr
         return true;
     }
 
-    ModuleDefinition::~ModuleDefinition() = default;
+    ModuleSpec::~ModuleSpec() = default;
 
-    const std::string &ModuleDefinition::id() const {
+    const std::string &ModuleSpec::id() const {
         __stdc_impl_t;
         return impl.id;
     }
 
-    const std::string &ModuleDefinition::category() const {
+    const std::string &ModuleSpec::category() const {
         __stdc_impl_t;
         return impl.category;
     }
 
-    const std::string &ModuleDefinition::className() const {
+    const std::string &ModuleSpec::className() const {
         __stdc_impl_t;
         return impl.className;
     }
 
-    DisplayText ModuleDefinition::name() const {
+    DisplayText ModuleSpec::name() const {
         __stdc_impl_t;
         return impl.name;
     }
 
-    int ModuleDefinition::apiLevel() const {
+    int ModuleSpec::apiLevel() const {
         __stdc_impl_t;
         return impl.apiLevel;
     }
 
-    const JsonObject &ModuleDefinition::manifestConfiguration() const {
+    const JsonObject &ModuleSpec::manifestConfiguration() const {
         __stdc_impl_t;
         return impl.manifestConfiguration;
     }
 
-    NO<TaskConfiguration> ModuleDefinition::configuration() const {
+    NO<TaskConfiguration> ModuleSpec::configuration() const {
         __stdc_impl_t;
         return impl.configuration;
     }
 
-    const std::filesystem::path &ModuleDefinition::path() const {
+    const std::filesystem::path &ModuleSpec::path() const {
         __stdc_impl_t;
         return impl.path;
     }
 
-    Expected<NO<Task>> ModuleDefinition::createTask(const NO<TaskRuntimeOptions> &runtimeOptions) const {
+    Expected<NO<Task>> ModuleSpec::createTask(const NO<TaskRuntimeOptions> &runtimeOptions) const {
         __stdc_impl_t;
         return impl.interp->createTask(this, runtimeOptions);
     }
 
-    ModuleDefinition::State ModuleDefinition::state() const {
+    ModuleSpec::State ModuleSpec::state() const {
         __stdc_impl_t;
         return impl.state;
     }
 
-    Package ModuleDefinition::parent() const {
+    Package ModuleSpec::parent() const {
         __stdc_impl_t;
         return Package(impl.package);
     }
 
-    PackageManager *ModuleDefinition::Mgr() const {
+    PackageManager *ModuleSpec::Mgr() const {
         __stdc_impl_t;
         return impl.package->mgr;
     }
 
-    ModuleDefinition::ModuleDefinition(Impl &impl) : _impl(&impl) {}
+    ModuleSpec::ModuleSpec(Impl &impl) : _impl(&impl) {}
 
-    ModuleDefinition::ModuleDefinition(std::string category) : _impl(new Impl(std::move(category))) {}
+    ModuleSpec::ModuleSpec(std::string category) : _impl(new Impl(std::move(category))) {}
 
     ModuleCategory::Impl::~Impl() {}
 
-    std::vector<ModuleDefinition *> ModuleCategory::Impl::findModuleSpecs(const ModuleLocator &loc) const {
+    std::vector<ModuleSpec *> ModuleCategory::Impl::findModuleSpecs(const ModuleLocator &loc) const {
         std::shared_lock lock(su_mtx());
         if (loc.package().empty() || loc.version().isEmpty()) {
             return {};
@@ -199,14 +199,14 @@ namespace LangMgr
                 return {};
             }
 
-            std::vector<ModuleDefinition *> res;
+            std::vector<ModuleSpec *> res;
             for (const auto &[level, iter] : it3->second) {
                 res.push_back(*iter);
             }
             return res;
         }
 
-        std::vector<ModuleDefinition *> res;
+        std::vector<ModuleSpec *> res;
         for (const auto &[moduleId, levelMap] : moduleMap) {
             for (const auto &[level, iter] : levelMap) {
                 res.push_back(*iter);
@@ -227,7 +227,7 @@ namespace LangMgr
         return impl.mgr;
     }
 
-    Expected<void> ModuleDefinition::Impl::read(const std::filesystem::path &basePath, const JsonObject &obj) {
+    Expected<void> ModuleSpec::Impl::read(const std::filesystem::path &basePath, const JsonObject &obj) {
         fs::path configPath;
         stdc::VersionNumber fmtVersion_;
         std::string id_;
@@ -396,30 +396,30 @@ namespace LangMgr
         return {};
     }
 
-    std::vector<ModuleDefinition *> ModuleCategory::findDefinitions(const ModuleLocator &identifier) const {
+    std::vector<ModuleSpec *> ModuleCategory::findSpec(const ModuleLocator &identifier) const {
         __stdc_impl_t;
-        std::vector<ModuleDefinition *> res;
+        std::vector<ModuleSpec *> res;
         auto temp = impl.findModuleSpecs(identifier);
         res.reserve(res.size());
         for (const auto &item : std::as_const(temp)) {
-            res.push_back(static_cast<ModuleDefinition *>(item));
+            res.push_back(static_cast<ModuleSpec *>(item));
         }
         return res;
     }
 
-    std::vector<ModuleDefinition *> ModuleCategory::definitions() const {
+    std::vector<ModuleSpec *> ModuleCategory::specs() const {
         __stdc_impl_t;
         std::shared_lock lock(impl.su_mtx());
-        std::vector<ModuleDefinition *> res;
+        std::vector<ModuleSpec *> res;
         res.reserve(impl.modules.size());
         for (const auto &item : impl.modules) {
-            res.push_back(static_cast<ModuleDefinition *>(item));
+            res.push_back(static_cast<ModuleSpec *>(item));
         }
         return res;
     }
 
-    Expected<ModuleDefinition *> ModuleCategory::parseDefinition(const std::filesystem::path &basePath,
-                                                                 const JsonValue &config) const {
+    Expected<ModuleSpec *> ModuleCategory::parseSpec(const std::filesystem::path &basePath,
+                                                     const JsonValue &config) const {
         __stdc_impl_t;
         if (!config.isObject()) {
             return Error{
@@ -427,7 +427,7 @@ namespace LangMgr
                 R"(invalid inference specification)",
             };
         }
-        auto spec = new ModuleDefinition(this->category());
+        auto spec = new ModuleSpec(this->category());
         if (const auto exp = spec->_impl->read(basePath, config.toObject()); !exp) {
             delete spec;
             return exp.error();
@@ -435,24 +435,23 @@ namespace LangMgr
         return spec;
     }
 
-    Expected<void> ModuleCategory::loadDefinitionBase(ModuleDefinition *definition,
-                                                      const ModuleDefinition::State state) {
+    Expected<void> ModuleCategory::loadSpecBase(ModuleSpec *spec, const ModuleSpec::State state) {
         __stdc_impl_t;
 
-        const auto spec_impl = definition->_impl.get();
+        const auto spec_impl = spec->_impl.get();
         switch (state) {
-        case ModuleDefinition::Initialized:
+        case ModuleSpec::Initialized:
             {
                 std::unique_lock lock(impl.su_mtx());
                 const auto lib = spec_impl->package;
-                const auto it = impl.modules.insert(impl.modules.end(), definition);
+                const auto it = impl.modules.insert(impl.modules.end(), spec);
 
                 // 修改索引结构，增加level层
                 impl.indexes[lib->id][lib->version][spec_impl->id][spec_impl->apiLevel] = it;
                 return Expected<void>();
             }
 
-        case ModuleDefinition::Deleted:
+        case ModuleSpec::Deleted:
             {
                 std::unique_lock lock(impl.su_mtx());
                 const auto lib = spec_impl->package;
@@ -499,11 +498,11 @@ namespace LangMgr
         std::abort();
     }
 
-    Expected<void> ModuleCategory::loadDefinition(ModuleDefinition *spec, const ModuleDefinition::State state) {
+    Expected<void> ModuleCategory::loadSpec(ModuleSpec *spec, const ModuleSpec::State state) {
         __stdc_impl_t;
         const auto spec_impl = spec->_impl.get();
         switch (state) {
-        case ModuleDefinition::Initialized:
+        case ModuleSpec::Initialized:
             {
                 const auto &key = spec->className();
                 NO<TaskFactory> interp;
@@ -545,22 +544,22 @@ namespace LangMgr
                 }
                 spec_impl->configuration = config.get();
                 spec_impl->interp = interp;
-                return loadDefinitionBase(spec, state);
+                return loadSpecBase(spec, state);
             }
 
-        case ModuleDefinition::Ready:
-        case ModuleDefinition::Finished:
+        case ModuleSpec::Ready:
+        case ModuleSpec::Finished:
             return {};
 
-        case ModuleDefinition::Deleted:
-            return loadDefinitionBase(spec, state);
+        case ModuleSpec::Deleted:
+            return loadSpecBase(spec, state);
         default:
             break;
         }
         return {};
     }
 
-    std::vector<ModuleDefinition *> ModuleCategory::find(const ModuleLocator &loc) const {
+    std::vector<ModuleSpec *> ModuleCategory::find(const ModuleLocator &loc) const {
         __stdc_impl_t;
         return impl.findModuleSpecs(loc);
     }

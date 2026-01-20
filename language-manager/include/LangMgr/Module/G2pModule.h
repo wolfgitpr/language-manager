@@ -7,15 +7,14 @@
 namespace LangMgr
 {
     class G2pTask;
-    class G2pCategory;
 
-    class G2pDefinition : public ModuleDefinition {
+    class G2pSpec : public ModuleSpec {
     public:
-        ~G2pDefinition() override;
+        ~G2pSpec() override;
 
     protected:
         class Impl;
-        G2pDefinition();
+        G2pSpec();
 
         friend class G2pCategory;
     };

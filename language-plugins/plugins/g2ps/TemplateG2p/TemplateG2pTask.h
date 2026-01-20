@@ -16,7 +16,7 @@ namespace LangPlugins
 
     class TemplateG2pTask : public LangMgr::Task {
     public:
-        explicit TemplateG2pTask(const LangMgr::ModuleDefinition *spec);
+        explicit TemplateG2pTask(const LangMgr::ModuleSpec *spec);
         ~TemplateG2pTask() override;
 
         LangMgr::Expected<void> initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;

@@ -1,0 +1,38 @@
+{
+  "packageId": "eng-official",
+  "version": "1.0.0",
+  "vendor": "小狼Korou",
+  "copyright": "Copyright (C) 小狼Korou",
+  "description": "",
+  "url": "",
+  "modules": {
+    "tagger": [
+      {
+        "moduleId": "tagger-eng",
+        "class": "tagger.template.RegexTaggerInference",
+        "configuration": "modules/Tagger-Eng/config.json",
+        "dependencies": []
+      }
+    ],
+    "g2p": [
+      {
+        "moduleId": "g2p-lstm-eng",
+        "class": "g2p.model.LstmG2pInference",
+        "configuration": "modules/lstm-g2p-en/config.json"
+      },
+      {
+        "moduleId": "g2p-eng",
+        "class": "g2p.template.TemplateG2pInference",
+        "configuration": "modules/template-eng/config.json",
+        "dependencies": [
+          {
+            "packageId": "eng-official",
+            "moduleId": "g2p-lstm-eng",
+            "level": 1,
+            "version": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

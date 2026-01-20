@@ -1,0 +1,16 @@
+{
+  "$version": "1.0",
+  "level": 1,
+  "schema": {},
+  "configuration": {
+    "language": "jpn",
+    "tagger": [
+      {
+        "regexes": [
+          "([\\x{3040}-\\x{309F}\\x{30A0}-\\x{30FF}][ゃゅょぁぃぅぇぉャュョァィゥェォ]?)"
+        ],
+        "tag": "kana"
+      }
+    ]
+  }
+}

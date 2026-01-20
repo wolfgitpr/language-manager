@@ -10,9 +10,9 @@ namespace fs = std::filesystem;
 namespace LangMgr
 {
 
-    class DriverDefinition::Impl : public ModuleDefinition::Impl {
+    class DriverSpec::Impl : public ModuleSpec::Impl {
     public:
-        Impl(const std::string &category) : ModuleDefinition::Impl(category) {}
+        Impl(const std::string &category) : ModuleSpec::Impl(category) {}
     };
 
     class DriverCategory::Impl : public ModuleCategory::Impl {
@@ -23,10 +23,10 @@ namespace LangMgr
         ~Impl() override = default;
     };
 
-    DriverDefinition::~DriverDefinition() = default;
+    DriverSpec::~DriverSpec() = default;
 
 
-    DriverDefinition::DriverDefinition() : ModuleDefinition(*new Impl(this->category())) {}
+    DriverSpec::DriverSpec() : ModuleSpec(*new Impl(this->category())) {}
 
     DriverCategory::~DriverCategory() = default;
 

@@ -49,7 +49,7 @@ namespace LangMgr
         G2pStartInput(std::string name, std::string iid, const int apiLevel) :
             TaskStartInput(std::move(name), std::move(iid), apiLevel) {}
 
-        std::vector<G2pInput> g2pInput;
+        std::vector<std::string> g2pInput;
     };
 
     class G2pResult : public TaskResult {

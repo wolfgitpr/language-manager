@@ -32,20 +32,18 @@ namespace LangMgr
         bool initialize(std::string &errMsg);
         bool initialized() const;
 
-    public:
-        Expected<NO<Task>> tagger(const std::string &id) const;
-        std::vector<NO<Task>> taggers() const;
+        Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
+        Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
 
-        std::vector<std::string> defaultOrder() const;
+        std::vector<std::string> defaultTaggerOrder() const;
         void setDefaultOrder(const std::vector<std::string> &order);
+        std::vector<std::string> split(const std::string &input,
+                                       const std::vector<std::string> &priorityLanguages = {});
 
-        std::vector<TaggerRes> split(const std::string &input,
-                                     const std::vector<std::string> &priorityTaggerIds = {}) const;
-        void convert(const std::vector<TaggerRes *> &input) const;
+        std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
 
-        std::vector<std::string> tag(const std::vector<std::string> &input,
-                                     const std::vector<std::string> &priorityTaggerIds = {},
-                                     const std::vector<std::string> &reservedTokens = {}) const;
+        std::vector<TaggerRes> tag(const std::vector<std::string> &input, bool split = false,
+                                   const std::vector<std::string> &priorityLanguages = {});
 
     protected:
         class Impl;

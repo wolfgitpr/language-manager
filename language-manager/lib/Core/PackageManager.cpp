@@ -62,7 +62,7 @@ namespace LangMgr
 
         // Parse spec
         auto pd = new PackageData(&decl);
-        llvm::SmallVector<ModuleDefinition *> contributes;
+        llvm::SmallVector<ModuleSpec *> contributes;
 
         if (auto exp = pd->parse(canonicalPath, cateKeyMap, &contributes); !exp) {
             delete pd;
@@ -171,13 +171,13 @@ namespace LangMgr
                     break;
                 }
                 const auto &cc = it->second;
-                if (auto exp = cc->loadDefinition(contribute, ModuleDefinition::Initialized); !exp) {
+                if (auto exp = cc->loadSpec(contribute, ModuleSpec::Initialized); !exp) {
                     error1 = exp.error();
                     i--;
                     failed = true;
                     break;
                 }
-                contribute->_impl->state = ModuleDefinition::Initialized;
+                contribute->_impl->state = ModuleSpec::Initialized;
             }
 
             if (failed) {
@@ -185,8 +185,8 @@ namespace LangMgr
                 for (; i >= 0; --i) {
                     const auto &contribute = contributes[i];
                     const auto &cc = categories.at(contribute->_impl->category);
-                    std::ignore = cc->loadDefinition(contribute, ModuleDefinition::Deleted);
-                    contribute->_impl->state = ModuleDefinition::Deleted;
+                    std::ignore = cc->loadSpec(contribute, ModuleSpec::Deleted);
+                    contribute->_impl->state = ModuleSpec::Deleted;
                 }
 
                 closeDependencies();
@@ -207,13 +207,13 @@ namespace LangMgr
             for (; i < contributes.size(); ++i) {
                 const auto &contribute = contributes[i];
                 const auto &cc = categories.at(contribute->_impl->category);
-                if (auto exp = cc->loadDefinition(contribute, ModuleDefinition::Ready); !exp) {
+                if (auto exp = cc->loadSpec(contribute, ModuleSpec::Ready); !exp) {
                     error1 = exp.error();
                     i--;
                     failed = true;
                     break;
                 }
-                contribute->_impl->state = ModuleDefinition::Ready;
+                contribute->_impl->state = ModuleSpec::Ready;
             }
 
             if (failed) {
@@ -221,16 +221,16 @@ namespace LangMgr
                 for (; i >= 0; --i) {
                     const auto &contribute = contributes[i];
                     const auto &cc = categories.at(contribute->_impl->category);
-                    std::ignore = cc->loadDefinition(contribute, ModuleDefinition::Finished);
-                    contribute->_impl->state = ModuleDefinition::Finished;
+                    std::ignore = cc->loadSpec(contribute, ModuleSpec::Finished);
+                    contribute->_impl->state = ModuleSpec::Finished;
                 }
 
                 // Delete
                 for (i = static_cast<int>(contributes.size()) - 1; i >= 0; i--) {
                     const auto &contribute = contributes[i];
                     const auto &cc = categories.at(contribute->_impl->category);
-                    std::ignore = cc->loadDefinition(contribute, ModuleDefinition::Deleted);
-                    contribute->_impl->state = ModuleDefinition::Deleted;
+                    std::ignore = cc->loadSpec(contribute, ModuleSpec::Deleted);
+                    contribute->_impl->state = ModuleSpec::Deleted;
                 }
 
                 closeDependencies();
@@ -313,16 +313,16 @@ namespace LangMgr
             for (auto it = pkgToClose.contributes.rbegin(); it != pkgToClose.contributes.rend(); ++it) {
                 const auto &contribute = *it;
                 const auto &cc = categories.at(contribute->_impl->category);
-                std::ignore = cc->loadDefinition(contribute, ModuleDefinition::Finished);
-                contribute->_impl->state = ModuleDefinition::Finished;
+                std::ignore = cc->loadSpec(contribute, ModuleSpec::Finished);
+                contribute->_impl->state = ModuleSpec::Finished;
             }
 
             // Delete
             for (auto it = pkgToClose.contributes.rbegin(); it != pkgToClose.contributes.rend(); ++it) {
                 const auto &contribute = *it;
                 const auto &cc = categories.at(contribute->_impl->category);
-                std::ignore = cc->loadDefinition(contribute, ModuleDefinition::Deleted);
-                contribute->_impl->state = ModuleDefinition::Deleted;
+                std::ignore = cc->loadSpec(contribute, ModuleSpec::Deleted);
+                contribute->_impl->state = ModuleSpec::Deleted;
             }
         }
 

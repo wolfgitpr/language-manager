@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     langMgr->initialize(errorMsg);
     qDebug() << "LangMgr: errorMsg" << errorMsg << "initialized:" << langMgr->initialized();
 
-    const auto testId = langMgr->defaultOrder();
+    const auto testId = langMgr->defaultTaggerOrder();
 
 
     return 0;

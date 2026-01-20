@@ -12,11 +12,10 @@ namespace LangMgr
         virtual int apiLevel() const = 0;
 
         /// Called when \c InferenceDefinition loads.
-        virtual Expected<NO<TaskConfiguration>> createConfiguration(const ModuleDefinition *definition) const = 0;
+        virtual Expected<NO<TaskConfiguration>> createConfiguration(const ModuleSpec *spec) const = 0;
 
         /// Called when it's about to execute an inference.
-        virtual Expected<NO<Task>> createTask(const ModuleDefinition *definition,
-                                              const NO<TaskRuntimeOptions> &runtimeOptions) = 0;
+        virtual Expected<NO<Task>> createTask(const ModuleSpec *spec, const NO<TaskRuntimeOptions> &runtimeOptions) = 0;
     };
 
     /// SessionFactory - G2p inference driver interface.

@@ -9,15 +9,14 @@
 namespace LangMgr
 {
     class DriverTask;
-    class DriverCategory;
 
-    class DriverDefinition : public ModuleDefinition {
+    class DriverSpec : public ModuleSpec {
     public:
-        ~DriverDefinition() override;
+        ~DriverSpec() override;
 
     protected:
         class Impl;
-        DriverDefinition();
+        DriverSpec();
 
         friend class DriverCategory;
     };

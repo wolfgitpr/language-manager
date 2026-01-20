@@ -13,7 +13,7 @@
 namespace LangMgr
 {
     class Manager;
-    class ModuleDefinition;
+    class ModuleSpec;
     class PackageData;
     class ScopedPackageRef;
 
@@ -35,8 +35,8 @@ namespace LangMgr
         const std::filesystem::path &readme() const;
         const std::string &url() const;
 
-        std::vector<ModuleDefinition *> moduleSpecs(const std::string_view &category) const;
-        ModuleDefinition *moduleSpec(const std::string_view &category, const std::string_view &id) const;
+        std::vector<ModuleSpec *> moduleSpecs(const std::string_view &category) const;
+        ModuleSpec *moduleSpec(const std::string_view &category, const std::string_view &id) const;
 
         const std::filesystem::path &path() const;
         Error error() const;
@@ -47,7 +47,7 @@ namespace LangMgr
         explicit Package(PackageData *data) : _data(data) {}
         PackageData *_data;
 
-        friend class ModuleDefinition;
+        friend class ModuleSpec;
         friend class PackageManager;
         friend class ScopedPackageRef;
     };

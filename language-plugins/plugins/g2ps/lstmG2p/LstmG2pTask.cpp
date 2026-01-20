@@ -19,10 +19,9 @@
 
 namespace LangPlugins
 {
-    static LangMgr::Expected<LangMgr::NO<Lstm::LstmG2pConfiguration>>
-    getConfig(const LangMgr::G2pDefinition *definition) {
+    static LangMgr::Expected<LangMgr::NO<Lstm::LstmG2pConfiguration>> getConfig(const LangMgr::G2pSpec *spec) {
 
-        const auto genericConfig = definition->as<LangMgr::G2pDefinition>()->configuration();
+        const auto genericConfig = spec->as<LangMgr::G2pSpec>()->configuration();
         if (!genericConfig) {
             return LangMgr::Error(LangMgr::Error::InvalidArgument, "LstmG2p configuration is nullptr");
         }
@@ -41,8 +40,7 @@ namespace LangPlugins
         mutable std::shared_mutex mutex;
     };
 
-    LstmG2pTask::LstmG2pTask(const LangMgr::ModuleDefinition *definition) :
-        Task(definition), _impl(std::make_unique<Impl>()) {}
+    LstmG2pTask::LstmG2pTask(const LangMgr::ModuleSpec *spec) : Task(spec), _impl(std::make_unique<Impl>()) {}
 
     LstmG2pTask::~LstmG2pTask() = default;
 
@@ -72,7 +70,7 @@ namespace LangPlugins
         }
 
         // Get LstmG2p config
-        auto expConfig = getConfig(spec()->as<LangMgr::G2pDefinition>());
+        auto expConfig = getConfig(spec()->as<LangMgr::G2pSpec>());
         if (!expConfig) {
             setState(Failed);
             return expConfig.takeError();
@@ -117,7 +115,7 @@ namespace LangPlugins
         setState(Running);
 
         // Get configuration
-        auto expConfig = getConfig(spec()->as<LangMgr::G2pDefinition>());
+        auto expConfig = getConfig(spec()->as<LangMgr::G2pSpec>());
         if (!expConfig) {
             setState(Failed);
             return expConfig.takeError();
@@ -145,7 +143,7 @@ namespace LangPlugins
         }
 
         // For now, process only the first word
-        const auto &[lyric, g2pId] = g2pInput->g2pInput[0];
+        const auto &lyric = g2pInput->g2pInput[0];
         auto preprocessedInput = LstmG2pInferenceHelper::preprocessWord(lyric, config);
         if (!preprocessedInput) {
             setState(Failed);

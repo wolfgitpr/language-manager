@@ -12,7 +12,7 @@ namespace LangMgr
         explicit Impl(Task *task) : NamedObject::Impl(task) {}
 
         State state = Idle;
-        const ModuleDefinition *spec_;
+        const ModuleSpec *spec_;
     };
 } // namespace LangMgr
 

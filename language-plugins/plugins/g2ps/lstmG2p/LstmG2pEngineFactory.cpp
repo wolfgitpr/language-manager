@@ -15,12 +15,12 @@ namespace LangPlugins
     int LstmG2pEngineFactory::apiLevel() const { return 1; }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::TaskConfiguration>>
-    LstmG2pEngineFactory::createConfiguration(const LangMgr::ModuleDefinition *spec) const {
+    LstmG2pEngineFactory::createConfiguration(const LangMgr::ModuleSpec *spec) const {
         if (!spec) {
             // fatal error: null pointer, return immediately
             return LangMgr::Error{
                 LangMgr::Error::InvalidArgument,
-                "fatal in createConfiguration: InferenceDefinition is nullptr",
+                "fatal in createConfiguration: InferenceSpec is nullptr",
             };
         }
 
@@ -68,9 +68,9 @@ namespace LangPlugins
     }
 
     LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
-    LstmG2pEngineFactory::createTask(const LangMgr::ModuleDefinition *definition,
+    LstmG2pEngineFactory::createTask(const LangMgr::ModuleSpec *spec,
                                      const LangMgr::NO<LangMgr::TaskRuntimeOptions> &runtimeOptions) {
-        return LangMgr::NO<LstmG2pTask>::create(definition);
+        return LangMgr::NO<LstmG2pTask>::create(spec);
     }
 
 } // namespace LangPlugins

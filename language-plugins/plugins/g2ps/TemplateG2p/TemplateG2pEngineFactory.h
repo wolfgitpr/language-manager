@@ -12,9 +12,9 @@ namespace LangPlugins
 
         int apiLevel() const override;
         LangMgr::Expected<LangMgr::NO<LangMgr::TaskConfiguration>>
-        createConfiguration(const LangMgr::ModuleDefinition *spec) const override;
+        createConfiguration(const LangMgr::ModuleSpec *spec) const override;
         LangMgr::Expected<LangMgr::NO<LangMgr::Task>>
-        createTask(const LangMgr::ModuleDefinition *spec,
+        createTask(const LangMgr::ModuleSpec *spec,
                    const LangMgr::NO<LangMgr::TaskRuntimeOptions> &runtimeOptions) override;
     };
 

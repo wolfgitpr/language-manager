@@ -10,7 +10,7 @@ namespace LangMgr
 {
 
     Task::Task() : Task(*new Impl(this)) {}
-    Task::Task(const ModuleDefinition *spec) : Task(*new Impl(this)) {
+    Task::Task(const ModuleSpec *spec) : Task(*new Impl(this)) {
         __stdc_impl_t;
         impl.spec_ = spec;
     }
@@ -36,7 +36,7 @@ namespace LangMgr
 
     Task::Task(Impl &impl) : NamedObject(impl) {}
 
-    const ModuleDefinition *Task::spec() const {
+    const ModuleSpec *Task::spec() const {
         __stdc_impl_t;
         return impl.spec_;
     }

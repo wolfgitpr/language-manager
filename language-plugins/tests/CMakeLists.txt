@@ -1,2 +1,1 @@
 add_subdirectory(tst_langMgr)
-add_subdirectory(tst_regexSplitter)

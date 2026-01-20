@@ -25,7 +25,7 @@ namespace LangMgr
 
     Expected<void> PackageData::parse(const std::filesystem::path &dir,
                                       const std::map<std::string, ModuleCategory *, std::less<>> &categories,
-                                      llvm::SmallVectorImpl<ModuleDefinition *> *outModules) {
+                                      llvm::SmallVectorImpl<ModuleSpec *> *outModules) {
         std::string id_;
         stdc::VersionNumber version_;
         stdc::VersionNumber compatVersion_;
@@ -34,7 +34,7 @@ namespace LangMgr
         DisplayText description_;
         fs::path readme_;
         std::string url_;
-        llvm::SmallVector<ModuleDefinition *> modules_;
+        llvm::SmallVector<ModuleSpec *> modules_;
 
         auto canonicalDir = fs::canonical(dir);
         const auto &descPath = canonicalDir / _TSTR("package.json");
@@ -161,7 +161,7 @@ namespace LangMgr
 
                     std::set<std::string_view> idSet;
                     for (const auto &item : snd.toArray()) {
-                        auto module = cc->parseDefinition(canonicalDir, item);
+                        auto module = cc->parseSpec(canonicalDir, item);
                         if (!module) {
                             error1 = module.error();
                             goto out_failed;
@@ -285,14 +285,14 @@ namespace LangMgr
 
     const std::string &Package::url() const { return _data->url; }
 
-    std::vector<ModuleDefinition *> Package::moduleSpecs(const std::string_view &category) const {
+    std::vector<ModuleSpec *> Package::moduleSpecs(const std::string_view &category) const {
         auto &modules = _data->moduleSpecs;
         const auto it = modules.find(category);
         if (it == modules.end()) {
             return {};
         }
 
-        std::vector<ModuleDefinition *> res;
+        std::vector<ModuleSpec *> res;
         const auto &map2 = it->second;
         res.reserve(map2.size());
         for (const auto &[fst, snd] : std::as_const(map2)) {
@@ -301,7 +301,7 @@ namespace LangMgr
         return res;
     }
 
-    ModuleDefinition *Package::moduleSpec(const std::string_view &category, const std::string_view &id) const {
+    ModuleSpec *Package::moduleSpec(const std::string_view &category, const std::string_view &id) const {
         auto &modules = _data->moduleSpecs;
         const auto it = modules.find(category);
         if (it == modules.end()) {

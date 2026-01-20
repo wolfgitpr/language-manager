@@ -11,9 +11,9 @@ namespace fs = std::filesystem;
 namespace LangMgr
 {
 
-    class G2pDefinition::Impl : public ModuleDefinition::Impl {
+    class G2pSpec::Impl : public ModuleSpec::Impl {
     public:
-        Impl(const std::string &category) : ModuleDefinition::Impl(category) {}
+        Impl(const std::string &category) : ModuleSpec::Impl(category) {}
     };
 
     class G2pCategory::Impl : public ModuleCategory::Impl {
@@ -24,10 +24,10 @@ namespace LangMgr
         ~Impl() override = default;
     };
 
-    G2pDefinition::~G2pDefinition() = default;
+    G2pSpec::~G2pSpec() = default;
 
 
-    G2pDefinition::G2pDefinition() : ModuleDefinition(*new Impl(this->category())) {}
+    G2pSpec::G2pSpec() : ModuleSpec(*new Impl(this->category())) {}
 
     G2pCategory::~G2pCategory() = default;
 

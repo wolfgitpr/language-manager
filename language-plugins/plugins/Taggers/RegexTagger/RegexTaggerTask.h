@@ -1,19 +1,23 @@
-#ifndef LANG_PLUGINS_REGEXSPLITTERTASK_H
-#define LANG_PLUGINS_REGEXSPLITTERTASK_H
+#ifndef LANG_PLUGINS_REGEXTAGGERTASK_H
+#define LANG_PLUGINS_REGEXTAGGERTASK_H
 
 #include <LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
-#include <LangPlugins/Api/Splitters/RegexSplitter/1/RegexSplitterL1.h>
+#include <LangPlugins/Api/Common/1/CommonApiL1.h>
+#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
+#include <LangPlugins/Api/Taggers/RegexTagger/1/RegexTaggerL1.h>
 
 namespace LangPlugins
 {
-    namespace Regex = Api::RegexSplitter::L1;
+    namespace Regex = Api::RegexTagger::L1;
+    namespace Common = Api::Common::L1;
+    namespace Onnx = Api::Onnx::L1;
 
-    class RegexSplitterTask : public LangMgr::Task {
+    class RegexTaggerTask : public LangMgr::Task {
     public:
-        explicit RegexSplitterTask(const LangMgr::ModuleDefinition *definition);
-        ~RegexSplitterTask() override;
+        explicit RegexTaggerTask(const LangMgr::ModuleSpec *spec);
+        ~RegexTaggerTask() override;
 
         LangMgr::Expected<void> initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;
 
@@ -28,7 +32,11 @@ namespace LangPlugins
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
+
+    private:
+        std::vector<std::string> lookup(const std::string &key) const;
     };
+
 } // namespace LangPlugins
 
-#endif // LANG_PLUGINS_REGEXSPLITTERTASK_H
+#endif //  LANG_PLUGINS_REGEXTAGGERTASK_H

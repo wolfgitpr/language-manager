@@ -1,0 +1,18 @@
+{
+  "packageId": "cmn-official",
+  "version": "1.0.1",
+  "vendor": "小狼Korou",
+  "copyright": "Copyright (C) 小狼Korou",
+  "description": "",
+  "url": "",
+  "modules": {
+    "tagger": [
+      {
+        "moduleId": "tagger-cmn",
+        "class": "tagger.template.RegexTaggerInference",
+        "configuration": "modules/Tagger-Cmn/config.json",
+        "dependencies": []
+      }
+    ]
+  }
+}

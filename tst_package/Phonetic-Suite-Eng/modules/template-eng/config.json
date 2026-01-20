@@ -1,0 +1,34 @@
+{
+  "$version": "1.0",
+  "level": 1,
+  "schema": {},
+  "configuration": {
+    "verify": [
+      {
+        "type": "array",
+        "value": [
+          "SP",
+          "AP",
+          "EP"
+        ],
+        "mode": "copy"
+      },
+      {
+        "type": "regex",
+        "value": [
+          "([\\p{Lu}]+)"
+        ],
+        "mode": "copy"
+      },
+      {
+        "type": "regex",
+        "value": [
+          "([\\p{Ll}]+)"
+        ],
+        "mode": "convert"
+      }
+    ],
+    "dictPath": "../../assets/ds_cmudict-07b.txt",
+    "onnxG2pId": "g2p-lstm-eng"
+  }
+}

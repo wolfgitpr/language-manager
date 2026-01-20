@@ -6,7 +6,8 @@
 
 #include <inferutil/ErrorCollector.h>
 
-#include "LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h"
+#include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
+#include <LangPlugins/Api/Taggers/RegexTagger/1/RegexTaggerL1.h>
 
 namespace LangPlugins::inferUtil
 {
@@ -18,8 +19,8 @@ namespace LangPlugins::inferUtil
 
     class ConfigurationParser {
     public:
-        ConfigurationParser(const LangMgr::ModuleDefinition *spec_, ErrorCollector *ec_) : definition(spec_), ec(ec_) {
-            pConfig = &definition->manifestConfiguration();
+        ConfigurationParser(const LangMgr::ModuleSpec *spec_, ErrorCollector *ec_) : spec(spec_), ec(ec_) {
+            pConfig = &spec->manifestConfiguration();
         }
 
         inline void parse_bool_optional(bool &out, const std::string &fieldName);
@@ -31,6 +32,8 @@ namespace LangPlugins::inferUtil
         inline void parse_path_required(std::filesystem::path &out, const std::string &fieldName);
         inline void parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName);
         inline void parse_verify_required(std::vector<Api::TemplateG2p::L1::VerifyEntry> &out,
+                                          const std::string &fieldName);
+        inline void parse_tagger_required(std::vector<Api::RegexTagger::L1::TaggerRegexEntry> &out,
                                           const std::string &fieldName);
 
         template <typename T>
@@ -44,7 +47,7 @@ namespace LangPlugins::inferUtil
         bool loadIdMapping(const std::string &fieldName, const std::filesystem::path &path,
                            std::map<std::string, int> &out);
 
-        const LangMgr::ModuleDefinition *definition;
+        const LangMgr::ModuleSpec *spec;
         ErrorCollector *ec;
         const LangMgr::JsonObject *pConfig;
     };

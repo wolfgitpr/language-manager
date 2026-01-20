@@ -52,7 +52,7 @@ namespace LangMgr
     class Package;
     class PackageManager;
 
-    class LANGMGR_EXPORT ModuleDefinition {
+    class LANGMGR_EXPORT ModuleSpec {
     public:
         enum State {
             Invalid,
@@ -62,7 +62,7 @@ namespace LangMgr
             Deleted,
         };
 
-        virtual ~ModuleDefinition();
+        virtual ~ModuleSpec();
 
         const std::string &id() const;
         const std::string &category() const;
@@ -89,22 +89,22 @@ namespace LangMgr
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
-        explicit ModuleDefinition(Impl &impl);
-        explicit ModuleDefinition(std::string category);
+        explicit ModuleSpec(Impl &impl);
+        explicit ModuleSpec(std::string category);
 
         friend class ModuleCategory;
         friend class PackageManager;
     };
 
     template <class T>
-    constexpr T *ModuleDefinition::as() {
-        static_assert(std::is_base_of_v<ModuleDefinition, T>, "T must inherit from LangMgr::ModuleDefinition");
+    constexpr T *ModuleSpec::as() {
+        static_assert(std::is_base_of_v<ModuleSpec, T>, "T must inherit from LangMgr::ModuleSpec");
         return static_cast<T *>(this);
     }
 
     template <class T>
-    constexpr const T *ModuleDefinition::as() const {
-        static_assert(std::is_base_of_v<ModuleDefinition, T>, "T must inherit from LangMgr::ModuleDefinition");
+    constexpr const T *ModuleSpec::as() const {
+        static_assert(std::is_base_of_v<ModuleSpec, T>, "T must inherit from LangMgr::ModuleSpec");
         return static_cast<const T *>(this);
     }
 
@@ -115,8 +115,8 @@ namespace LangMgr
         const std::string &name() const;
         PackageManager *Mgr() const;
 
-        std::vector<ModuleDefinition *> findDefinitions(const ModuleLocator &identifier) const;
-        std::vector<ModuleDefinition *> definitions() const;
+        std::vector<ModuleSpec *> findSpec(const ModuleLocator &identifier) const;
+        std::vector<ModuleSpec *> specs() const;
 
         template <class T>
         constexpr T *as();
@@ -128,12 +128,11 @@ namespace LangMgr
         virtual std::string key() const = 0;
         virtual std::string category() const = 0;
 
-        Expected<ModuleDefinition *> parseDefinition(const std::filesystem::path &basePath,
-                                                     const JsonValue &config) const;
-        Expected<void> loadDefinitionBase(ModuleDefinition *definition, const ModuleDefinition::State state);
-        Expected<void> loadDefinition(ModuleDefinition *spec, ModuleDefinition::State state);
+        Expected<ModuleSpec *> parseSpec(const std::filesystem::path &basePath, const JsonValue &config) const;
+        Expected<void> loadSpecBase(ModuleSpec *spec, const ModuleSpec::State state);
+        Expected<void> loadSpec(ModuleSpec *spec, ModuleSpec::State state);
 
-        std::vector<ModuleDefinition *> find(const ModuleLocator &loc) const;
+        std::vector<ModuleSpec *> find(const ModuleLocator &loc) const;
 
         class Impl;
         explicit ModuleCategory(Impl &impl);

@@ -16,7 +16,7 @@
 namespace LangMgr
 {
 
-    class ModuleDefinition;
+    class ModuleSpec;
     class PackageData;
 
     class LANGMGR_EXPORT PackageManager::Impl : public PluginFactory::Impl {
@@ -43,7 +43,7 @@ namespace LangMgr
         struct LoadedPackageBlock {
             PackageData *spec = nullptr;
             int ref = 0;
-            llvm::SmallVector<ModuleDefinition *> contributes;
+            llvm::SmallVector<ModuleSpec *> contributes;
             llvm::SmallVector<PackageData *> linked;
         };
 

@@ -1,0 +1,16 @@
+{
+  "$version": "1.0",
+  "level": 1,
+  "schema": {},
+  "configuration": {
+    "language": "eng",
+    "tagger": [
+      {
+        "regexes": [
+          "([\\p{L}]+)"
+        ],
+        "tag": "latin"
+      }
+    ]
+  }
+}

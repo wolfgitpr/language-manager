@@ -11,9 +11,9 @@ namespace fs = std::filesystem;
 namespace LangMgr
 {
 
-    class TaggerDefinition::Impl : public ModuleDefinition::Impl {
+    class TaggerSpec::Impl : public ModuleSpec::Impl {
     public:
-        Impl(const std::string &category) : ModuleDefinition::Impl(category) {}
+        Impl(const std::string &category) : ModuleSpec::Impl(category) {}
     };
 
     class TaggerCategory::Impl : public ModuleCategory::Impl {
@@ -24,10 +24,10 @@ namespace LangMgr
         ~Impl() override = default;
     };
 
-    TaggerDefinition::~TaggerDefinition() = default;
+    TaggerSpec::~TaggerSpec() = default;
 
 
-    TaggerDefinition::TaggerDefinition() : ModuleDefinition(*new Impl(this->category())) {}
+    TaggerSpec::TaggerSpec() : ModuleSpec(*new Impl(this->category())) {}
 
     TaggerCategory::~TaggerCategory() = default;
 

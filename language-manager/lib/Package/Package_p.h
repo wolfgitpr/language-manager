@@ -12,7 +12,7 @@
 
 namespace LangMgr
 {
-    class ModuleDefinition;
+    class ModuleSpec;
     class ModuleCategory;
 
     class PackageData {
@@ -22,7 +22,7 @@ namespace LangMgr
 
         Expected<void> parse(const std::filesystem::path &dir,
                              const std::map<std::string, ModuleCategory *, std::less<>> &categories,
-                             llvm::SmallVectorImpl<ModuleDefinition *> *outModules);
+                             llvm::SmallVectorImpl<ModuleSpec *> *outModules);
 
         static Expected<JsonObject> readDesc(const std::filesystem::path &descPath);
 
@@ -42,7 +42,7 @@ namespace LangMgr
 
         int level = 1;
 
-        std::map<std::string, std::map<std::string, ModuleDefinition *, std::less<>>, std::less<>> moduleSpecs;
+        std::map<std::string, std::map<std::string, ModuleSpec *, std::less<>>, std::less<>> moduleSpecs;
 
         Error err;
         bool loaded = false;

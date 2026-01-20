@@ -19,7 +19,7 @@ namespace LangPlugins
 
     class LstmG2pTask : public LangMgr::Task {
     public:
-        explicit LstmG2pTask(const LangMgr::ModuleDefinition *definition);
+        explicit LstmG2pTask(const LangMgr::ModuleSpec *spec);
         ~LstmG2pTask() override;
 
         LangMgr::Expected<void> initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;

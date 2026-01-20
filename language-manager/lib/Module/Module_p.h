@@ -16,7 +16,7 @@
 namespace LangMgr
 {
 
-    class LANGMGR_EXPORT ModuleDefinition::Impl {
+    class LANGMGR_EXPORT ModuleSpec::Impl {
     public:
         explicit Impl(std::string category) : category(std::move(category)), state(Invalid), package(nullptr) {}
         virtual ~Impl() = default;
@@ -54,7 +54,7 @@ namespace LangMgr
         std::string name;
         PackageManager *mgr;
 
-        std::list<ModuleDefinition *> modules;
+        std::list<ModuleSpec *> modules;
         std::map<std::string, NO<TaskFactory>> interpreters;
         std::map<
             std::string,
@@ -63,7 +63,7 @@ namespace LangMgr
 
         std::shared_mutex &su_mtx() const { return static_cast<PackageManager::Impl *>(mgr->_impl.get())->su_mtx; }
 
-        std::vector<ModuleDefinition *> findModuleSpecs(const ModuleLocator &loc) const;
+        std::vector<ModuleSpec *> findModuleSpecs(const ModuleLocator &loc) const;
     };
 
 } // namespace LangMgr

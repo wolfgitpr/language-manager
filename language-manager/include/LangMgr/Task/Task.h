@@ -11,7 +11,7 @@
 namespace LangMgr
 {
 
-    class ModuleDefinition;
+    class ModuleSpec;
     class PackageManager;
 
     /// TaskInfoBase - The base class storing inference information which should be created
@@ -66,7 +66,7 @@ namespace LangMgr
     class LANGMGR_EXPORT Task : public NamedObject {
     public:
         Task();
-        explicit Task(const ModuleDefinition *spec);
+        explicit Task(const ModuleSpec *spec);
         ~Task() override;
 
         enum State {
@@ -88,7 +88,7 @@ namespace LangMgr
 
         virtual NO<TaskResult> result() const = 0;
 
-        const ModuleDefinition *spec() const;
+        const ModuleSpec *spec() const;
         PackageManager *Mgr() const;
 
         Expected<NO<NamedObject>> getObject(const std::string &category, const std::string &id) const;

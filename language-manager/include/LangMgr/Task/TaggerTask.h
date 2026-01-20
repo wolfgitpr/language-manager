@@ -49,7 +49,8 @@ namespace LangMgr
         TaggerStartInput(std::string name, std::string iid, const int apiLevel) :
             TaskStartInput(std::move(name), std::move(iid), apiLevel) {}
 
-        std::vector<std::string> taggerInput;
+        bool split = false;
+        std::vector<TaggerRes> taggerInput;
     };
 
     class TaggerResult : public TaskResult {

@@ -27,7 +27,7 @@ namespace LangPlugins::Api::TemplateG2p::L1
 
         std::vector<VerifyEntry> verifyEntry;
         std::filesystem::path dictPath;
-        std::string onnxInferenceId;
+        std::string onnxG2pId;
     };
 
     class TemplateG2pRuntimeOptions : public LangMgr::G2pRuntimeOptions {

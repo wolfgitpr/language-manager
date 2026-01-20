@@ -1,0 +1,18 @@
+{
+  "packageId": "jpn-official",
+  "version": "0.0.1",
+  "vendor": "小狼Korou",
+  "copyright": "Copyright (C) 小狼Korou",
+  "description": "",
+  "url": "",
+  "modules": {
+    "tagger": [
+      {
+        "moduleId": "tagger-jpn",
+        "class": "tagger.template.RegexTaggerInference",
+        "configuration": "modules/Tagger-Jpn/config.json",
+        "dependencies": []
+      }
+    ]
+  }
+}
