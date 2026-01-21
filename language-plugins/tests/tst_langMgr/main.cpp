@@ -11,7 +11,6 @@
 #include <LangMgr/Base/NamedObject.h>
 #include <LangMgr/Core/Manager.h>
 #include <LangMgr/Module/Dependency/DependencyGraph.h>
-#include <LangMgr/Module/G2pModule.h>
 #include <LangMgr/Module/Module.h>
 #include <LangMgr/Package/Package.h>
 #include <LangMgr/Task/G2pTask.h>
@@ -252,9 +251,8 @@ int main() {
         const auto g2pResult = langMgr.convert(g2pInput);
 
         for (auto g2pRes : g2pResult) {
-            std::cout << "\nlyric: " << g2pRes.lyric << ";\npronunciation: '" << g2pRes.pronunciation
-                      << "';\nmode: " << g2pRes.mode << std::endl
-                      << std::endl;
+            std::cout << "lyric: " << g2pRes.lyric << "; pronunciation: '" << g2pRes.pronunciation
+                      << "'; mode: " << g2pRes.mode << std::endl;
         }
 
         return 0;

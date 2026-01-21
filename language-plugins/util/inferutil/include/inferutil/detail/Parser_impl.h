@@ -3,7 +3,6 @@
 
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 #define LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
-#include <set>
 
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 #error "Parser_impl.h should only be included by Parser.h"
@@ -138,7 +137,7 @@ namespace LangPlugins::inferUtil
         }
     }
 
-    inline void ConfigurationParser::parse_verify_required(std::vector<Api::TemplateG2p::L1::VerifyEntry> &out,
+    inline void ConfigurationParser::parse_verify_required(std::vector<VerifyEntry> &out,
                                                            const std::string &fieldName) {
         const auto &config = *pConfig;
 
@@ -158,7 +157,7 @@ namespace LangPlugins::inferUtil
                     }
 
                     const auto &obj = item.toObject();
-                    Api::TemplateG2p::L1::VerifyEntry entry;
+                    VerifyEntry entry;
 
                     if (const auto typeIt = obj.find("type"); typeIt != obj.end()) {
                         if (typeIt->second.isString()) {

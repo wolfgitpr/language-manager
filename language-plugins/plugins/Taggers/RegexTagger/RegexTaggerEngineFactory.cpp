@@ -39,7 +39,7 @@ namespace LangPlugins
         if (ec.hasErrors()) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidFormat,
-                ec.getErrorMessage("error parsing duration configuration"),
+                ec.getErrorMessage("error parsing RegexTaggerEngine configuration"),
             };
         }
         return result;

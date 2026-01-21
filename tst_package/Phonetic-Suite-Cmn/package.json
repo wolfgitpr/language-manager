@@ -13,6 +13,14 @@
         "configuration": "modules/Tagger-Cmn/config.json",
         "dependencies": []
       }
+    ],
+    "g2p": [
+      {
+        "moduleId": "g2p-cmn",
+        "class": "g2p.template.ChineseG2pInference",
+        "configuration": "modules/G2p-Cmn/config.json",
+        "dependencies": []
+      }
     ]
   }
 }

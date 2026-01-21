@@ -1,6 +1,5 @@
 #include "TemplateG2pTask.h"
 
-#include <fstream>
 #include <iostream>
 #include <mutex>
 #include <numeric>
@@ -10,14 +9,13 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <re2/re2.h>
-#include <stdcorelib/console.h>
-
 #include <LangMgr/Module/G2pModule.h>
 #include <LangMgr/Module/Module.h>
 #include <LangMgr/Task/G2pTask.h>
 
 #include <LangPlugins/Support/PhonemeDict.h>
+
+#include "inferutil/Verifier.h"
 
 
 namespace LangPlugins
@@ -34,126 +32,12 @@ namespace LangPlugins
         return genericConfig.as<Template::TemplateG2pConfiguration>();
     }
 
-    class VerifyBase {
-    public:
-        explicit VerifyBase(Api::TemplateG2p::L1::VerifyEntry entry) : entry_(std::move(entry)) {}
-        virtual ~VerifyBase() = default;
-        virtual void verify(std::vector<LangMgr::G2pRes> &input) {}
-
-    protected:
-        Api::TemplateG2p::L1::VerifyEntry entry_;
-    };
-
-    class VerifyRegex : public VerifyBase {
-    public:
-        explicit VerifyRegex(const Api::TemplateG2p::L1::VerifyEntry &entry) : VerifyBase(entry) {
-            RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
-            RegexOptions.set_log_errors(true);
-            RegexOptions.set_max_mem(8 << 20); // 8MB
-
-            regex_ = std::make_unique<RE2>(mergePatterns(entry_.value), RegexOptions);
-            if (!regex_->ok())
-                throw std::runtime_error("Invalid regex: " + regex_->error());
-        }
-        ~VerifyRegex() override = default;
-
-        void verify(std::vector<LangMgr::G2pRes> &input) override {
-            std::string pattern = regex_->pattern();
-            for (auto &it : input) {
-                if (!it.error)
-                    continue;
-                it.mode = entry_.mode;
-                it.error = !RE2::FullMatch(it.lyric, *regex_);
-            }
-        }
-
-    private:
-        RE2::Options RegexOptions;
-        std::unique_ptr<RE2> regex_;
-
-        static std::string mergePatterns(const std::vector<std::string> &patterns) {
-            if (patterns.empty())
-                return "";
-
-            std::ostringstream oss;
-            oss << "(?:" << patterns[0] << ")";
-
-            for (size_t i = 1; i < patterns.size(); ++i)
-                oss << "|(?:" << patterns[i] << ")";
-
-            return oss.str();
-        }
-    };
-
-    class VerifyArray : public VerifyBase {
-    public:
-        explicit VerifyArray(const Api::TemplateG2p::L1::VerifyEntry &entry) : VerifyBase(entry) {
-            array = std::set<std::string>({entry_.value.begin(), entry_.value.end()});
-        }
-        ~VerifyArray() override = default;
-
-        void verify(std::vector<LangMgr::G2pRes> &input) override {
-            for (auto &it : input) {
-                if (!it.error)
-                    continue;
-                it.mode = entry_.mode == "convert";
-                it.error = array.find(it.lyric) == array.end();
-            }
-        }
-
-    protected:
-        std::set<std::string> array;
-    };
-
-    class VerifyDict : public VerifyArray {
-    public:
-        explicit VerifyDict(const Api::TemplateG2p::L1::VerifyEntry &entry) : VerifyArray(entry) {
-            array = loadWordsFromTxtFiles({entry_.value.rbegin(), entry_.value.rend()});
-        }
-        ~VerifyDict() override = default;
-
-    private:
-        static std::set<std::string> loadWordsFromTxtFiles(const std::vector<std::string> &paths) {
-            std::set<std::string> words;
-
-            for (const auto &path : paths) {
-                if (!fs::exists(path)) {
-                    std::cerr << "warning: file not exist - " << path << std::endl;
-                    continue;
-                }
-
-                std::ifstream file(path);
-                if (!file.is_open()) {
-                    std::cerr << "warning: fail to open file - " << path << std::endl;
-                    continue;
-                }
-
-                std::string line;
-                size_t line_number = 0;
-
-                while (std::getline(file, line)) {
-                    line_number++;
-
-                    if (line.empty())
-                        continue;
-
-                    if (const size_t tab_pos = line.find('\t'); tab_pos != std::string::npos) {
-                        if (std::string word = line.substr(0, tab_pos); !word.empty())
-                            words.insert(word);
-                    }
-                }
-                file.close();
-                std::cout << "from " << path << " load " << line_number << " lines" << std::endl;
-            }
-            return words;
-        }
-    };
 
     class TemplateG2pTask::Impl {
     public:
         LangMgr::NO<LangMgr::G2pResult> result;
         LangMgr::NO<Task> g2pInference;
-        std::vector<std::unique_ptr<VerifyBase>> verifiers;
+        std::unique_ptr<inferUtil::Verifier> verifier;
         PhonemeDict phonemeDict;
         mutable std::shared_mutex mutex;
     };
@@ -195,18 +79,7 @@ namespace LangPlugins
             return res.takeError();
         }
 
-        for (auto entry : config->verifyEntry) {
-            if (entry.type == "regex")
-                impl.verifiers.push_back(std::make_unique<VerifyRegex>(entry));
-            else if (entry.type == "array")
-                impl.verifiers.push_back(std::make_unique<VerifyArray>(entry));
-            else if (entry.type == "dict")
-                impl.verifiers.push_back(std::make_unique<VerifyDict>(entry));
-            else {
-                setState(Failed);
-                throw std::errc::invalid_argument;
-            }
-        }
+        impl.verifier = std::make_unique<inferUtil::Verifier>(config->verifyEntry);
 
         // Load phoneme dict
         if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
@@ -266,11 +139,9 @@ namespace LangPlugins
 
         const auto g2pInput = input.as<LangMgr::G2pStartInput>();
         std::vector<LangMgr::G2pRes> res;
-        for (const auto &lyric : g2pInput->g2pInput)
-            res.push_back(LangMgr::G2pRes(lyric, spec()->name().text(), "", {}, "copy", true));
-
-        for (const auto &verifier : impl.verifiers)
-            verifier->verify(res);
+        const auto verifyRes = impl.verifier->verify(g2pInput->g2pInput);
+        for (const auto &[lyric, mode, error] : verifyRes)
+            res.emplace_back(LangMgr::G2pRes{lyric, spec()->name().text(), "", {}, mode, error});
 
         for (auto &it : res) {
             if (it.mode == "copy") {

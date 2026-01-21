@@ -5,9 +5,9 @@
 namespace LangPlugins
 {
 
-    class LstmG2pInterpreterPlugin final : public LangMgr::TaskFactoryPlugin {
+    class LstmG2pEnginePlugin final : public LangMgr::TaskFactoryPlugin {
     public:
-        LstmG2pInterpreterPlugin() = default;
+        LstmG2pEnginePlugin() = default;
 
         const char *key() const override { return "g2p.model.LstmG2pInference"; }
 
@@ -16,4 +16,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-LANGMGR_EXPORT_PLUGIN(LangPlugins::LstmG2pInterpreterPlugin)
+LANGMGR_EXPORT_PLUGIN(LangPlugins::LstmG2pEnginePlugin)

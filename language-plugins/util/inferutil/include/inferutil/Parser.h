@@ -31,8 +31,7 @@ namespace LangPlugins::inferUtil
         inline void parse_string_required(std::string &out, const std::string &fieldName);
         inline void parse_path_required(std::filesystem::path &out, const std::string &fieldName);
         inline void parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName);
-        inline void parse_verify_required(std::vector<Api::TemplateG2p::L1::VerifyEntry> &out,
-                                          const std::string &fieldName);
+        inline void parse_verify_required(std::vector<VerifyEntry> &out, const std::string &fieldName);
         inline void parse_tagger_required(std::vector<Api::RegexTagger::L1::TaggerRegexEntry> &out,
                                           const std::string &fieldName);
 

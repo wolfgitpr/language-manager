@@ -5,17 +5,15 @@
 namespace LangPlugins
 {
 
-    class TemplateG2pInterpreterPlugin final : public LangMgr::TaskFactoryPlugin {
+    class TemplateG2pEnginePlugin final : public LangMgr::TaskFactoryPlugin {
     public:
-        TemplateG2pInterpreterPlugin() = default;
+        TemplateG2pEnginePlugin() = default;
 
         const char *key() const override { return "g2p.template.TemplateG2pInference"; }
 
-        LangMgr::NO<LangMgr::TaskFactory> create() override {
-            return LangMgr::NO<TemplateG2pEngineFactory>::create();
-        }
+        LangMgr::NO<LangMgr::TaskFactory> create() override { return LangMgr::NO<TemplateG2pEngineFactory>::create(); }
     };
 
 } // namespace LangPlugins
 
-LANGMGR_EXPORT_PLUGIN(LangPlugins::TemplateG2pInterpreterPlugin)
+LANGMGR_EXPORT_PLUGIN(LangPlugins::TemplateG2pEnginePlugin)

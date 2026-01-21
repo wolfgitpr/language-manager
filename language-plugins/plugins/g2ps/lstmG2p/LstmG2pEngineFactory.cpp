@@ -61,7 +61,7 @@ namespace LangPlugins
         if (ec.hasErrors()) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidFormat,
-                ec.getErrorMessage("error parsing duration configuration"),
+                ec.getErrorMessage("error parsing LstmG2p configuration"),
             };
         }
         return result;

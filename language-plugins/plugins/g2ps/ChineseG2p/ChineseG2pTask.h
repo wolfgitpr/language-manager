@@ -1,21 +1,21 @@
-#ifndef LANG_PLUGINS_REGEXTAGGERTASK_H
-#define LANG_PLUGINS_REGEXTAGGERTASK_H
+#ifndef LANG_PLUGINS_CHINESEG2PTASK_H
+#define LANG_PLUGINS_CHINESEG2PTASK_H
 
 #include <LangMgr/Task/Task.h>
 #include <LangPlugins/Core/Tensor.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/Taggers/RegexTagger/1/RegexTaggerL1.h>
+#include <LangPlugins/Api/G2ps/ChineseG2p/1/ChineseG2pL1.h>
 
 namespace LangPlugins
 {
-    namespace Regex = Api::RegexTagger::L1;
+    namespace Chinese = Api::ChineseG2p::L1;
     namespace Onnx = Api::Onnx::L1;
 
-    class RegexTaggerTask : public LangMgr::Task {
+    class ChineseG2pTask : public LangMgr::Task {
     public:
-        explicit RegexTaggerTask(const LangMgr::ModuleSpec *spec);
-        ~RegexTaggerTask() override;
+        explicit ChineseG2pTask(const LangMgr::ModuleSpec *spec);
+        ~ChineseG2pTask() override;
 
         LangMgr::Expected<void> initialize(const LangMgr::NO<LangMgr::TaskInitArgs> &args) override;
 
@@ -34,4 +34,4 @@ namespace LangPlugins
 
 } // namespace LangPlugins
 
-#endif //  LANG_PLUGINS_REGEXTAGGERTASK_H
+#endif //  LANG_PLUGINS_CHINESEG2PTASK_H
