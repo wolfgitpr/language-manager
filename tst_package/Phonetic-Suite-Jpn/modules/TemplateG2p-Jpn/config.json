@@ -16,19 +16,13 @@
       {
         "type": "regex",
         "value": [
-          "([\\p{Lu}]+)"
-        ],
-        "mode": "copy"
-      },
-      {
-        "type": "regex",
-        "value": [
-          "([\\p{Ll}]+)"
+          "([\\x{3040}-\\x{309F}\\x{30A0}-\\x{30FF}][ゃゅょぁぃぅぇぉャュョァィゥェォ]?)"
         ],
         "mode": "convert"
       }
     ],
-    "dictPath": "../../assets/ds_cmudict-07b.txt",
-    "onnxG2pId": "g2p-lstm-eng"
+    "dictPath": "japanese_dict_full.txt",
+    "onnxG2pId": "",
+    "enableOnnxG2p": false
   }
 }

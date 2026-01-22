@@ -1,0 +1,26 @@
+{
+  "packageId": "punc-official",
+  "version": "0.0.1",
+  "vendor": "小狼",
+  "copyright": "Copyright (C) 小狼",
+  "description": "",
+  "url": "",
+  "modules": {
+    "tagger": [
+      {
+        "moduleId": "tagger-punc",
+        "class": "tagger.template.RegexTaggerInference",
+        "configuration": "modules/Tagger-Punc/config.json",
+        "dependencies": []
+      }
+    ],
+    "g2p": [
+      {
+        "moduleId": "g2p-punc",
+        "class": "g2p.template.TemplateG2pInference",
+        "configuration": "modules/TemplateG2p-Punc/config.json",
+        "dependencies": []
+      }
+    ]
+  }
+}

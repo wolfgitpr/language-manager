@@ -1,0 +1,19 @@
+{
+  "$version": "1.0",
+  "level": 1,
+  "schema": {},
+  "configuration": {
+    "verify": [
+      {
+        "type": "regex",
+        "value": [
+          "(\\p{P})"
+        ],
+        "mode": "copy"
+      }
+    ],
+    "dictPath": "",
+    "onnxG2pId": "",
+    "enableOnnxG2p": false
+  }
+}

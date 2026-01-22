@@ -18,12 +18,12 @@
       {
         "moduleId": "g2p-lstm-eng",
         "class": "g2p.model.LstmG2pInference",
-        "configuration": "modules/lstm-g2p-en/config.json"
+        "configuration": "modules/LstmG2p-Eng/config.json"
       },
       {
         "moduleId": "g2p-eng",
         "class": "g2p.template.TemplateG2pInference",
-        "configuration": "modules/template-eng/config.json",
+        "configuration": "modules/TemplateG2p-Eng/config.json",
         "dependencies": [
           {
             "packageId": "eng-official",

@@ -14,20 +14,22 @@
         "mode": "copy"
       },
       {
-        "type": "dict",
+        "type": "regex",
         "value": [
-          "ds-zh-pinyin-lite.txt"
+          "([\\p{Lu}]+)"
         ],
         "mode": "copy"
       },
       {
         "type": "regex",
         "value": [
-          "([\\p{Han}])"
+          "([\\p{Ll}]+)"
         ],
         "mode": "convert"
       }
     ],
-    "dictPath": "dict"
+    "dictPath": "ds_cmudict-07b.txt",
+    "onnxG2pId": "g2p-lstm-eng",
+    "enableOnnxG2p": true
   }
 }

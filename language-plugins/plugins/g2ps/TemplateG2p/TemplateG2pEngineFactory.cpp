@@ -39,6 +39,9 @@ namespace LangPlugins
         static_assert(std::is_same_v<decltype(result->onnxG2pId), std::string>);
         parser.parse_string_required(result->onnxG2pId, "onnxG2pId");
 
+        static_assert(std::is_same_v<decltype(result->enableOnnxG2p), bool>);
+        parser.parse_bool_optional(result->enableOnnxG2p, "enableOnnxG2p");
+
         if (ec.hasErrors()) {
             return LangMgr::Error{
                 LangMgr::Error::InvalidFormat,

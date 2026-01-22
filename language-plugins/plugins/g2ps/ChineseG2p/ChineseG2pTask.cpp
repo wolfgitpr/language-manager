@@ -84,6 +84,21 @@ namespace LangPlugins
         return {};
     }
 
+    static std::vector<std::vector<LangMgr::G2pRes>> groupLyrics(const std::vector<LangMgr::G2pRes> &input) {
+        std::vector<std::vector<LangMgr::G2pRes>> groups;
+        std::string lastMode;
+
+        for (const auto &item : input) {
+            if (groups.empty() || item.mode != lastMode) {
+                groups.emplace_back();
+                lastMode = item.mode;
+            }
+            groups.back().push_back(item);
+        }
+
+        return groups;
+    }
+
     LangMgr::Expected<LangMgr::NO<LangMgr::TaskResult>>
     ChineseG2pTask::start(const LangMgr::NO<LangMgr::TaskStartInput> &input) {
         __stdc_impl_t;
@@ -116,26 +131,30 @@ namespace LangPlugins
         //         name));
         // }
 
-        const auto g2pInput = input.as<LangMgr::G2pStartInput>();
         std::vector<LangMgr::G2pRes> res;
-        for (const auto &lyric : g2pInput->g2pInput)
-            res.push_back(LangMgr::G2pRes(lyric, spec()->name().text(), "", {}, "copy", true));
+        const auto g2pInput = input.as<LangMgr::G2pStartInput>();
+        const auto verifyRes = impl.verifier->verify(g2pInput->g2pInput);
+        for (const auto &[lyric, mode, error] : verifyRes)
+            res.emplace_back(LangMgr::G2pRes{lyric, spec()->name().text(), "", {}, mode, error});
 
-        std::vector<std::string> _input;
-        for (auto &it : res)
-            _input.push_back(it.lyric);
-
-        auto g2pRes =
-            impl.m_mandarin->hanziToPinyin(_input, Pinyin::ManTone::NORMAL, Pinyin::Default, true, false, false);
+        const auto groupLyric = groupLyrics(res);
 
         // Create result
         auto g2pResult = LangMgr::NO<LangMgr::G2pResult>::create(LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS,
                                                                  LangMgr::G2P_API_LEVEL);
 
-        for (auto &[hanzi, pinyin, candidates, error] : g2pRes) {
-            g2pResult->g2pResult.emplace_back(hanzi, spec()->id(), pinyin, candidates, error ? "copy" : "convert",
-                                              error);
+        for (const auto &lyrics : groupLyric) {
+            std::vector<std::string> _input;
+            for (const auto &lyric : lyrics)
+                _input.push_back(lyric.lyric);
+            auto g2pRes =
+                impl.m_mandarin->hanziToPinyin(_input, Pinyin::ManTone::NORMAL, Pinyin::Default, true, false, false);
+            for (auto &[hanzi, pinyin, candidates, error] : g2pRes) {
+                g2pResult->g2pResult.emplace_back(hanzi, spec()->id(), pinyin, candidates, error ? "copy" : "convert",
+                                                  error);
+            }
         }
+
 
         impl.result = g2pResult;
         setState(Idle);

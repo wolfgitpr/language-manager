@@ -175,9 +175,13 @@ namespace LangPlugins::inferUtil
                         const auto &valueArr = valueIt->second.toArray();
                         std::string combined;
                         for (size_t j = 0; j < valueArr.size(); ++j) {
-                            if (valueArr[j].isString())
-                                entry.value.push_back(valueArr[j].toString());
-                            else
+                            if (valueArr[j].isString()) {
+                                if (entry.type == "dict") {
+                                    const auto path = spec->path() / stdc::path::from_utf8(valueArr[j].toString());
+                                    entry.value.push_back(path.string());
+                                } else
+                                    entry.value.push_back(valueArr[j].toString());
+                            } else
                                 collectError("verify entry #" + std::to_string(i) + " array value #" +
                                              std::to_string(j) + " must be string");
                         }

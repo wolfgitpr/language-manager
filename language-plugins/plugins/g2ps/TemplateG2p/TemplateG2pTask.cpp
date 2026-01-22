@@ -37,6 +37,7 @@ namespace LangPlugins
     public:
         LangMgr::NO<LangMgr::G2pResult> result;
         LangMgr::NO<Task> g2pInference;
+        bool enableOnnxG2p;
         std::unique_ptr<inferUtil::Verifier> verifier;
         PhonemeDict phonemeDict;
         mutable std::shared_mutex mutex;
@@ -72,7 +73,10 @@ namespace LangPlugins
         }
         const auto config = expConfig.take();
 
-        if (auto res = getObject("g2p", config->onnxG2pId); res) {
+        if (!config->enableOnnxG2p) {
+            impl.g2pInference = nullptr;
+            impl.enableOnnxG2p = config->enableOnnxG2p;
+        } else if (auto res = getObject("g2p", config->onnxG2pId); res) {
             impl.g2pInference = res.take().as<Task>();
         } else {
             setState(Failed);
@@ -82,7 +86,9 @@ namespace LangPlugins
         impl.verifier = std::make_unique<inferUtil::Verifier>(config->verifyEntry);
 
         // Load phoneme dict
-        if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
+        if (config->dictPath.empty())
+            std::cout << "No dictPath specified" << std::endl;
+        else if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
             std::cout << "Failed to read dictionary " << config->dictPath << ":" << ec.value();
 
         // Initialize inference state
@@ -110,7 +116,7 @@ namespace LangPlugins
         __stdc_impl_t;
         {
             std::shared_lock lock(impl.mutex);
-            if (!impl.g2pInference) {
+            if (!impl.g2pInference && impl.enableOnnxG2p) {
                 setState(Failed);
                 return LangMgr::Error(LangMgr::Error::SessionError, "TemplateG2pTask: g2p inference not initialized");
             }
@@ -152,6 +158,11 @@ namespace LangPlugins
                     const auto lstmInput = LangMgr::NO<LangMgr::G2pStartInput>::create(
                         LangMgr::G2P_API_NAME, LangMgr::G2P_API_CLASS, LangMgr::G2P_API_LEVEL);
                     lstmInput->g2pInput.push_back({it.lyric});
+
+                    if (!impl.enableOnnxG2p) {
+                        it.error = true;
+                        continue;
+                    }
 
                     std::cout << "Dict not contains word: " << it.lyric << "; Starting lstmG2p inference..."
                               << std::endl;

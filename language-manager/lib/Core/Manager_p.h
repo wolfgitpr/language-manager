@@ -27,8 +27,8 @@ namespace LangMgr
         std::vector<NO<Task>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {});
 
         bool initialized = false;
-        std::vector<std::string> defaultTaggerOrder = {"cmn",  "yue",         "jpn",    "eng",       "space",
-                                                       "slur", "punctuation", "number", "linebreak", "unknown"};
+        std::vector<std::string> defaultTaggerOrder = {"cmn",  "yue",  "jpn", "eng",       "space",
+                                                       "slur", "punc", "num", "linebreak", "unknown"};
         std::map<std::string, std::map<std::string, NO<Task>>> tasks;
         std::string m_pinyinDictPath;
 
