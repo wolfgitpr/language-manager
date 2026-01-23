@@ -230,8 +230,7 @@ int main() {
         std::string errorMessage;
         langMgr.initialize(errorMessage);
 
-        const auto text = "Halloween蝉声--陪かな伴着qwe行云流浪---ka回-忆-开始132后安静遥望远方;荒草覆没的古井--枯塘;"
-                          "匀-散asdaw一缕过往";
+        const auto text = "爱は永遠に--, 사랑은+~영원히! Love forever, любовь вечно. あい は えいえん に? Amour pour toujours, Liebe für immer, amore per sempre, amor para siempre. 123!";
         auto splitRes = langMgr.split(text);
         std::cout << "\nsplit result: "
                   << std::accumulate(splitRes.begin(), splitRes.end(), std::string(),
@@ -244,16 +243,16 @@ int main() {
         std::vector<LangMgr::G2pInput *> g2pInput;
         std::cout << "tag result: " << std::endl;
         for (const auto &res : resExp) {
-            std::cout << "lyric: " << res.lyric << " language: " << res.language << " tag: " << res.tag << std::endl;
+            std::cout << "lyric: '" << res.lyric << "' language: " << res.language << " tag: " << res.tag << std::endl;
             g2pInput.emplace_back(new LangMgr::G2pInput(res.lyric, res.language));
         }
 
-        const auto g2pResult = langMgr.convert(g2pInput);
-
-        for (auto g2pRes : g2pResult) {
-            std::cout << "lyric: " << g2pRes.lyric << "; pronunciation: '" << g2pRes.pronunciation
-                      << "'; mode: " << g2pRes.mode << std::endl;
-        }
+        // const auto g2pResult = langMgr.convert(g2pInput);
+        //
+        // for (auto g2pRes : g2pResult) {
+        //     std::cout << "lyric: '" << g2pRes.lyric << "' pronunciation: '" << g2pRes.pronunciation
+        //               << "' mode: " << g2pRes.mode << std::endl;
+        // }
 
         return 0;
     }

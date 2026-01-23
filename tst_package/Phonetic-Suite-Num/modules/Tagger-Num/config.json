@@ -3,13 +3,13 @@
   "level": 1,
   "schema": {},
   "configuration": {
-    "language": "eng",
+    "language": "num",
     "tagger": [
       {
         "regexes": [
-          "([A-Za-z]+)"
+          "([\\p{N}]+)"
         ],
-        "tag": "latin"
+        "tag": "num"
       }
     ]
   }

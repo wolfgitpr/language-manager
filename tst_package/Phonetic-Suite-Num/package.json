@@ -1,0 +1,26 @@
+{
+  "packageId": "num-official",
+  "version": "0.0.1",
+  "vendor": "小狼",
+  "copyright": "Copyright (C) 小狼",
+  "description": "",
+  "url": "",
+  "modules": {
+    "tagger": [
+      {
+        "moduleId": "tagger-num",
+        "class": "tagger.template.RegexTaggerInference",
+        "configuration": "modules/Tagger-Num/config.json",
+        "dependencies": []
+      }
+    ],
+    "g2p": [
+      {
+        "moduleId": "g2p-num",
+        "class": "g2p.template.TemplateG2pInference",
+        "configuration": "modules/TemplateG2p-Num/config.json",
+        "dependencies": []
+      }
+    ]
+  }
+}

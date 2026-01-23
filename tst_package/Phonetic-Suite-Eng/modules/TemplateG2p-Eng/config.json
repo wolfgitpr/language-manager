@@ -5,25 +5,16 @@
   "configuration": {
     "verify": [
       {
-        "type": "array",
+        "type": "regex",
         "value": [
-          "SP",
-          "AP",
-          "EP"
+          "([A-Z]+)"
         ],
         "mode": "copy"
       },
       {
         "type": "regex",
         "value": [
-          "([\\p{Lu}]+)"
-        ],
-        "mode": "copy"
-      },
-      {
-        "type": "regex",
-        "value": [
-          "([\\p{Ll}]+)"
+          "([a-z]+)"
         ],
         "mode": "convert"
       }

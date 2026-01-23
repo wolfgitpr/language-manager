@@ -7,9 +7,15 @@
     "tagger": [
       {
         "regexes": [
-          "(\\p{P})"
+          "([\\p{P}])"
         ],
         "tag": "punc"
+      },
+      {
+        "regexes": [
+          "( )"
+        ],
+        "tag": "linebreak"
       }
     ]
   }
