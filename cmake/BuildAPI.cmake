@@ -583,7 +583,7 @@ macro(_cur_add_desc_internal _target _plugin_dir)
         if (_CUR_INSTALL AND NOT FUNC_NO_INSTALL AND NOT FUNC_NO_INSTALL_DESC)
             # Install to same directory as plugin
             install(
-                    FILES ${_generated_file}
+                    FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}/${_output_name}
                     DESTINATION "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
                     RENAME ${_output_name}
             )

@@ -54,7 +54,7 @@ Temporarily using the vcpkg environment of [ds-editor-lite](https://github.com/f
 [cpp-kana](https://github.com/wolfgitpr/cpp-kana)
 
 ```bash
--DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+-DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/cmake/buildsystems/vcpkg.cmake
 -DCMAKE_PREFIX_PATH=path/to/qt/6.7.3/msvc2022_64;
 -DCMAKE_INSTALL_PREFIX=install
 ```

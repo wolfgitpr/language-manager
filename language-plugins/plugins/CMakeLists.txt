@@ -1,3 +1,0 @@
-add_subdirectory(InferenceDrivers)
-add_subdirectory(G2ps)
-add_subdirectory(Taggers)
