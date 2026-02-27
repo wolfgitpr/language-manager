@@ -44,7 +44,7 @@ else ()
     set(_ort_default_lib_files ${_onnxruntime_default_dir}/lib/*.so ${_onnxruntime_default_dir}/lib/*.so.*)
 endif ()
 
-if (NOT LANGPLUGINS_INSTALL_ORT)
+if (LANGPLUGINS_INSTALL_ORT)
     # Copy onnxruntime shared libraries
     qm_add_copy_command(onnxdriver # SKIP_INSTALL
             SOURCES ${_ort_default_lib_files}
