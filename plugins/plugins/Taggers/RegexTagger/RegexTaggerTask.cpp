@@ -58,6 +58,11 @@ namespace LangPlugins
         std::vector<LangCore::TaggerRes> split(const std::vector<LangCore::TaggerRes> &input) const {
             std::vector<LangCore::TaggerRes> result;
             for (const auto &taggerRes : input) {
+                if (taggerRes.language != "unknown") {
+                    result.push_back(taggerRes);
+                    continue;
+                }
+
                 std::vector<std::string> _result;
                 const auto rawStr = taggerRes.lyric;
                 if (rawStr.empty())
@@ -189,7 +194,6 @@ namespace LangPlugins
         const auto taggerInput = input.as<LangCore::TaggerStartInput>();
         std::vector<LangCore::TaggerRes> res = taggerInput->taggerInput;
         if (taggerInput->split) {
-            res = taggerInput->taggerInput;
             for (const auto &tagger : impl.regexes)
                 res = tagger->split(res);
         }
