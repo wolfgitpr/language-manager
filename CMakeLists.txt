@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(LanguageManager
+project(language-manager
         VERSION 0.0.0.1
         LANGUAGES CXX
         DESCRIPTION "Language and G2p Manager"
@@ -11,8 +11,9 @@ set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "Language Manage
 # Build Options
 # ----------------------------------
 option(LANGMGR_BUILD_PLUGINS "Build plugins" OFF)
-option(LANGMGR_BUILD_VCPKG "Build in vcpkg" OFF)
 option(LANGMGR_BUILD_TESTS "Build test cases" OFF)
+
+option(LANGMGR_INSTALL_VCPKG "Install in vcpkg" OFF)
 
 option(LANGCORE_INSTALL "Install library" ON)
 option(LANGCORE_INSTALL_DEPLOY "Install with deploying dependencies" OFF)
@@ -40,4 +41,11 @@ endif ()
 
 if (LANGMGR_BUILD_TESTS)
     add_subdirectory(tests)
+endif ()
+
+if (DEFINED LANGMGR_VCPKG_DIR)
+    qm_add_copy_command(${PROJECT_NAME}
+            SOURCES tst_package
+            DESTINATION LANGMGR_VCPKG_DIR/G2pPackages
+    )
 endif ()
