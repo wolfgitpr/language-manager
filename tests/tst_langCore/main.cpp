@@ -71,34 +71,34 @@ bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, c
 
 int main() {
     try {
-        LangCore::Manager langMgr;
+        const auto langMgr = LangCore::Manager::instance();
 
         const auto defaultPluginDir = getPluginRootDirectory() / _TSTR("LangPlugins");
-        langMgr.addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("Drivers"));
-        langMgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
-        langMgr.addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
+        langMgr->addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("Drivers"));
+        langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
+        langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
 
         const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\tst_package)";
-        langMgr.addPackagePath(packagesRootDir);
+        langMgr->addPackagePath(packagesRootDir);
 
-        if (const auto onnxDriverInitialized = initializeOnnxDriver(&langMgr, "cpu", 0, false); !onnxDriverInitialized)
+        if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized)
             return -1;
 
         std::string errorMessage;
-        langMgr.initialize(errorMessage);
-        if (!langMgr.initialized())
+        langMgr->initialize(errorMessage);
+        if (!langMgr->initialized())
             std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
 
         const auto text = "爱は永遠に--, 사랑은+~영원히! Love forever, любовь вечно. あい は えいえん に? Amour pour "
                           "toujours, Liebe für immer, amore per sempre, amor para siempre. 123!";
-        auto splitRes = langMgr.split(text);
+        auto splitRes = langMgr->split(text);
         std::cout << "\nsplit result: "
                   << std::accumulate(splitRes.begin(), splitRes.end(), std::string(),
                                      [](const std::string &a, const std::string &b)
                                      { return a.empty() ? b : a + " " + b; })
                   << std::endl;
 
-        const auto resExp = langMgr.tag(splitRes);
+        const auto resExp = langMgr->tag(splitRes);
 
         std::vector<LangCore::G2pInput *> g2pInput;
         std::cout << "tag result: " << std::endl;
@@ -107,12 +107,12 @@ int main() {
             g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
         }
 
-        // const auto g2pResult = langMgr.convert(g2pInput);
-        //
-        // for (auto g2pRes : g2pResult) {
-        //     std::cout << "lyric: '" << g2pRes.lyric << "' pronunciation: '" << g2pRes.pronunciation
-        //               << "' mode: " << g2pRes.mode << std::endl;
-        // }
+        const auto g2pResult = langMgr->convert(g2pInput);
+
+        for (auto g2pRes : g2pResult) {
+            std::cout << "lyric: '" << g2pRes.lyric << "' pronunciation: '" << g2pRes.pronunciation
+                      << "' mode: " << g2pRes.mode << std::endl;
+        }
 
         return 0;
     }

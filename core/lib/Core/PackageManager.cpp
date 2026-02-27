@@ -420,11 +420,6 @@ namespace LangCore
         return it->second;
     }
 
-    PackageManager *PackageManager::instance() {
-        static PackageManager instance;
-        return &instance;
-    }
-
     bool PackageManager::checkDependencies() {
         const auto moduleInfos = this->getModuleMetadatas();
 

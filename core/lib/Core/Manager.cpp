@@ -51,7 +51,10 @@ namespace LangCore
 
     Manager::~Manager() = default;
 
-    Manager *Manager::instance() { return static_cast<Manager *>(PackageManager::instance()); }
+    Manager *Manager::instance() {
+        static Manager instance;
+        return &instance;
+    }
 
     bool Manager::initialize(std::string &errMsg) {
         __stdc_impl_t;

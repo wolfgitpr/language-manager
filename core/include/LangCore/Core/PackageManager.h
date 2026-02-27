@@ -32,7 +32,6 @@ namespace LangCore
         std::vector<PackageInitializationPlan> getPackageInitializationOrder();
 
         ModuleCategory *category(const std::string_view &name) const;
-        static PackageManager *instance();
 
         void addPackagePath(const std::filesystem::path &path);
         void addPackagePaths(stdc::array_view<std::filesystem::path> paths);
