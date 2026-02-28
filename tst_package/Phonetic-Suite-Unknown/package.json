@@ -1,0 +1,18 @@
+{
+  "packageId": "unknown-official",
+  "version": "0.0.1",
+  "vendor": "小狼",
+  "copyright": "Copyright (C) 小狼",
+  "description": "",
+  "url": "",
+  "modules": {
+    "g2p": [
+      {
+        "moduleId": "g2p-unknown",
+        "class": "g2p.template.TemplateG2pInference",
+        "configuration": "modules/TemplateG2p-Unknown/config.json",
+        "dependencies": []
+      }
+    ]
+  }
+}
