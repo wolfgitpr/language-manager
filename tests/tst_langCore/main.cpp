@@ -78,7 +78,7 @@ int main() {
         langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
         langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
 
-        const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\tst_package)";
+        const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
         langMgr->addPackagePath(packagesRootDir);
 
         if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized)
