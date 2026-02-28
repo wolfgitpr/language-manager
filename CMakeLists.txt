@@ -46,6 +46,6 @@ endif ()
 if (DEFINED LANGMGR_VCPKG_DIR)
     install(
             DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/res/G2pPackages
-            DESTINATION ${LANGMGR_VCPKG_DIR}/G2pPackages
+            DESTINATION ${LANGMGR_VCPKG_DIR}
     )
 endif ()
