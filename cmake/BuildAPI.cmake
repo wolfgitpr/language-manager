@@ -306,6 +306,7 @@ endmacro()
 #
 macro(${_CUR_MACRO_PREFIX}_add_plugin _target _category _plugin_folder)
     set(_plugin_dir plugins/${_CUR_INSTALL_NAME}/${_category}/${_plugin_folder})
+    set(_IS_PLUGIN TRUE)
     _cur_add_library_internal(${_target} SHARED
             BUILD_RUNTIME_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
             BUILD_LIBRARY_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${_plugin_dir}"
@@ -315,6 +316,7 @@ macro(${_CUR_MACRO_PREFIX}_add_plugin _target _category _plugin_folder)
             INSTALL_ARCHIVE_DIR "${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}"
             ${ARGN}
     )
+    unset(_IS_PLUGIN)
     _cur_add_desc_internal(${_target} ${_plugin_dir} ${ARGN})
 endmacro()
 
@@ -455,6 +457,29 @@ macro(_cur_add_library_internal _target _type)
         set(_inc_name ${FUNC_SYNC_INCLUDE_PREFIX})
     else ()
         set(_inc_name ${_target})
+    endif ()
+
+    if (_IS_PLUGIN)
+        get_target_property(_link_libs ${_target} LINK_LIBRARIES)
+        if (_link_libs)
+            set(_copy_deps_commands "")
+            foreach (_lib IN LISTS _link_libs)
+                if (TARGET "${_lib}")
+                    get_target_property(_lib_type ${_lib} TYPE)
+                    if (_lib_type STREQUAL "SHARED_LIBRARY" OR _lib_type STREQUAL "MODULE_LIBRARY")
+                        list(APPEND _copy_deps_commands
+                                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                "$<TARGET_FILE:${_lib}>"
+                                "$<TARGET_FILE_DIR:${_target}>"
+                        )
+                    endif ()
+                endif ()
+            endforeach ()
+            if (_copy_deps_commands)
+                add_custom_command(TARGET ${_target} POST_BUILD ${_copy_deps_commands}
+                        COMMENT "Copying dependent shared libraries to plugin directory")
+            endif ()
+        endif ()
     endif ()
 
     set(_install_options)
