@@ -44,9 +44,9 @@ if (LANGMGR_BUILD_TESTS)
 endif ()
 
 if (DEFINED LANGMGR_VCPKG_DIR)
-    set(pluginDir ${LANGMGR_VCPKG_DIR}/dict)
     install(
-            DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tst_package/*
-            DESTINATION ${LANGMGR_VCPKG_DIR}/G2pPackages
+            DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tst_package
+            DESTINATION ${LANGMGR_VCPKG_DIR}
+            RENAME G2pPackages
     )
 endif ()
