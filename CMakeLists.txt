@@ -44,8 +44,9 @@ if (LANGMGR_BUILD_TESTS)
 endif ()
 
 if (DEFINED LANGMGR_VCPKG_DIR)
-    qm_add_copy_command(${PROJECT_NAME}
-            SOURCES tst_package
-            DESTINATION LANGMGR_VCPKG_DIR/G2pPackages
+    set(pluginDir ${LANGMGR_VCPKG_DIR}/dict)
+    install(
+            DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tst_package/*
+            DESTINATION ${LANGMGR_VCPKG_DIR}/G2pPackages
     )
 endif ()
