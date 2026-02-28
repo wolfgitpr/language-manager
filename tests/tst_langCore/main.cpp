@@ -109,7 +109,7 @@ int main() {
 
         const auto g2pResult = langMgr->convert(g2pInput);
 
-        for (auto g2pRes : g2pResult) {
+        for (const auto &g2pRes : g2pResult) {
             std::cout << "lyric: '" << g2pRes.lyric << "' language: '" << g2pRes.g2pId << "' pronunciation: '"
                       << g2pRes.pronunciation << "' mode: " << g2pRes.mode << std::endl;
         }

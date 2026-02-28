@@ -493,6 +493,26 @@ macro(_cur_add_library_internal _target _type)
         set(_install_options
                 INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}/${_CUR_INSTALL_NAME}/${_inc_name}"
         )
+
+        install(CODE "
+                set(target_file \"$<TARGET_FILE:${_target}>\")
+                get_filename_component(target_name \"\${target_file}\" NAME)
+                set(src_dir \"$<TARGET_FILE_DIR:${_target}>\")
+                set(dst_dir \"\${CMAKE_INSTALL_PREFIX}/${_install_library_dir}\")
+                file(GLOB dynamic_libs
+                    \"\${src_dir}/*.so\"
+                    \"\${src_dir}/*.dll\"
+                    \"\${src_dir}/*.dylib\"
+                )
+                foreach(lib \${dynamic_libs})
+                    get_filename_component(lib_name \${lib} NAME)
+                    if(NOT \${lib_name} STREQUAL \${target_name})
+                        message(STATUS \"Installing dependency: \${lib}\")
+                        file(INSTALL \${lib} DESTINATION \${dst_dir})
+                    endif()
+                endforeach()
+            ")
+
     endif ()
 
     if (FUNC_SYNC_INCLUDE OR (_CUR_SYNC_INCLUDE AND NOT FUNC_NO_SYNC_INCLUDE))
