@@ -4,7 +4,6 @@ project(inferutil
 )
 
 find_package(re2 CONFIG REQUIRED)
-
 file(GLOB_RECURSE _src *.h *.cpp)
 
 LangPlugins_add_library(${PROJECT_NAME} STATIC NO_INSTALL

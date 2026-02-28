@@ -4,7 +4,6 @@ project(RegexTagger
 )
 
 find_package(re2 CONFIG REQUIRED)
-
 file(GLOB_RECURSE _src *.h *.cpp)
 
 LangPlugins_add_plugin(${PROJECT_NAME} ${CURRENT_PLUGIN_CATEGORY} ${PROJECT_NAME} NO_EXPORT

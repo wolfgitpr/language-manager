@@ -3,6 +3,7 @@ project(ChineseG2p
         LANGUAGES C CXX
 )
 
+find_package(re2 CONFIG REQUIRED)
 find_package(cpp-pinyin CONFIG REQUIRED)
 
 file(GLOB_RECURSE _src *.h *.cpp)
