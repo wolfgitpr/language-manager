@@ -21,7 +21,7 @@ namespace LangPlugins::inferUtil
     struct VerifyRes {
         std::string lyric;
         std::string mode = "copy";
-        bool error = false;
+        bool error = true;
     };
 
     class IVerify {

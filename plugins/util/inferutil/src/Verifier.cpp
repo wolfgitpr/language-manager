@@ -27,10 +27,10 @@ namespace LangPlugins::inferUtil
 
     void VerifyRegex::verify(std::vector<VerifyRes> &input) {
         for (auto &[lyric, mode, error] : input) {
-            if (!error)
-                continue;
-            mode = entry_.mode == "convert";
-            error = !RE2::FullMatch(lyric, *regex_);
+            if (RE2::FullMatch(lyric, *regex_)) {
+                mode = entry_.mode;
+                error = false;
+            }
         }
     }
 
@@ -55,10 +55,10 @@ namespace LangPlugins::inferUtil
 
     void VerifyArray::verify(std::vector<VerifyRes> &input) {
         for (auto &[lyric, mode, error] : input) {
-            if (!error)
-                continue;
-            mode = entry_.mode == "convert";
-            error = array.find(lyric) == array.end();
+            if (array.find(lyric) != array.end()) {
+                mode = entry_.mode;
+                error = false;
+            }
         }
     }
 

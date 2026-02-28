@@ -89,8 +89,8 @@ int main() {
         if (!langMgr->initialized())
             std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
 
-        const auto text = "爱は永遠に--, 사랑은+~영원히! Love forever, любовь вечно. あい は えいえん に? Amour pour "
-                          "toujours, Liebe für immer, amore per sempre, amor para siempre. 123!";
+        const auto text = "halloween蝉 声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方"
+                          "\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
         auto splitRes = langMgr->split(text);
         std::cout << "\nsplit result: "
                   << std::accumulate(splitRes.begin(), splitRes.end(), std::string(),
@@ -110,8 +110,8 @@ int main() {
         const auto g2pResult = langMgr->convert(g2pInput);
 
         for (auto g2pRes : g2pResult) {
-            std::cout << "lyric: '" << g2pRes.lyric << "' pronunciation: '" << g2pRes.pronunciation
-                      << "' mode: " << g2pRes.mode << std::endl;
+            std::cout << "lyric: '" << g2pRes.lyric << "' language: '" << g2pRes.g2pId << "' pronunciation: '"
+                      << g2pRes.pronunciation << "' mode: " << g2pRes.mode << std::endl;
         }
 
         return 0;

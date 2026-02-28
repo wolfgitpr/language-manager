@@ -89,8 +89,10 @@ namespace LangPlugins
                 if (_result.empty())
                     _result.emplace_back(rawStr);
 
-                for (auto &it : _result)
-                    result.emplace_back(it);
+                if (!entry_.discard) {
+                    for (auto &it : _result)
+                        result.emplace_back(it);
+                }
             }
             return result;
         }

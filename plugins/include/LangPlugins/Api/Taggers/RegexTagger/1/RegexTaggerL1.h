@@ -15,6 +15,7 @@ namespace LangPlugins::Api::RegexTagger::L1
     struct TaggerRegexEntry {
         std::vector<std::string> regexes;
         std::string tag;
+        bool discard = false;
     };
 
     class RegexTaggerConfiguration : public LangCore::TaggerConfiguration {

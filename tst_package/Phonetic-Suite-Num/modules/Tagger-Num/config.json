@@ -9,7 +9,8 @@
         "regexes": [
           "([\\p{N}]+)"
         ],
-        "tag": "num"
+        "tag": "num",
+        "discard": true
       }
     ]
   }

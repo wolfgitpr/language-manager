@@ -19,9 +19,16 @@
           "([\\x{3040}-\\x{309F}\\x{30A0}-\\x{30FF}][ゃゅょぁぃぅぇぉャュョァィゥェォ]?)"
         ],
         "mode": "convert"
+      },
+      {
+        "type": "regex",
+        "value": [
+          "([A-Za-z]+)"
+        ],
+        "mode": "copy"
       }
     ],
-    "dictPath": "japanese_dict_full.txt",
+    "dictPath": "kana2romaji.txt",
     "onnxG2pId": "",
     "enableOnnxG2p": false
   }

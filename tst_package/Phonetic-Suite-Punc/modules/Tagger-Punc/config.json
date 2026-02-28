@@ -7,15 +7,31 @@
     "tagger": [
       {
         "regexes": [
-          "([\\p{P}])"
+          "([\\s]+)"
         ],
-        "tag": "punc"
+        "tag": "space",
+        "discard": true
       },
       {
         "regexes": [
-          "( )"
+          "(-)"
         ],
-        "tag": "linebreak"
+        "tag": "slur",
+        "discard": false
+      },
+      {
+        "regexes": [
+          "(\r\n|\n)"
+        ],
+        "tag": "linebreak",
+        "discard": false
+      },
+      {
+        "regexes": [
+          "([\\p{P}])"
+        ],
+        "tag": "punc",
+        "discard": true
       }
     ]
   }

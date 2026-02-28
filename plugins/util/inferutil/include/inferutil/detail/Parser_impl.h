@@ -257,6 +257,18 @@ namespace LangPlugins::inferUtil
                         collectError("tagger entry #" + std::to_string(i) + " missing required field \"tag\"");
                         continue;
                     }
+
+                    if (const auto tagIt = obj.find("discard"); tagIt != obj.end()) {
+                        if (tagIt->second.isBool()) {
+                            entry.discard = tagIt->second.toBool();
+                        } else {
+                            collectError("tagger entry #" + std::to_string(i) + " field \"discard\" must be string");
+                            continue;
+                        }
+                    } else {
+                        collectError("tagger entry #" + std::to_string(i) + " missing required field \"discard\"");
+                        continue;
+                    }
                     out.push_back(std::move(entry));
                 }
             }

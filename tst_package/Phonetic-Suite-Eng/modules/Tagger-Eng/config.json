@@ -7,9 +7,10 @@
     "tagger": [
       {
         "regexes": [
-          "([A-Za-z]+)"
+          "([A-Za-z']+)"
         ],
-        "tag": "latin"
+        "tag": "latin",
+        "discard": false
       }
     ]
   }
