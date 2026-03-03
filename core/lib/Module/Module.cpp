@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <mutex>
 #include <utility>
 
 #include <stdcorelib/path.h>

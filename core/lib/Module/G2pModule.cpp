@@ -26,7 +26,6 @@ namespace LangCore
 
     G2pSpec::~G2pSpec() = default;
 
-
     G2pSpec::G2pSpec() : ModuleSpec(*new Impl(this->category())) {}
 
     G2pCategory::~G2pCategory() = default;
@@ -36,6 +35,6 @@ namespace LangCore
 
     G2pCategory::G2pCategory(PackageManager *env) : ModuleCategory(G2pCategory::category(), env) {}
 
-    ModuleCategoryRegistrar<G2pCategory> registrar;
+    static ModuleCategoryRegistrar<G2pCategory> registrar;
 
 } // namespace LangCore

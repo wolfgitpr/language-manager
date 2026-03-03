@@ -36,6 +36,6 @@ namespace LangCore
 
     TaggerCategory::TaggerCategory(PackageManager *env) : ModuleCategory(TaggerCategory::category(), env) {}
 
-    ModuleCategoryRegistrar<TaggerCategory> registrar;
+    static ModuleCategoryRegistrar<TaggerCategory> registrar;
 
 } // namespace LangCore
