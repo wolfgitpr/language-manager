@@ -3,7 +3,7 @@
 
 #include <map>
 
-#include <stdcorelib/linked_map.h>
+#include <stdcorelib/adt/linked_map.h>
 
 #include <LangCore/Base/NamedObject.h>
 #include <LangCore/Base/ObjectPool.h>
