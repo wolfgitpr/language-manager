@@ -14,7 +14,7 @@
 #include <cpp-pinyin/G2pglobal.h>
 #include <cpp-pinyin/Pinyin.h>
 
-#include <inferutil/Verifier.h>
+#include <InferUtil/Verifier.h>
 
 namespace LangPlugins::ChineseG2p
 {
@@ -34,7 +34,7 @@ namespace LangPlugins::ChineseG2p
     public:
         LangCore::NO<LangCore::G2pResult> result;
         std::unique_ptr<Pinyin::Pinyin> m_mandarin;
-        std::unique_ptr<inferUtil::Verifier> verifier;
+        std::unique_ptr<InferUtil::Verifier> verifier;
         mutable std::shared_mutex mutex;
     };
 
@@ -68,7 +68,7 @@ namespace LangPlugins::ChineseG2p
         }
         const auto config = expConfig.take();
 
-        impl.verifier = std::make_unique<inferUtil::Verifier>(config->verifyEntry);
+        impl.verifier = std::make_unique<InferUtil::Verifier>(config->verifyEntry);
 
         Pinyin::setDictionaryPath(config->dictPath);
         impl.m_mandarin = std::make_unique<Pinyin::Pinyin>();

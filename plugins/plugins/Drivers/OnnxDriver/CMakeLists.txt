@@ -1,9 +1,9 @@
-if (NOT TARGET onnxutil)
+if (NOT TARGET OnnxUtil)
     message(WARNING "OnnxDriver plugin will not be built.")
     return()
 endif ()
 
-project(onnxdriver
+project(OnnxDriver
         VERSION ${LANGPLUGINS_VERSION}
         LANGUAGES C CXX
 )
@@ -31,7 +31,7 @@ LangPlugins_add_plugin(${PROJECT_NAME} ${CURRENT_PLUGIN_CATEGORY} ${PROJECT_NAME
         SOURCES ${_src}
         FEATURES cxx_std_17
         LINKS LangPlugins
-        LINKS_PRIVATE stduuid BLAKE3::blake3 $<BUILD_INTERFACE:onnxutil>
+        LINKS_PRIVATE stduuid BLAKE3::blake3 $<BUILD_INTERFACE:OnnxUtil>
         INCLUDE_PRIVATE *
         DEFINES ORT_API_MANUAL_INIT ${_onnxdriver_ep_macros}
 )
@@ -46,7 +46,7 @@ endif ()
 
 if (LANGPLUGINS_INSTALL_ORT)
     # Copy onnxruntime shared libraries
-    qm_add_copy_command(onnxdriver # SKIP_INSTALL
+    qm_add_copy_command(OnnxDriver # SKIP_INSTALL
             SOURCES ${_ort_default_lib_files}
             DESTINATION runtimes/onnx/default
             INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
@@ -61,7 +61,7 @@ if (EXISTS ${_onnxruntime_cuda_dir} AND IS_DIRECTORY ${_onnxruntime_cuda_dir})
     endif ()
 
     if (NOT APPLE)
-        qm_add_copy_command(onnxdriver  # SKIP_INSTALL
+        qm_add_copy_command(OnnxDriver  # SKIP_INSTALL
                 SOURCES ${_ort_cuda_lib_files}
                 DESTINATION runtimes/onnx/cuda
                 INSTALL_DIR ${CMAKE_INSTALL_PREFIX}

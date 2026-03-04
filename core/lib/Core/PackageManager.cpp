@@ -561,7 +561,8 @@ namespace LangCore
                     continue;
                 const auto taskFactoryPlugin = this->plugin<TaskFactoryPlugin>(moduleInfo.iid.c_str());
                 if (!taskFactoryPlugin) {
-                    MgrLog.langCoreCritical("Failed to load FactoryPlugin: %1", moduleInfo.iid);
+                    MgrLog.langCoreCritical("Failed to load FactoryPlugin: iid - %1, type - %2", moduleInfo.iid,
+                                            moduleInfo.type);
                     return false;
                 }
                 const auto &task = taskFactoryPlugin->create();

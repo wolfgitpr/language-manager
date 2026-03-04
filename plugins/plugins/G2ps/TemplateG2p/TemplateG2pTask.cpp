@@ -14,7 +14,7 @@
 
 #include <LangPlugins/Support/PhonemeDict.h>
 
-#include "inferutil/Verifier.h"
+#include "InferUtil/Verifier.h"
 
 
 namespace LangPlugins::TemplateG2p
@@ -37,7 +37,7 @@ namespace LangPlugins::TemplateG2p
         LangCore::NO<LangCore::G2pResult> result;
         LangCore::NO<Task> g2pInference;
         bool enableOnnxG2p;
-        std::unique_ptr<inferUtil::Verifier> verifier;
+        std::unique_ptr<InferUtil::Verifier> verifier;
         PhonemeDict phonemeDict;
         mutable std::shared_mutex mutex;
     };
@@ -82,7 +82,7 @@ namespace LangPlugins::TemplateG2p
             return res.takeError();
         }
 
-        impl.verifier = std::make_unique<inferUtil::Verifier>(config->verifyEntry);
+        impl.verifier = std::make_unique<InferUtil::Verifier>(config->verifyEntry);
 
         // Load phoneme dict
         if (config->enableDict) {

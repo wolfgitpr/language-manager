@@ -13,7 +13,7 @@
 #include <LangCore/Task/TaskFactoryPlugin.h>
 #include <LangPlugins/Support/Tensor.h>
 
-#include <inferutil/TensorHelper.h>
+#include <InferUtil/TensorHelper.h>
 
 #include "LangCore/Task/G2pTask.h"
 

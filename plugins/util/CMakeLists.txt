@@ -1,2 +1,2 @@
-add_subdirectory(onnxutil)
-add_subdirectory(inferutil)
+add_subdirectory(OnnxUtil)
+add_subdirectory(InferUtil)

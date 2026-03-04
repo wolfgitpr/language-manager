@@ -1,5 +1,5 @@
-#ifndef LANGCORE_INFERENCECONTRIB_H
-#define LANGCORE_INFERENCECONTRIB_H
+#ifndef LANGCORE_G2PMODULE_H
+#define LANGCORE_G2PMODULE_H
 
 #include <LangCore/Core/PackageManager.h>
 #include <LangCore/Module/Module.h>
@@ -36,4 +36,4 @@ namespace LangCore
 
 } // namespace LangCore
 
-#endif // LANGCORE_INFERENCECONTRIB_H
+#endif // LANGCORE_G2PMODULE_H

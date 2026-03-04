@@ -6,10 +6,18 @@
   "description": "",
   "url": "",
   "modules": {
+    "splitter": [
+      {
+        "moduleId": "splitter-cmn",
+        "class": "splitter.regex.RegexSplitterInference",
+        "configuration": "modules/Splitter-Cmn/config.json",
+        "dependencies": []
+      }
+    ],
     "tagger": [
       {
         "moduleId": "tagger-cmn",
-        "class": "tagger.template.RegexTaggerInference",
+        "class": "tagger.template.TemplateTaggerInference",
         "configuration": "modules/Tagger-Cmn/config.json",
         "dependencies": []
       }

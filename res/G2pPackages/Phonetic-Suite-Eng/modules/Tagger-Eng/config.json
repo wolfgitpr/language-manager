@@ -6,7 +6,8 @@
     "language": "eng",
     "tagger": [
       {
-        "regexes": [
+        "type": "regex",
+        "value": [
           "([A-Za-z']+)"
         ],
         "tag": "latin",

@@ -2,7 +2,7 @@
 
 #include <stdcorelib/str.h>
 
-#include <inferutil/Parser.h>
+#include <InferUtil/Parser.h>
 
 #include "LstmG2pTask.h"
 
@@ -27,8 +27,8 @@ namespace LangPlugins::LstmG2p
         auto result = LangCore::NO<Lstm::LstmG2pConfiguration>::create();
 
         // Collect all the errors and return to user
-        inferUtil::ErrorCollector ec;
-        inferUtil::ConfigurationParser parser(spec, &ec);
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec, &ec);
 
         // [REQUIRED] encoder, path (JSON value is string)
         {
@@ -73,4 +73,4 @@ namespace LangPlugins::LstmG2p
         return LangCore::NO<LstmG2pTask>::create(spec);
     }
 
-} // namespace LangPlugins
+} // namespace LangPlugins::LstmG2p

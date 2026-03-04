@@ -6,7 +6,7 @@
 
 #include <LangCore/Task/G2pTask.h>
 
-#include <inferutil/Verifier.h>
+#include <InferUtil/Verifier.h>
 
 namespace LangPlugins::Api::TemplateG2p::L1
 {
@@ -19,7 +19,7 @@ namespace LangPlugins::Api::TemplateG2p::L1
     public:
         TemplateG2pConfiguration() : G2pConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
-        std::vector<inferUtil::VerifyEntry> verifyEntry;
+        std::vector<InferUtil::VerifyEntry> verifyEntry;
         bool enableDict;
         std::filesystem::path dictPath;
 

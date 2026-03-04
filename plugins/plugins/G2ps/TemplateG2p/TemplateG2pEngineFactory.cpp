@@ -2,7 +2,7 @@
 
 #include <stdcorelib/str.h>
 
-#include <inferutil/Parser.h>
+#include <InferUtil/Parser.h>
 
 #include "TemplateG2pTask.h"
 
@@ -27,10 +27,10 @@ namespace LangPlugins::TemplateG2p
         auto result = LangCore::NO<Template::TemplateG2pConfiguration>::create();
 
         // Collect all the errors and return to user
-        inferUtil::ErrorCollector ec;
-        inferUtil::ConfigurationParser parser(spec->as<LangCore::ModuleSpec>(), &ec);
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec->as<LangCore::ModuleSpec>(), &ec);
 
-        static_assert(std::is_same_v<decltype(result->verifyEntry), std::vector<inferUtil::VerifyEntry>>);
+        static_assert(std::is_same_v<decltype(result->verifyEntry), std::vector<InferUtil::VerifyEntry>>);
         parser.parse_verify_required(result->verifyEntry, "verify");
 
         static_assert(std::is_same_v<decltype(result->enableDict), bool>);

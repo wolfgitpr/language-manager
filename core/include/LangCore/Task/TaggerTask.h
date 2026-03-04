@@ -49,7 +49,6 @@ namespace LangCore
         TaggerStartInput(std::string name, std::string iid, const int apiLevel) :
             TaskStartInput(std::move(name), std::move(iid), apiLevel) {}
 
-        bool split = false;
         std::vector<TaggerRes> taggerInput;
     };
 

@@ -10,7 +10,7 @@ LangPlugins_add_plugin(${PROJECT_NAME} ${CURRENT_PLUGIN_CATEGORY} ${PROJECT_NAME
         SOURCES ${_src}
         FEATURES cxx_std_17
         LINKS LangPlugins re2::re2
-        LINKS_PRIVATE $<BUILD_INTERFACE:inferutil>
+        LINKS_PRIVATE $<BUILD_INTERFACE:InferUtil>
         INCLUDE_PRIVATE *
         DEFINES
 )

@@ -6,7 +6,8 @@
     "language": "num",
     "tagger": [
       {
-        "regexes": [
+        "type": "regex",
+        "value": [
           "([\\p{N}]+)"
         ],
         "tag": "num",

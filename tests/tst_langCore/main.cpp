@@ -1,6 +1,6 @@
 #include <filesystem>
 #include <iostream>
-#include <numeric>
+
 #include <string>
 #include <vector>
 
@@ -70,56 +70,42 @@ bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, c
 }
 
 int main() {
-    try {
-        const auto langMgr = LangCore::Manager::instance();
+    const auto langMgr = LangCore::Manager::instance();
 
-        const auto defaultPluginDir = getPluginRootDirectory() / _TSTR("LangPlugins");
-        langMgr->addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("Drivers"));
-        langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
-        langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
+    const auto defaultPluginDir = getPluginRootDirectory() / _TSTR("LangPlugins");
+    langMgr->addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("Drivers"));
+    langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
+    langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
+    langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Splitters"));
 
-        const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
-        langMgr->addPackagePath(packagesRootDir);
+    const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
+    langMgr->addPackagePath(packagesRootDir);
 
-        if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized)
-            return -1;
+    if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized)
+        return -1;
 
-        std::string errorMessage;
-        langMgr->initialize(errorMessage);
-        if (!langMgr->initialized()) {
-            std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
-            return -1;
-        }
-
-        const auto text = "halloween蝉 声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方"
-                          "\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
-        auto splitRes = langMgr->split(text);
-        std::cout << "\nsplit result: "
-                  << std::accumulate(splitRes.begin(), splitRes.end(), std::string(),
-                                     [](const std::string &a, const std::string &b)
-                                     { return a.empty() ? b : a + " " + b; })
-                  << std::endl;
-
-        const auto resExp = langMgr->tag(splitRes);
-
-        std::vector<LangCore::G2pInput *> g2pInput;
-        std::cout << "tag result: " << std::endl;
-        for (const auto &res : resExp) {
-            std::cout << "lyric: '" << res.lyric << "' language: " << res.language << " tag: " << res.tag << std::endl;
-            g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
-        }
-
-        const auto g2pResult = langMgr->convert(g2pInput);
-
-        for (const auto &g2pRes : g2pResult) {
-            std::cout << "lyric: '" << g2pRes.lyric << "' language: '" << g2pRes.g2pId << "' pronunciation: '"
-                      << g2pRes.pronunciation << "' mode: " << g2pRes.mode << std::endl;
-        }
-
-        return 0;
+    std::string errorMessage;
+    langMgr->initialize(errorMessage);
+    if (!langMgr->initialized()) {
+        std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
+        return -1;
     }
-    catch (const std::exception &e) {
-        std::cerr << "Exception occurred: " << e.what() << std::endl;
-        return -4;
+
+    const auto text = "halloween蝉ce 声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方"
+                      "\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
+    const auto resExp = langMgr->tag({text}, true, true, {"cmn"});
+
+    std::vector<LangCore::G2pInput *> g2pInput;
+    std::cout << "tag result: " << std::endl;
+    for (const auto &res : resExp)
+        g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
+
+    const auto g2pResult = langMgr->convert(g2pInput);
+
+    for (const auto &g2pRes : g2pResult) {
+        std::cout << "lyric: '" << g2pRes.lyric << "' g2pId: '" << g2pRes.g2pId << "' pronunciation: '"
+                  << g2pRes.pronunciation << "' mode: " << g2pRes.mode << std::endl;
     }
+
+    return 0;
 }

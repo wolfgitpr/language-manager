@@ -6,28 +6,32 @@
     "language": "punc",
     "tagger": [
       {
-        "regexes": [
+        "type": "regex",
+        "value": [
           "([\\s]+)"
         ],
         "tag": "space",
         "discard": true
       },
       {
-        "regexes": [
+        "type": "regex",
+        "value": [
           "(-)"
         ],
         "tag": "slur",
         "discard": false
       },
       {
-        "regexes": [
+        "type": "regex",
+        "value": [
           "(\r\n|\n)"
         ],
         "tag": "linebreak",
         "discard": false
       },
       {
-        "regexes": [
+        "type": "regex",
+        "value": [
           "([\\p{P}])"
         ],
         "tag": "punc",

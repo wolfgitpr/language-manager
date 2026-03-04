@@ -1,0 +1,13 @@
+{
+  "$version": "1.0",
+  "level": 1,
+  "schema": {},
+  "configuration": {
+    "regexes": [
+      "([\\s]+)",
+      "([-])",
+      "(\r\n|\n)",
+      "([\\p{P}])"
+    ]
+  }
+}

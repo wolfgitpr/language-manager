@@ -6,8 +6,17 @@
     "language": "cmn",
     "tagger": [
       {
-        "regexes": [
-          "(\\p{Han})"
+        "type": "dict",
+        "value": [
+          "../../assets/ds-zh-pinyin-lite.txt"
+        ],
+        "tag": "pinyin",
+        "discard": false
+      },
+      {
+        "type": "regex",
+        "value": [
+          "([\\p{Han}])"
         ],
         "tag": "hanzi",
         "discard": false

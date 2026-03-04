@@ -16,7 +16,7 @@
       {
         "type": "dict",
         "value": [
-          "ds-zh-pinyin-lite.txt"
+          "../../assets/ds-zh-pinyin-lite.txt"
         ],
         "mode": "copy"
       },

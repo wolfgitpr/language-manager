@@ -9,6 +9,7 @@
 #include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Task/G2pTask.h>
+#include <LangCore/Task/SplitterTask.h>
 #include <LangCore/Task/TaggerTask.h>
 #include <LangCore/Task/Task.h>
 
@@ -62,12 +63,28 @@ namespace LangCore
             return false;
         }
 
-        const auto g2ps = this->tasks("g2p").take();
-        for (const auto &g2p : g2ps)
+        auto splitters = this->tasks("splitter");
+        if (!splitters.hasValue()) {
+            errMsg = "Failed to load packages in order";
+            return false;
+        }
+        for (const auto &splitter : splitters.take())
+            impl.tasks["splitter"][splitter->spec()->name().text()] = splitter;
+
+        auto g2ps = this->tasks("g2p");
+        if (!g2ps.hasValue()) {
+            errMsg = "Failed to load packages in order";
+            return false;
+        }
+        for (const auto &g2p : g2ps.take())
             impl.tasks["g2p"][g2p->spec()->name().text()] = g2p;
 
-        const auto taggers = this->tasks("tagger").take();
-        for (const auto &tagger : taggers)
+        auto taggers = this->tasks("tagger");
+        if (!taggers.hasValue()) {
+            errMsg = "Failed to load packages in order";
+            return false;
+        }
+        for (const auto &tagger : taggers.take())
             impl.tasks["tagger"][tagger->spec()->name().text()] = tagger;
 
         impl.initialized = true;
@@ -104,6 +121,8 @@ namespace LangCore
         tasks.reserve(inferenceObject.size());
         std::transform(inferenceObject.begin(), inferenceObject.end(), std::back_inserter(tasks),
                        [](const auto &obj) { return obj.template as<Task>(); });
+        if (tasks.empty())
+            return Error(Error::SessionError, "category: " + category + " is empty.");
         return tasks;
     }
 
@@ -117,13 +136,23 @@ namespace LangCore
         impl.defaultTaggerOrder = order;
     }
 
-    std::vector<std::string> Manager::split(const std::string &input,
-                                            const std::vector<std::string> &priorityLanguages) {
-        const auto result = this->tag({input}, true, priorityLanguages);
-        std::vector<std::string> lyrics;
-        for (const auto &elem : result)
-            lyrics.push_back(elem.lyric);
-        return lyrics;
+    std::vector<std::string> Manager::split(const std::string &input) {
+        std::vector<std::string> _input;
+        _input.push_back(input);
+        return this->split(_input);
+    }
+
+    std::vector<std::string> Manager::split(const std::vector<std::string> &input) {
+        __stdc_impl_t;
+        const auto &splitters = impl.tasks["splitter"];
+        const auto _input = NO<SplitterStartInput>::create(TAGGER_API_NAME, TAGGER_API_CLASS, TAGGER_API_LEVEL);
+        _input->splitterInput = input;
+
+        for (const auto &[splitterId, task] : splitters) {
+            auto resExp = task->start(_input);
+            _input->splitterInput = resExp.take().as<SplitterOutput>()->splitterResult;
+        }
+        return _input->splitterInput;
     }
 
     static std::vector<std::pair<std::string, std::vector<std::string>>>
@@ -177,17 +206,17 @@ namespace LangCore
         return result;
     }
 
-    std::vector<TaggerRes> Manager::tag(const std::vector<std::string> &input, const bool split,
+    std::vector<TaggerRes> Manager::tag(const std::vector<std::string> &input, const bool split, bool discard,
                                         const std::vector<std::string> &priorityLanguages) {
         __stdc_impl_t;
         std::vector<TaggerRes> inputNote;
         inputNote.reserve(input.size());
 
+        const auto splitRes = split ? this->split(input) : input;
+
         const auto &taggersList = impl.priorityTaggers(priorityLanguages);
         const auto _input = NO<TaggerStartInput>::create(TAGGER_API_NAME, TAGGER_API_CLASS, TAGGER_API_LEVEL);
-        _input->split = split;
-
-        for (const auto &lyric : input)
+        for (const auto &lyric : splitRes)
             inputNote.emplace_back(lyric);
 
         _input->taggerInput = inputNote;
@@ -196,6 +225,12 @@ namespace LangCore
             auto resExp = task->start(_input);
             _input->taggerInput = resExp.take().as<TaggerOutput>()->taggerResult;
         }
-        return _input->taggerInput;
+
+        auto res = _input->taggerInput;
+
+        res.erase(
+            std::remove_if(res.begin(), res.end(), [discard](const TaggerRes &it) { return discard && it.discard; }),
+            res.end());
+        return res;
     }
 } // namespace LangCore

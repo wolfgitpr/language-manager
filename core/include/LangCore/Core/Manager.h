@@ -30,13 +30,14 @@ namespace LangCore
 
         std::vector<std::string> defaultTaggerOrder() const;
         void setDefaultOrder(const std::vector<std::string> &order);
-        std::vector<std::string> split(const std::string &input,
-                                       const std::vector<std::string> &priorityLanguages = {});
+
+        std::vector<std::string> split(const std::string &input);
+        std::vector<std::string> split(const std::vector<std::string> &input);
+
+        std::vector<TaggerRes> tag(const std::vector<std::string> &input, bool split = false, bool discard = false,
+                                   const std::vector<std::string> &priorityLanguages = {});
 
         std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
-
-        std::vector<TaggerRes> tag(const std::vector<std::string> &input, bool split = false,
-                                   const std::vector<std::string> &priorityLanguages = {});
 
     protected:
         class Impl;

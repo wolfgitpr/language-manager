@@ -11,6 +11,7 @@ namespace LangCore
         std::string lyric;
         std::string language = "unknown";
         std::string tag = "unknown";
+        bool discard = false;
 
         explicit TaggerRes(std::string lyric) : lyric(std::move(lyric)) {}
         explicit TaggerRes(std::string lyric, std::string language, std::string tag) :
