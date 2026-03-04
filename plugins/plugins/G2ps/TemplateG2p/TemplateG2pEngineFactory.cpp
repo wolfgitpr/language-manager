@@ -33,14 +33,17 @@ namespace LangPlugins::TemplateG2p
         static_assert(std::is_same_v<decltype(result->verifyEntry), std::vector<inferUtil::VerifyEntry>>);
         parser.parse_verify_required(result->verifyEntry, "verify");
 
+        static_assert(std::is_same_v<decltype(result->enableDict), bool>);
+        parser.parse_bool_optional(result->enableDict, "enableDict");
+
         static_assert(std::is_same_v<decltype(result->dictPath), std::filesystem::path>);
         parser.parse_path_required(result->dictPath, "dictPath");
 
-        static_assert(std::is_same_v<decltype(result->onnxG2pId), std::string>);
-        parser.parse_string_required(result->onnxG2pId, "onnxG2pId");
-
         static_assert(std::is_same_v<decltype(result->enableOnnxG2p), bool>);
         parser.parse_bool_optional(result->enableOnnxG2p, "enableOnnxG2p");
+
+        static_assert(std::is_same_v<decltype(result->onnxG2pId), std::string>);
+        parser.parse_string_required(result->onnxG2pId, "onnxG2pId");
 
         if (ec.hasErrors()) {
             return LangCore::Error{

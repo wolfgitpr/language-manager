@@ -119,8 +119,8 @@ namespace LangCore
                     MgrLog.langCoreCritical("Failed to load plugin or IID mismatch: %1", dllPath);
                     continue;
                 } else {
-                    MgrLog.langCoreInfo("Successfully loaded plugin: %1 (target: %2)", pluginDir, target);
-                    MgrLog.langCoreInfo("iid: %1; key: %2\n", iid, plugin->key());
+                    MgrLog.langCoreInfo("Successfully loaded plugin: %1 (target: %2 iid: %3; key: %4)", pluginDir,
+                                        target, iid, plugin->key());
                 }
                 libraryInstances[dllPath] = new stdc::SharedLibrary(std::move(so));
             }

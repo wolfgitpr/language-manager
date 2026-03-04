@@ -85,13 +85,15 @@ namespace LangPlugins::TemplateG2p
         impl.verifier = std::make_unique<inferUtil::Verifier>(config->verifyEntry);
 
         // Load phoneme dict
-        if (config->dictPath.empty())
-            return LangCore::Error(LangCore::Error::FileNotFound,
-                                   stdc::formatN(R"(Task "%1" - No dictPath specified)", this->spec()->name().text()));
-        if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
-            return LangCore::Error(LangCore::Error::FileNotFound,
-                                   stdc::formatN(R"(Task "%1" - Failed to read dictionary "%2":"%3")",
-                                                 this->spec()->name().text(), config->dictPath, ec.value()));
+        if (config->enableDict) {
+            if (config->dictPath.empty())
+                return LangCore::Error(LangCore::Error::FileNotFound,
+                                       stdc::formatN("Task '%1' - No dictPath specified", this->spec()->name().text()));
+            if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
+                return LangCore::Error(LangCore::Error::FileNotFound,
+                                       stdc::formatN("Task '%1' - Failed to read dictionary %2:%3",
+                                                     this->spec()->name().text(), config->dictPath, ec.value()));
+        }
 
         // Initialize inference state
         setState(Idle);
@@ -184,9 +186,10 @@ namespace LangPlugins::TemplateG2p
                         it.error = true;
                     }
                 } else {
-                    it.pronunciation = std::accumulate(findResult.begin(), findResult.end(), std::string(),
-                                                       [](const std::string &a, const std::string &b)
-                                                       { return a.empty() ? b : a + " " + b; });
+                    std::string pronStr = "";
+                    for (auto &phone : findResult)
+                        pronStr += phone + " ";
+                    it.pronunciation = pronStr;
                 }
             } else
                 throw std::errc::invalid_argument;

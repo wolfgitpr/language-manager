@@ -20,9 +20,11 @@ namespace LangPlugins::Api::TemplateG2p::L1
         TemplateG2pConfiguration() : G2pConfiguration(API_NAME, API_CLASS, API_LEVEL) {}
 
         std::vector<inferUtil::VerifyEntry> verifyEntry;
+        bool enableDict;
         std::filesystem::path dictPath;
-        std::string onnxG2pId;
+
         bool enableOnnxG2p;
+        std::string onnxG2pId;
     };
 
     class TemplateG2pRuntimeOptions : public LangCore::G2pRuntimeOptions {

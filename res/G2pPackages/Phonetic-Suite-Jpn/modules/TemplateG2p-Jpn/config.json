@@ -28,8 +28,9 @@
         "mode": "copy"
       }
     ],
+    "enableDict": false,
     "dictPath": "kana2romaji.txt",
-    "onnxG2pId": "",
-    "enableOnnxG2p": false
+    "enableOnnxG2p": false,
+    "onnxG2pId": ""
   }
 }

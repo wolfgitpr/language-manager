@@ -49,7 +49,7 @@ namespace LangCore
         if (canonicalPath.empty() || !fs::is_directory(canonicalPath)) {
             return Error{
                 Error::FileNotOpen,
-                stdc::formatN(R"(invalid package path "%1")", path),
+                stdc::formatN("Invalid package path %1.", path),
             };
         }
 
@@ -107,8 +107,8 @@ namespace LangCore
                         auto pkg = *it2->second;
                         error1 = {
                             Error::FileDuplicated,
-                            stdc::formatN(R"(duplicated package "%1[%2]" in "%3" is loaded)", pd->id,
-                                          pd->version.toString(), pkg.spec->path),
+                            stdc::formatN("duplicated package %1[%2] in %3 is loaded.", pd->id, pd->version.toString(),
+                                          pkg.spec->path),
                         };
                         goto out_dup;
                     }
@@ -122,9 +122,8 @@ namespace LangCore
                     if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
                         error1 = {
                             Error::RecursiveDependency,
-                            stdc::formatN(
-                                R"(recursive dependency chain detected: package "%1[%2]" in %3 is being loaded)",
-                                pd->id, pd->version.toString(), it2->second),
+                            stdc::formatN("recursive dependency chain detected: package %1[%2] in %3 is being loaded.",
+                                          pd->id, pd->version.toString(), it2->second),
                         };
                         goto out_dup;
                     }
@@ -168,7 +167,7 @@ namespace LangCore
                 if (it == categories.end()) {
                     error1 = {
                         Error::FeatureNotSupported,
-                        stdc::formatN(R"(category "%1" not found)", cateName),
+                        stdc::formatN(".category %1 not found.", cateName),
                     };
                     failed = true;
                     break;
@@ -600,7 +599,7 @@ namespace LangCore
                 }
             }
         }
-        MgrLog.langCoreInfo("Successfully loaded %1 packages", pkgSize);
+        MgrLog.langCoreInfo("Successfully loaded %1 packages.", pkgSize);
         return true;
     }
 
@@ -608,13 +607,13 @@ namespace LangCore
         const auto moduleSpec = pkg.moduleSpec(moduleInfo.type, moduleInfo.moduleId);
         if (!moduleSpec) {
             return Error(Error::FileNotFound,
-                         stdc::formatN("Module %1 not found in package %2", moduleInfo.moduleId, pkg.id()));
+                         stdc::formatN("Module %1 not found in package %2.", moduleInfo.moduleId, pkg.id()));
         }
 
         const auto &moduleCategory = *this->category("engine");
         const auto taskFactory = moduleCategory.getFirstObject(moduleInfo.iid).as<TaskFactory>();
         if (!taskFactory) {
-            return Error(Error::InterpreterNotFound, stdc::formatN("%1 task Engine not found", moduleSpec->id()));
+            return Error(Error::InterpreterNotFound, stdc::formatN("%1 task Engine not found.", moduleSpec->id()));
         }
 
         const auto runtimeOptions =
@@ -622,7 +621,8 @@ namespace LangCore
 
         auto taskExp = taskFactory->createTask(moduleSpec, runtimeOptions);
         if (!taskExp) {
-            return Error(Error::InvalidArgument, stdc::formatN("Failed to create task: %1", taskExp.error().message()));
+            return Error(Error::InvalidArgument,
+                         stdc::formatN("Failed to create task: %1.", taskExp.error().message()));
         }
 
         auto task = taskExp.take();
@@ -630,7 +630,8 @@ namespace LangCore
         const auto initArgs =
             NO<TaskInitArgs>::create(moduleSpec->id(), moduleSpec->className(), moduleSpec->apiLevel());
         if (const auto exp = task->initialize(initArgs); !exp) {
-            return Error(Error::InvalidArgument, stdc::formatN("Failed to initialize task: %1", exp.error().message()));
+            return Error(Error::InvalidArgument,
+                         stdc::formatN("Failed to initialize task: %1.", exp.error().message()));
         }
 
         auto &ic = *this->category(moduleSpec->category());
@@ -647,7 +648,7 @@ namespace LangCore
         if (!file.is_open()) {
             return Error{
                 Error::FileNotOpen,
-                stdc::formatN(R"("%1": failed to open package manifest)", path),
+                stdc::formatN("%1: failed to open package manifest.", path),
             };
         }
 
@@ -659,13 +660,13 @@ namespace LangCore
         if (!error2.empty()) {
             return Error{
                 Error::InvalidFormat,
-                stdc::formatN(R"("%1": invalid package manifest format: %2)", path, error2),
+                stdc::formatN("%1: Invalid package manifest format: %2.", path, error2),
             };
         }
         if (!root.isObject()) {
             return Error{
                 Error::InvalidFormat,
-                stdc::formatN(R"("%1": invalid package manifest format: not an object)", path),
+                stdc::formatN("%1: Invalid package manifest format: not an object.", path),
             };
         }
         return root.toObject();
@@ -675,7 +676,7 @@ namespace LangCore
                                                const std::filesystem::path &packageDir, const JsonObject &modulesObj) {
         __stdc_impl_t;
         if (!fs::is_directory(packageDir)) {
-            MgrLog.langCoreCritical("Invalid package path %1", packageDir);
+            MgrLog.langCoreCritical("Invalid package path %1.", packageDir);
         }
 
         for (const auto &[moduleType, moduleArray] : modulesObj) {
@@ -713,7 +714,7 @@ namespace LangCore
                 }
 
                 if (info.moduleId.empty() || info.iid.empty() || info.type.empty()) {
-                    MgrLog.langCoreCritical("Module missing required fields in package: %1", packageId);
+                    MgrLog.langCoreCritical("Module missing required fields in package: %1.", packageId);
                     continue;
                 }
 
@@ -923,22 +924,15 @@ namespace LangCore
     void PackageManager::printDiscoveryInfo(const size_t pathCount, const size_t moduleCount) {
         __stdc_impl_t;
         if (moduleCount == 0) {
-            MgrLog.langCoreCritical("================================================================================");
-            MgrLog.langCoreCritical("⚠️  NO MODULES FOUND");
-            MgrLog.langCoreCritical("--------------------------------------------------------------------------------");
-            MgrLog.langCoreCritical("No modules were discovered in the package paths.");
-            MgrLog.langCoreCritical("Package paths searched:");
-            for (const auto &path : impl.packagePaths) {
-                MgrLog.langCoreCritical("  - ", path.string());
-            }
-            MgrLog.langCoreCritical("================================================================================");
+            std::string pathStr = "";
+            for (const auto &path : impl.packagePaths)
+                pathStr += path.string() + ".\n";
+            MgrLog.langCoreCritical(
+                "NO MODULES FOUND:\nNo modules were discovered in the package paths.\nPackage paths searched:\n%1",
+                pathStr);
         } else {
-            MgrLog.langCoreInfo("================================================================================");
-            MgrLog.langCoreInfo("📦  MODULE DISCOVERY COMPLETE");
-            MgrLog.langCoreInfo("--------------------------------------------------------------------------------");
-            MgrLog.langCoreInfo("Scanned %1 package path(s)", pathCount);
-            MgrLog.langCoreInfo("Discovered %1 module(s)", moduleCount);
-            MgrLog.langCoreInfo("================================================================================");
+            MgrLog.langCoreInfo("MODULE DISCOVERY COMPLETE - Scanned %1 package path(s) - Discovered %2 module(s)",
+                                pathCount, moduleCount);
         }
     }
 } // namespace LangCore

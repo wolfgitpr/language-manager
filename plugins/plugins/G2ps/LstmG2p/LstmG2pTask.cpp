@@ -207,11 +207,10 @@ namespace LangPlugins::LstmG2p
         // Create result
         auto g2pResult = LangCore::NO<LangCore::G2pResult>::create(LangCore::G2P_API_NAME, LangCore::G2P_API_CLASS,
                                                                    LangCore::G2P_API_LEVEL);
-        g2pResult->g2pResult = {
-            LangCore::G2pRes(lyric, "eng",
-                             std::accumulate(phonemes_.begin() + 1, phonemes_.end(), phonemes_[0],
-                                             [](const std::string &a, const std::string &b) { return a + " " + b; }),
-                             {}, "copy", true)};
+        std::string pronStr = "";
+        for (auto &phone : phonemes_)
+            pronStr += phone + " ";
+        g2pResult->g2pResult = {LangCore::G2pRes(lyric, "eng", pronStr, {}, "copy", true)};
 
         impl.result = g2pResult;
         setState(Idle);
@@ -401,4 +400,4 @@ namespace LangPlugins::LstmG2p
 
         return phonemes;
     }
-} // namespace LangPlugins
+} // namespace LangPlugins::LstmG2p
