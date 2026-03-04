@@ -19,7 +19,14 @@
         "moduleId": "tagger-jpn",
         "class": "tagger.template.TemplateTaggerInference",
         "configuration": "modules/Tagger-Jpn/config.json",
-        "dependencies": []
+        "dependencies": [
+          {
+            "packageId": "jpn-official",
+            "moduleId": "splitter-jpn",
+            "level": 1,
+            "version": "*"
+          }
+        ]
       }
     ],
     "g2p": [

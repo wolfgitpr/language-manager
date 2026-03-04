@@ -19,7 +19,14 @@
         "moduleId": "tagger-punc",
         "class": "tagger.template.TemplateTaggerInference",
         "configuration": "modules/Tagger-Punc/config.json",
-        "dependencies": []
+        "dependencies": [
+          {
+            "packageId": "punc-official",
+            "moduleId": "splitter-punc",
+            "level": 1,
+            "version": "*"
+          }
+        ]
       }
     ],
     "g2p": [

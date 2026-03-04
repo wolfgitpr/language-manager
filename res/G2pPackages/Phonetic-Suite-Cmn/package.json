@@ -19,7 +19,14 @@
         "moduleId": "tagger-cmn",
         "class": "tagger.template.TemplateTaggerInference",
         "configuration": "modules/Tagger-Cmn/config.json",
-        "dependencies": []
+        "dependencies": [
+          {
+            "packageId": "cmn-official",
+            "moduleId": "splitter-cmn",
+            "level": 1,
+            "version": "*"
+          }
+        ]
       }
     ],
     "g2p": [

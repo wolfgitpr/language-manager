@@ -19,7 +19,14 @@
         "moduleId": "tagger-eng",
         "class": "tagger.template.TemplateTaggerInference",
         "configuration": "modules/Tagger-Eng/config.json",
-        "dependencies": []
+        "dependencies": [
+          {
+            "packageId": "eng-official",
+            "moduleId": "splitter-eng",
+            "level": 1,
+            "version": "*"
+          }
+        ]
       }
     ],
     "g2p": [
