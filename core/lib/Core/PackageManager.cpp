@@ -455,7 +455,8 @@ namespace LangCore
     }
 
     std::vector<PackageInitializationPlan> PackageManager::getPackageInitializationOrder() {
-        this->checkDependencies();
+        if (!this->checkDependencies())
+            return {};
         return _impl->dependencyGraph.getPackageInitializationOrder();
     }
 
@@ -831,7 +832,8 @@ namespace LangCore
         printDiscoveryInfo(uniquePaths.size(), impl.moduleInfos.size());
 
         if (!impl.moduleInfos.empty()) {
-            impl.resolveModuleDependencies();
+            if (!impl.resolveModuleDependencies())
+                return {};
         }
 
         std::vector<ModuleMetadata> result;
@@ -868,6 +870,7 @@ namespace LangCore
 
                 std::cerr << "========================================" << std::endl;
                 std::cerr << dependencyErrors.size() << " dependency errors found" << std::endl;
+                return false;
             }
 
             return false;

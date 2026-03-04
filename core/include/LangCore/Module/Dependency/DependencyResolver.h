@@ -19,7 +19,7 @@ namespace LangCore
         void clear();
 
     private:
-        static bool selectBestModules(std::vector<ModuleMetadata> &modules);
+        static void selectBestModules(std::vector<ModuleMetadata> &modules);
         void buildIndex(const std::vector<ModuleMetadata> &modules);
 
         std::vector<ModuleMetadata> resolvedModules_;

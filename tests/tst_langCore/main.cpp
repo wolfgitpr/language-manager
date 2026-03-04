@@ -86,8 +86,10 @@ int main() {
 
         std::string errorMessage;
         langMgr->initialize(errorMessage);
-        if (!langMgr->initialized())
+        if (!langMgr->initialized()) {
             std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
+            return -1;
+        }
 
         const auto text = "halloween蝉 声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方"
                           "\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";

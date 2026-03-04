@@ -22,17 +22,14 @@ namespace LangCore
                                                      << "::" << module.moduleId << ": level " << module.level
                                                      << " because it depends on itself!" << std::endl;
                                                  errors_.push_back(oss.str());
-                                                 return true;
+                                                 return false;
                                              }
                                          }
                                          return false;
                                      }),
                       modules.end());
 
-        if (!selectBestModules(modules)) {
-            return false;
-        }
-
+        selectBestModules(modules);
         buildIndex(modules);
 
         std::unordered_map<std::string, bool> resolvedStatus;
@@ -170,12 +167,11 @@ namespace LangCore
         }
     }
 
-    bool DependencyResolver::selectBestModules(std::vector<ModuleMetadata> &modules) {
+    void DependencyResolver::selectBestModules(std::vector<ModuleMetadata> &modules) {
         std::unordered_map<std::string, ModuleMetadata *> bestModules;
         std::vector<ModuleMetadata> selected;
 
         for (auto &module : modules) {
-            // 将level包含在唯一键中
             std::string uniqueKey = module.packageId + ":" + module.moduleId + ":" + std::to_string(module.level);
 
             if (auto it = bestModules.find(uniqueKey); it == bestModules.end()) {
@@ -196,8 +192,6 @@ namespace LangCore
                                          return it == bestModules.end() || it->second != &module;
                                      }),
                       modules.end());
-
-        return true;
     }
 
     void DependencyResolver::clear() {
