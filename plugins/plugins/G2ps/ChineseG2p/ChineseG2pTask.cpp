@@ -145,15 +145,18 @@ namespace LangPlugins::ChineseG2p
         auto g2pResult = LangCore::NO<LangCore::G2pResult>::create(LangCore::G2P_API_NAME, LangCore::G2P_API_CLASS,
                                                                    LangCore::G2P_API_LEVEL);
 
-        for (const auto &lyrics : groupLyric) {
+        for (const auto &g2pResGroup : groupLyric) {
+            const auto mode = g2pResGroup.front().mode;
             std::vector<std::string> _input;
-            for (const auto &lyric : lyrics)
-                _input.push_back(lyric.lyric);
-            auto g2pRes =
+            for (const auto &g2pRes : g2pResGroup)
+                _input.push_back(g2pRes.lyric);
+
+            auto pinyinRes =
                 impl.m_mandarin->hanziToPinyin(_input, Pinyin::ManTone::NORMAL, Pinyin::Default, true, false, false);
-            for (auto &[hanzi, pinyin, candidates, error] : g2pRes) {
-                g2pResult->g2pResult.emplace_back(hanzi, spec()->id(), pinyin, candidates, error ? "copy" : "convert",
-                                                  error);
+
+            for (auto &[hanzi, pinyin, candidates, error] : pinyinRes) {
+                g2pResult->g2pResult.emplace_back(hanzi, spec()->id(), mode == "convert" ? pinyin : hanzi, candidates,
+                                                  mode, mode == "convert" && error);
             }
         }
 
@@ -180,4 +183,4 @@ namespace LangPlugins::ChineseG2p
         std::shared_lock lock(impl.mutex);
         return impl.result;
     }
-} // namespace LangPlugins
+} // namespace LangPlugins::ChineseG2p
