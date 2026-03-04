@@ -12,7 +12,8 @@ namespace LangPlugins
 {
     class DriverSession;
 }
-namespace LangPlugins
+
+namespace LangPlugins::LstmG2p
 {
     namespace Lstm = Api::LstmG2p::L1;
     namespace Onnx = Api::Onnx::L1;

@@ -22,6 +22,7 @@ namespace LangCore
             InvalidArgument,
             NotImplemented,
             SessionError,
+            TaskError,
             InterpreterNotFound,
         };
 

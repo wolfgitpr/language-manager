@@ -2,11 +2,12 @@
 #include <LangCore/Module/Dependency/VersionUtils.h>
 #include "DependencyGraph_p.h"
 
-#include <iostream>
 #include <queue>
 #include <set>
 #include <unordered_set>
 #include <utility>
+
+#include <LangCore/Core/ManagerLogger.h>
 
 namespace LangCore
 {
@@ -69,7 +70,7 @@ namespace LangCore
 
     bool DependencyGraph::Impl::buildGraph() {
         if (graphBuilt) {
-            std::cerr << "Warning: Graph already built" << std::endl;
+            MgrLog.langCoreCritical("Warning: Graph already built");
             return true;
         }
 
@@ -80,16 +81,16 @@ namespace LangCore
                 auto depNodes = findNodesByDependency(dep);
 
                 if (depNodes.empty()) {
-                    std::cerr << "Error: Cannot add module " << node->module.packageId << ":" << node->module.moduleId
-                              << " (v" << node->module.version << ", level " << node->module.level << ")" << std::endl;
-                    std::cerr << "  Missing dependency: " << dep.packageId << ":" << dep.moduleId << " (v"
-                              << dep.version << ", level " << dep.level << ")" << std::endl;
+                    MgrLog.langCoreCritical("Error: Cannot add module %1:%2 (v%3, level %4)", node->module.packageId,
+                                            node->module.moduleId, node->module.version, node->module.level);
+                    MgrLog.langCoreCritical("  Missing dependency: %1:%2 (v%3, level %4)", dep.packageId, dep.moduleId,
+                                            dep.version, dep.level);
 
-                    std::cerr << "  Available modules in graph:" << std::endl;
+                    MgrLog.langCoreCritical("  Available modules in graph:");
                     for (const auto &[existingKey, existingNode] : nodeMap) {
-                        std::cerr << "    - " << existingNode->module.packageId << ":" << existingNode->module.moduleId
-                                  << " (v" << existingNode->module.version << ", level " << existingNode->module.level
-                                  << ")" << std::endl;
+                        MgrLog.langCoreCritical("    - %1:%2 (v%3, level %4", existingNode->module.packageId,
+                                                existingNode->module.moduleId, existingNode->module.version,
+                                                existingNode->module.level);
                     }
 
                     success = false;
@@ -176,7 +177,7 @@ namespace LangCore
         }
 
         if (result.size() != packageInDegree.size()) {
-            std::cerr << "Error: Package dependency cycle detected!" << std::endl;
+            MgrLog.langCoreCritical("Error: Package dependency cycle detected!");
             return {};
         }
         return result;
@@ -295,15 +296,15 @@ namespace LangCore
 
     std::vector<ModuleMetadata> DependencyGraph::Impl::getGlobalModuleInitializationOrder() const {
         if (auto cycles = getCycles(); !cycles.empty()) {
-            std::cerr << "Error: Global module dependency cycle detected!" << std::endl;
+            MgrLog.langCoreCritical("Error: Global module dependency cycle detected!");
 
             for (size_t i = 0; i < cycles.size(); ++i) {
                 const auto &cycle = cycles[i];
-                std::cerr << "Cycle " << (i + 1) << " (" << cycle.size() << " modules):" << std::endl;
+                MgrLog.langCoreCritical("Cycle %1 (%2 modules):", i + 1, cycle.size());
                 for (size_t j = 0; j < cycle.size(); ++j) {
                     const auto &module = cycle[j];
-                    std::cerr << "  " << (j + 1) << ". " << module.packageId << ":" << module.moduleId << " (v"
-                              << module.version << ", level " << module.level << ")" << std::endl;
+                    MgrLog.langCoreCritical("  %1. %2:%3 (v%4, level %5)", j + 1, module.packageId, module.moduleId,
+                                            module.version, module.level);
                 }
             }
             return {};
@@ -392,7 +393,7 @@ namespace LangCore
     DependencyGraph::DependencyGraph(DependencyGraph &&) noexcept = default;
     DependencyGraph &DependencyGraph::operator=(DependencyGraph &&) noexcept = default;
 
-    bool DependencyGraph::addModule(const ModuleMetadata &module) const { return _impl->addModule(module); }
+    void DependencyGraph::addModule(const ModuleMetadata &module) const { _impl->addModule(module); }
 
     bool DependencyGraph::buildGraph() const { return _impl->buildGraph(); }
 
@@ -404,51 +405,5 @@ namespace LangCore
 
     std::vector<PackageInitializationPlan> DependencyGraph::getPackageInitializationOrder() const {
         return _impl->getPackageInitializationOrder();
-    }
-
-    void printModule(const ModuleMetadata &module) {
-        std::cout << module.packageId << ":" << module.moduleId << " [class=" << module.iid
-                  << ", level=" << module.level << ", version=" << module.version << ", config=" << module.configuration
-                  << ", path=" << module.packagePath.string() << "]";
-    }
-
-    void printDependency(const ResolvedDependency &dep) {
-        std::cout << dep.packageId << ":" << dep.moduleId << "(level=" << dep.level << ", version=" << dep.version
-                  << ")";
-    }
-
-    void printModuleList(const std::vector<ModuleMetadata> &modules, const std::string &title) {
-        if (!title.empty())
-            std::cout << title << " (" << modules.size() << " modules):\n";
-
-        for (size_t i = 0; i < modules.size(); ++i) {
-            std::cout << "  " << i + 1 << ". ";
-            printModule(modules[i]);
-            std::cout << "\n";
-        }
-
-        if (!modules.empty())
-            std::cout << "\n";
-    }
-
-    void printPackageInitOrder(const std::vector<PackageInitializationPlan> &packageOrder, const std::string &title) {
-        if (!title.empty())
-            std::cout << title << " (" << packageOrder.size() << " packages):\n";
-
-        for (size_t pkgIdx = 0; pkgIdx < packageOrder.size(); ++pkgIdx) {
-            const auto &[packageId, packagePath, modules, initializationOrder] = packageOrder[pkgIdx];
-            std::cout << "package " << pkgIdx + 1 << ": " << packageId << " (path: " << packagePath.string() << ")\n";
-            std::cout << "  includes " << modules.size() << " modules\n";
-            if (!initializationOrder.empty()) {
-                std::cout << "  InitializationOrder:\n";
-                for (size_t modIdx = 0; modIdx < initializationOrder.size(); ++modIdx) {
-                    const auto &mod = initializationOrder[modIdx];
-                    std::cout << "    " << modIdx + 1 << ". ";
-                    printModule(mod);
-                    std::cout << "\n";
-                }
-            }
-            std::cout << "\n";
-        }
     }
 } // namespace LangCore

@@ -1,6 +1,5 @@
 #include "TemplateG2pTask.h"
 
-#include <iostream>
 #include <mutex>
 #include <numeric>
 #include <shared_mutex>
@@ -18,7 +17,7 @@
 #include "inferutil/Verifier.h"
 
 
-namespace LangPlugins
+namespace LangPlugins::TemplateG2p
 {
     namespace fs = std::filesystem;
 
@@ -87,9 +86,12 @@ namespace LangPlugins
 
         // Load phoneme dict
         if (config->dictPath.empty())
-            std::cout << "No dictPath specified" << std::endl;
-        else if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
-            std::cout << "Failed to read dictionary " << config->dictPath << ":" << ec.value();
+            return LangCore::Error(LangCore::Error::FileNotFound,
+                                   stdc::formatN(R"(Task "%1" - No dictPath specified)", this->spec()->name().text()));
+        if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
+            return LangCore::Error(LangCore::Error::FileNotFound,
+                                   stdc::formatN(R"(Task "%1" - Failed to read dictionary "%2":"%3")",
+                                                 this->spec()->name().text(), config->dictPath, ec.value()));
 
         // Initialize inference state
         setState(Idle);
@@ -164,19 +166,21 @@ namespace LangPlugins
                         continue;
                     }
 
-                    std::cout << "Dict not contains word: " << it.lyric << "; Starting lstmG2p inference..."
-                              << std::endl;
                     auto resultExp = impl.g2pInference->start(lstmInput);
                     if (!resultExp)
-                        std::cerr << "lstmG2p inference failed: " << resultExp.error().message() << std::endl;
+                        return LangCore::Error(LangCore::Error::TaskError,
+                                               stdc::formatN(R"(Task "%1" - LstmG2p inference failed: "%2")",
+                                                             this->spec()->name().text(), resultExp.error().message()));
 
                     auto result = resultExp.take();
                     if (const auto g2pResult = result.as<LangCore::G2pResult>()) {
                         it.pronunciation = g2pResult->g2pResult[0].pronunciation;
                     } else {
-                        if (!g2pResult->errorMessage.empty())
-                            std::cout << "Error: " << g2pResult->errorMessage << std::endl;
-                        std::cerr << "unexpected result type" << std::endl;
+                        if (!g2pResult->errorMessage.empty()) {
+                            return LangCore::Error(LangCore::Error::TaskError,
+                                                   stdc::formatN(R"(Task "%1" - Fail: "%2")",
+                                                                 this->spec()->name().text(), g2pResult->errorMessage));
+                        }
                         it.error = true;
                     }
                 } else {
@@ -215,4 +219,4 @@ namespace LangPlugins
         std::shared_lock lock(impl.mutex);
         return impl.result;
     }
-} // namespace LangPlugins
+} // namespace LangPlugins::TemplateG2p

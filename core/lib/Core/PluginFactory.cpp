@@ -3,15 +3,17 @@
 
 #include <cstring>
 #include <fstream>
-#include <iostream>
+
 #include <mutex>
 #include <utility>
-
-#include <LangCore/Support/JSON.h>
 
 #include <stdcorelib/3rdparty/llvm/smallvector.h>
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
+
+#include <LangCore/Core/ManagerLogger.h>
+#include <LangCore/Support/JSON.h>
+
 
 namespace fs = std::filesystem;
 
@@ -58,7 +60,7 @@ namespace LangCore
             desc.valid = true;
         }
         catch (const std::exception &e) {
-            std::cerr << "Failed to parse plugin desc.json: " << descPath << ", error: " << e.what() << std::endl;
+            MgrLog.langCoreCritical("Failed to parse plugin desc.json: %1, error: %2", descPath, e.what());
         }
 
         return desc;
@@ -83,14 +85,14 @@ namespace LangCore
                 // Parse desc.json
                 auto [target, valid] = parsePluginDesc(descPath);
                 if (!valid) {
-                    std::cerr << "Invalid plugin.json in: " << pluginDir << std::endl;
+                    MgrLog.langCoreCritical("Invalid plugin.json in: %1", pluginDir);
                     continue;
                 }
 
                 // Construct dll path
                 fs::path dllPath = pluginDir / target;
                 if (!fs::exists(dllPath)) {
-                    std::cerr << "Plugin dll not found: " << dllPath << std::endl;
+                    MgrLog.langCoreCritical("Plugin dll not found: %1", dllPath);
                     continue;
                 }
 
@@ -101,25 +103,24 @@ namespace LangCore
                 stdc::SharedLibrary so;
                 stdc::SharedLibrary::setLibraryPath(pluginDir);
                 if (!so.open(dllPath)) {
-                    std::cout << "path: " << dllPath << "\nerror: " << so.lastError() << std::endl;
+                    MgrLog.langCoreCritical("path: %1\nerror: %2", dllPath, so.lastError());
                     continue;
                 }
 
                 using PluginGetter = Plugin *(*)();
                 const auto getter = reinterpret_cast<PluginGetter>(so.resolve("langCore_plugin_instance"));
                 if (!getter) {
-                    std::cerr << "Failed to resolve plugin instance function in: " << dllPath << std::endl;
+                    MgrLog.langCoreCritical("Failed to resolve plugin instance function in: %1", dllPath);
                     continue;
                 }
 
                 if (auto plugin = getter(); !plugin || strcmp(iid, plugin->iid()) != 0 ||
                     !plugins.insert(std::make_pair(plugin->key(), plugin)).second) {
-                    std::cerr << "Failed to load plugin or IID mismatch: " << dllPath << std::endl;
+                    MgrLog.langCoreCritical("Failed to load plugin or IID mismatch: %1", dllPath);
                     continue;
                 } else {
-                    std::cout << "Successfully loaded plugin: " << pluginDir << " (target: " << target << ")"
-                              << std::endl;
-                    std::cout << "iid: " << iid << "; key: " << plugin->key() << std::endl << std::endl;
+                    MgrLog.langCoreInfo("Successfully loaded plugin: %1 (target: %2)", pluginDir, target);
+                    MgrLog.langCoreInfo("iid: %1; key: %2\n", iid, plugin->key());
                 }
                 libraryInstances[dllPath] = new stdc::SharedLibrary(std::move(so));
             }

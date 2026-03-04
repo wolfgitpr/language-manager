@@ -7,7 +7,7 @@
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 #include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
 
-namespace LangPlugins
+namespace LangPlugins::TemplateG2p
 {
     namespace Template = Api::TemplateG2p::L1;
     namespace Onnx = Api::Onnx::L1;

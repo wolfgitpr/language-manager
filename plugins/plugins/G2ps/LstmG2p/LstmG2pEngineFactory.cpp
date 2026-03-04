@@ -6,7 +6,7 @@
 
 #include "LstmG2pTask.h"
 
-namespace LangPlugins
+namespace LangPlugins::LstmG2p
 {
     LstmG2pEngineFactory::LstmG2pEngineFactory() = default;
 

@@ -3,7 +3,7 @@
 
 #include <LangCore/Task/TaskFactory.h>
 
-namespace LangPlugins
+namespace LangPlugins::ChineseG2p
 {
     class ChineseG2pEngineFactory : public LangCore::TaskFactory {
     public:

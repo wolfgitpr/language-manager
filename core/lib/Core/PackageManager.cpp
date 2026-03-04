@@ -11,6 +11,7 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/stlextra/algorithms.h>
 
+#include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Module/Dependency/DependencyResolver.h>
 #include <LangCore/Package/Package.h>
 #include <LangCore/Support/Expected.h>
@@ -424,31 +425,27 @@ namespace LangCore
         const auto moduleInfos = this->getModuleMetadatas();
 
         if (moduleInfos.empty()) {
-            std::cerr << "Dependency resolution failed. Cannot load packages." << std::endl;
+            MgrLog.langCoreCritical("Dependency resolution failed. Cannot load packages.");
             return false;
         }
 
-        for (const auto &info : moduleInfos) {
-            if (!_impl->dependencyGraph.addModule(info)) {
-                std::cerr << "Failed to add module to graph: " << info.packageId << ":" << info.moduleId << std::endl;
-            }
-        }
+        for (const auto &info : moduleInfos)
+            _impl->dependencyGraph.addModule(info);
 
         if (!_impl->dependencyGraph.buildGraph()) {
-            std::cerr << "Failed to build dependency graph due to missing dependencies" << std::endl;
+            MgrLog.langCoreCritical("Failed to build dependency graph due to missing dependencies");
             return false;
         }
 
         if (const auto cycles = _impl->dependencyGraph.findCycles(); !cycles.empty()) {
-            std::cout << "Found " << cycles.size() << " dependency cycle(s):" << std::endl;
+            MgrLog.langCoreInfo("Found %1 dependency cycle(s):", cycles.size());
             for (size_t i = 0; i < cycles.size(); ++i) {
-                std::cout << "Cycle " << (i + 1) << ":" << std::endl;
+                MgrLog.langCoreInfo("Cycle %1:", i + 1);
                 for (const auto &module : cycles[i]) {
-                    std::cout << "  " << module.packageId << ":" << module.moduleId << " v" << module.version
-                              << std::endl;
+                    MgrLog.langCoreInfo("  %1: %2 %3", module.packageId, module.moduleId, module.version);
                 }
             }
-            std::cerr << "Cannot load packages." << std::endl;
+            MgrLog.langCoreCritical("Cannot load packages.");
             return false;
         }
         return true;
@@ -508,13 +505,13 @@ namespace LangCore
         auto &pkgMap = impl.loadedPackageMap;
         const auto it = pkgMap.idIndexes.find(id);
         if (it == pkgMap.idIndexes.end()) {
-            return Package();
+            return {};
         }
 
         auto &versionMap = it->second;
         const auto it2 = versionMap.find(version);
         if (it2 == versionMap.end()) {
-            return Package();
+            return {};
         }
         return Package(it2->second->spec);
     }
@@ -553,7 +550,7 @@ namespace LangCore
     bool PackageManager::loadPackagesInOrder() {
         const auto packageOrder = this->getPackageInitializationOrder();
         if (packageOrder.empty()) {
-            std::cerr << "Failed to determine package initialization order" << std::endl;
+            MgrLog.langCoreCritical("Failed to determine package initialization order");
             return false;
         }
 
@@ -565,7 +562,7 @@ namespace LangCore
                     continue;
                 const auto taskFactoryPlugin = this->plugin<TaskFactoryPlugin>(moduleInfo.iid.c_str());
                 if (!taskFactoryPlugin) {
-                    std::cerr << "Failed to load FactoryPlugin: " << moduleInfo.iid << std::endl;
+                    MgrLog.langCoreCritical("Failed to load FactoryPlugin: %1", moduleInfo.iid);
                     return false;
                 }
                 const auto &task = taskFactoryPlugin->create();
@@ -577,20 +574,17 @@ namespace LangCore
         int pkgSize = 0;
 
         for (const auto &packageInfo : packageOrder) {
-            std::cout << "Loading package: " << packageInfo.packageId << " from " << packageInfo.packagePath
-                      << std::endl;
+            MgrLog.langCoreInfo("Loading package: %1 from %2", packageInfo.packageId, packageInfo.packagePath);
 
             auto exp = this->open(packageInfo.packagePath);
             if (!exp) {
-                std::cerr << "Failed to open package " << packageInfo.packageId << ": " << exp.error().message()
-                          << std::endl;
+                MgrLog.langCoreCritical("Failed to open package %1: %2", packageInfo.packageId, exp.error().message());
                 continue;
             }
 
             Package pkg = exp.take();
             if (!pkg.isLoaded()) {
-                std::cerr << "Failed to load package " << packageInfo.packageId << ": " << pkg.error().message()
-                          << std::endl;
+                MgrLog.langCoreCritical("Failed to load package %1: %2", packageInfo.packageId, pkg.error().message());
                 continue;
             }
 
@@ -598,15 +592,15 @@ namespace LangCore
 
             for (const auto &moduleInfo : packageInfo.initializationOrder) {
                 if (auto taskExp = createModuleTask(moduleInfo, pkg)) {
-                    std::cout << "  Created task for module: " << moduleInfo.moduleId << " (type: " << moduleInfo.type
-                              << ", class: " << moduleInfo.iid << ")" << std::endl;
+                    MgrLog.langCoreInfo("  Created task for module: %1 (type: %2, class: %3)", moduleInfo.moduleId,
+                                        moduleInfo.type, moduleInfo.iid);
                 } else {
-                    std::cerr << "  Failed to create task for module: " << moduleInfo.moduleId << ": "
-                              << taskExp.error().message() << std::endl;
+                    MgrLog.langCoreCritical("  Failed to create task for module: %1: %2", moduleInfo.moduleId,
+                                            taskExp.error().message());
                 }
             }
         }
-        std::cout << "\nSuccessfully loaded " << pkgSize << " packages" << std::endl;
+        MgrLog.langCoreInfo("Successfully loaded %1 packages", pkgSize);
         return true;
     }
 
@@ -639,7 +633,7 @@ namespace LangCore
             return Error(Error::InvalidArgument, stdc::formatN("Failed to initialize task: %1", exp.error().message()));
         }
 
-        auto &ic = *this->category(moduleSpec->category().c_str());
+        auto &ic = *this->category(moduleSpec->category());
         ic.addObject(moduleSpec->id(), task);
         return task;
     }
@@ -681,7 +675,7 @@ namespace LangCore
                                                const std::filesystem::path &packageDir, const JsonObject &modulesObj) {
         __stdc_impl_t;
         if (!fs::is_directory(packageDir)) {
-            std::cerr << stdc::formatN(R"(invalid package path "%1")", packageDir).c_str() << std::endl;
+            MgrLog.langCoreCritical("Invalid package path %1", packageDir);
         }
 
         for (const auto &[moduleType, moduleArray] : modulesObj) {
@@ -719,9 +713,7 @@ namespace LangCore
                 }
 
                 if (info.moduleId.empty() || info.iid.empty() || info.type.empty()) {
-                    std::cerr << std::endl
-                              << "Warning:" << std::endl
-                              << "Module missing required fields in package " << packageId << std::endl;
+                    MgrLog.langCoreCritical("Module missing required fields in package: %1", packageId);
                     continue;
                 }
 
@@ -739,7 +731,7 @@ namespace LangCore
                         << "  Existing location: Package=" << existing.packageId << " (v" << existing.version << ")"
                         << std::endl
                         << "  New location: Package=" << info.packageId << " (v" << info.version << ")" << std::endl;
-                    std::cerr << oss.str() << std::endl;
+                    MgrLog.langCoreCritical(oss.str());
                 } else {
                     impl.moduleInfos.push_back(info);
                 }
@@ -849,27 +841,24 @@ namespace LangCore
         dependencyErrors.clear();
         dependencyResolutionSuccessful = true;
 
-        std::cout << "\nStarting module dependency resolution" << std::endl;
-        std::cout << "Module count: " << moduleInfos.size() << std::endl;
+        MgrLog.langCoreInfo("Starting module dependency resolution");
+        MgrLog.langCoreInfo("Module count: %1", moduleInfos.size());
 
         if (!resolver.resolveAllDependencies(moduleInfos)) {
             dependencyResolutionSuccessful = false;
             dependencyErrors = resolver.getErrors();
 
             if (!dependencyErrors.empty()) {
-                std::cerr << "\nDependency resolution failed" << std::endl;
-                std::cerr << "Cannot proceed with module initialization." << std::endl;
-                std::cerr << "========================================" << std::endl;
+                MgrLog.langCoreCritical("Dependency resolution failed");
+                MgrLog.langCoreCritical("Cannot proceed with module initialization.");
+                MgrLog.langCoreCritical("========================================");
 
-                for (size_t i = 0; i < dependencyErrors.size(); ++i) {
-                    std::cerr << dependencyErrors[i];
-                    if (i < dependencyErrors.size() - 1) {
-                        std::cerr << std::endl;
-                    }
+                for (const auto &dependencyError : dependencyErrors) {
+                    MgrLog.langCoreCritical(dependencyError);
                 }
 
-                std::cerr << "========================================" << std::endl;
-                std::cerr << dependencyErrors.size() << " dependency errors found" << std::endl;
+                MgrLog.langCoreCritical("========================================");
+                MgrLog.langCoreCritical("%1 dependency errors found", dependencyErrors.size());
                 return false;
             }
 
@@ -878,8 +867,7 @@ namespace LangCore
 
         moduleInfos = resolver.getResolvedModules();
 
-        std::cout << "\nDependency resolution successful" << std::endl;
-        std::cout << "Successfully resolved modules: " << moduleInfos.size() << std::endl;
+        MgrLog.langCoreInfo("Dependency resolution successful, resolved modules: %1", moduleInfos.size());
 
         moduleInfoSet.clear();
         moduleInfoSet.insert(moduleInfos.begin(), moduleInfos.end());
@@ -935,30 +923,22 @@ namespace LangCore
     void PackageManager::printDiscoveryInfo(const size_t pathCount, const size_t moduleCount) {
         __stdc_impl_t;
         if (moduleCount == 0) {
-            std::cout << "\n" << std::endl;
-            std::cout << "================================================================================"
-                      << std::endl;
-            std::cout << "⚠️  NO MODULES FOUND" << std::endl;
-            std::cout << "--------------------------------------------------------------------------------"
-                      << std::endl;
-            std::cout << "No modules were discovered in the package paths." << std::endl;
-            std::cout << "Package paths searched:" << std::endl;
+            MgrLog.langCoreCritical("================================================================================");
+            MgrLog.langCoreCritical("⚠️  NO MODULES FOUND");
+            MgrLog.langCoreCritical("--------------------------------------------------------------------------------");
+            MgrLog.langCoreCritical("No modules were discovered in the package paths.");
+            MgrLog.langCoreCritical("Package paths searched:");
             for (const auto &path : impl.packagePaths) {
-                std::cout << "  - " << path.string() << std::endl;
+                MgrLog.langCoreCritical("  - ", path.string());
             }
-            std::cout << "================================================================================"
-                      << std::endl;
+            MgrLog.langCoreCritical("================================================================================");
         } else {
-            std::cout << "\n" << std::endl;
-            std::cout << "================================================================================"
-                      << std::endl;
-            std::cout << "📦  MODULE DISCOVERY COMPLETE" << std::endl;
-            std::cout << "--------------------------------------------------------------------------------"
-                      << std::endl;
-            std::cout << "Scanned " << pathCount << " package path(s)" << std::endl;
-            std::cout << "Discovered " << moduleCount << " module(s)" << std::endl;
-            std::cout << "================================================================================"
-                      << std::endl;
+            MgrLog.langCoreInfo("================================================================================");
+            MgrLog.langCoreInfo("📦  MODULE DISCOVERY COMPLETE");
+            MgrLog.langCoreInfo("--------------------------------------------------------------------------------");
+            MgrLog.langCoreInfo("Scanned %1 package path(s)", pathCount);
+            MgrLog.langCoreInfo("Discovered %1 module(s)", moduleCount);
+            MgrLog.langCoreInfo("================================================================================");
         }
     }
 } // namespace LangCore

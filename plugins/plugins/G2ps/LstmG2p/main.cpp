@@ -2,7 +2,7 @@
 
 #include "LstmG2pEngineFactory.h"
 
-namespace LangPlugins
+namespace LangPlugins::LstmG2p
 {
 
     class LstmG2pEnginePlugin final : public LangCore::TaskFactoryPlugin {
@@ -14,6 +14,6 @@ namespace LangPlugins
         LangCore::NO<LangCore::TaskFactory> create() override { return LangCore::NO<LstmG2pEngineFactory>::create(); }
     };
 
-} // namespace LangPlugins
+} // namespace LangPlugins::LstmG2p
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::LstmG2pEnginePlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::LstmG2p::LstmG2pEnginePlugin)

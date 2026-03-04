@@ -6,7 +6,7 @@
 
 #include "ChineseG2pTask.h"
 
-namespace LangPlugins
+namespace LangPlugins::ChineseG2p
 {
     ChineseG2pEngineFactory::ChineseG2pEngineFactory() = default;
 
@@ -51,4 +51,4 @@ namespace LangPlugins
         return LangCore::NO<ChineseG2pTask>::create(spec);
     }
 
-} // namespace LangPlugins
+} // namespace LangPlugins::ChineseG2p

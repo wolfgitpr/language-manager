@@ -16,7 +16,7 @@
 
 #include <inferutil/Verifier.h>
 
-namespace LangPlugins
+namespace LangPlugins::ChineseG2p
 {
     namespace fs = std::filesystem;
 

@@ -3,7 +3,7 @@
 
 #include <LangCore/Task/TaskFactory.h>
 
-namespace LangPlugins
+namespace LangPlugins::LstmG2p
 {
     class LstmG2pEngineFactory : public LangCore::TaskFactory {
     public:

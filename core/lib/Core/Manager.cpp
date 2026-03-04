@@ -1,13 +1,12 @@
 #include "Manager.h"
 #include "Manager_p.h"
 
-#include <fstream>
-#include <iostream>
 #include <set>
 
 #include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
 
+#include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Task/G2pTask.h>
 #include <LangCore/Task/TaggerTask.h>
@@ -155,7 +154,7 @@ namespace LangCore
             _input->g2pInput = lyric;
             const auto targetG2pId = "g2p-" + g2pId;
             if (g2ps.find(targetG2pId) == g2ps.end()) {
-                std::cerr << "Error: fail to find g2p: " << g2pId << std::endl;
+                MgrLog.langCoreCritical("Error: fail to find g2p: %1", g2pId);
                 continue;
             }
 
@@ -168,7 +167,7 @@ namespace LangCore
                 result.insert(result.end(), g2pRes->g2pResult.begin(), g2pRes->g2pResult.end());
 
                 if (!g2pRes->errorMessage.empty())
-                    std::cout << "Error: " << g2pRes->errorMessage << std::endl;
+                    MgrLog.langCoreCritical("Error: %1", g2pRes->errorMessage);
 
             } else {
                 throw std::runtime_error("unexpected result type");

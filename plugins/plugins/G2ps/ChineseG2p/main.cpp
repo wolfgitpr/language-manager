@@ -2,7 +2,7 @@
 
 #include "ChineseG2pEngineFactory.h"
 
-namespace LangPlugins
+namespace LangPlugins::ChineseG2p
 {
 
     class ChineseG2pEnginePlugin final : public LangCore::TaskFactoryPlugin {
@@ -16,6 +16,6 @@ namespace LangPlugins
         }
     };
 
-} // namespace LangPlugins
+} // namespace LangPlugins::ChineseG2p
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::ChineseG2pEnginePlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::ChineseG2p::ChineseG2pEnginePlugin)

@@ -17,7 +17,7 @@
 
 #include "LangCore/Task/G2pTask.h"
 
-namespace LangPlugins
+namespace LangPlugins::LstmG2p
 {
     static LangCore::Expected<LangCore::NO<Lstm::LstmG2pConfiguration>> getConfig(const LangCore::G2pSpec *spec) {
 

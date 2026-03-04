@@ -82,7 +82,7 @@ namespace LangCore
         DependencyGraph(DependencyGraph &&) noexcept;
         DependencyGraph &operator=(DependencyGraph &&) noexcept;
 
-        bool addModule(const ModuleMetadata &module) const;
+        void addModule(const ModuleMetadata &module) const;
         bool buildGraph() const;
         void clear() const;
 
@@ -94,12 +94,6 @@ namespace LangCore
         class Impl;
         std::unique_ptr<Impl> _impl;
     };
-
-    void LANGCORE_EXPORT printModule(const ModuleMetadata &module);
-    void LANGCORE_EXPORT printDependency(const ResolvedDependency &dep);
-    void LANGCORE_EXPORT printModuleList(const std::vector<ModuleMetadata> &modules, const std::string &title = "");
-    void LANGCORE_EXPORT printPackageInitOrder(const std::vector<PackageInitializationPlan> &packageOrder,
-                                               const std::string &title = "");
 
 } // namespace LangCore
 

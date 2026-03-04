@@ -6,7 +6,7 @@
 
 #include "TemplateG2pTask.h"
 
-namespace LangPlugins
+namespace LangPlugins::TemplateG2p
 {
     TemplateG2pEngineFactory::TemplateG2pEngineFactory() = default;
 
@@ -57,4 +57,4 @@ namespace LangPlugins
         return LangCore::NO<TemplateG2pTask>::create(spec);
     }
 
-} // namespace LangPlugins
+} // namespace LangPlugins::TemplateG2p
