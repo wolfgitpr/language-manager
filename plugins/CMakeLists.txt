@@ -53,6 +53,4 @@ add_subdirectory(lib)
 
 add_subdirectory(util)
 
-add_subdirectory(plugins)
-
 LangPlugins_install()
