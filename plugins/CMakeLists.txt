@@ -49,8 +49,8 @@ endif ()
 # ----------------------------------
 # Add source modules
 # ----------------------------------
-add_subdirectory(lib)
-
 add_subdirectory(util)
+
+add_subdirectory(lib)
 
 LangPlugins_install()

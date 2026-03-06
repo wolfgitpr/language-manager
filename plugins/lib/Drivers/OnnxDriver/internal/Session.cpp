@@ -539,7 +539,7 @@ namespace LangPlugins::onnxDriver
 
     Session::Session() : _impl(std::make_unique<Impl>()) {}
 
-    Session::~Session() { close(); }
+    Session::~Session() = default;
 
     Session::Session(Session &&other) noexcept { std::swap(_impl, other._impl); }
 
