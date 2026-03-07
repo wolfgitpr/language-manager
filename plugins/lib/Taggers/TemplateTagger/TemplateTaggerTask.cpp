@@ -33,7 +33,7 @@ namespace LangPlugins::TemplateTagger
     public:
         LangCore::NO<LangCore::TaggerResult> result;
         RE2::Options RegexOptions;
-        std::unique_ptr<TaggerUtil> taggerUtils;
+        std::unique_ptr<TaggerUtil> taggerUtil;
         mutable std::shared_mutex mutex;
     };
 
@@ -72,7 +72,12 @@ namespace LangPlugins::TemplateTagger
         impl.RegexOptions.set_log_errors(true);
         impl.RegexOptions.set_max_mem(8 << 20); // 8MB
 
-        impl.taggerUtils = std::make_unique<TaggerUtil>(config->taggerUtilEntry, config->language);
+        auto expVerifier = TaggerUtil::Create(config->taggerUtilEntry, config->language);
+        if (!expVerifier) {
+            setState(Failed);
+            return expVerifier.takeError();
+        }
+        impl.taggerUtil = expVerifier.take();
 
         // Initialize inference state
         setState(Idle);
@@ -107,7 +112,7 @@ namespace LangPlugins::TemplateTagger
 
         const auto taggerInput = input.as<LangCore::TaggerStartInput>();
         std::vector<LangCore::TaggerRes> res = taggerInput->taggerInput;
-        impl.taggerUtils->tagger(res);
+        impl.taggerUtil->tagger(res);
 
         // Create result
         auto taggerResult = LangCore::NO<LangCore::TaggerResult>::create(

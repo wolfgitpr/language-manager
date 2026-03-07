@@ -1,7 +1,6 @@
 #include "TemplateG2pTask.h"
 
 #include <mutex>
-#include <numeric>
 #include <shared_mutex>
 
 #include <stdcorelib/path.h>
@@ -36,7 +35,7 @@ namespace LangPlugins::TemplateG2p
     public:
         LangCore::NO<LangCore::G2pResult> result;
         LangCore::NO<Task> g2pInference;
-        bool enableOnnxG2p;
+        bool enableOnnxG2p{};
         std::unique_ptr<InferUtil::Verifier> verifier;
         PhonemeDict phonemeDict;
         mutable std::shared_mutex mutex;
@@ -82,7 +81,12 @@ namespace LangPlugins::TemplateG2p
             return res.takeError();
         }
 
-        impl.verifier = std::make_unique<InferUtil::Verifier>(config->verifyEntry);
+        auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
+        if (!expVerifier) {
+            setState(Failed);
+            return expVerifier.takeError();
+        }
+        impl.verifier = expVerifier.take();
 
         // Load phoneme dict
         if (config->enableDict) {
@@ -108,7 +112,7 @@ namespace LangPlugins::TemplateG2p
             const auto &phonemes = it->second;
             std::vector<std::string> tokens;
             for (const char *buf : phonemes) {
-                tokens.push_back(buf);
+                tokens.emplace_back(buf);
             }
             return tokens;
         }
@@ -150,6 +154,7 @@ namespace LangPlugins::TemplateG2p
         const auto g2pInput = input.as<LangCore::G2pStartInput>();
         std::vector<LangCore::G2pRes> res;
         const auto verifyRes = impl.verifier->verify(g2pInput->g2pInput);
+        res.reserve(verifyRes.size());
         for (const auto &[lyric, mode, error] : verifyRes)
             res.emplace_back(LangCore::G2pRes{lyric, spec()->name().text(), "", {}, mode, error});
 
@@ -186,13 +191,15 @@ namespace LangPlugins::TemplateG2p
                         it.error = true;
                     }
                 } else {
-                    std::string pronStr = "";
+                    std::string pronStr;
                     for (auto &phone : findResult)
                         pronStr += phone + " ";
                     it.pronunciation = pronStr;
                 }
             } else
-                throw std::errc::invalid_argument;
+                return LangCore::Error(
+                    LangCore::Error::InvalidArgument,
+                    stdc::formatN(R"(Task "%1" - Fail: it.mode - "%2")", this->spec()->name().text(), it.mode));
         }
 
         // Create result

@@ -9,8 +9,8 @@
 
 #include <re2/re2.h>
 
+#include <LangCore/Support/Expected.h>
 #include <LangPlugins/Api/Taggers/TemplateTagger/1/TemplateTaggerL1.h>
-
 
 namespace LangPlugins::TemplateTagger
 {
@@ -18,6 +18,8 @@ namespace LangPlugins::TemplateTagger
     public:
         explicit ITaggerUtil(Api::TemplateTagger::L1::TaggerUtilEntry entry, std::string language);
         virtual ~ITaggerUtil();
+
+        virtual LangCore::Expected<void> init() = 0;
         virtual void tagger(std::vector<LangCore::TaggerRes> &input) = 0;
 
     protected:
@@ -29,6 +31,8 @@ namespace LangPlugins::TemplateTagger
     public:
         explicit TaggerRegex(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language);
         ~TaggerRegex() override;
+
+        LangCore::Expected<void> init() override;
         void tagger(std::vector<LangCore::TaggerRes> &input) override;
 
     private:
@@ -42,6 +46,8 @@ namespace LangPlugins::TemplateTagger
     public:
         explicit TaggerArray(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language);
         ~TaggerArray() override;
+
+        LangCore::Expected<void> init() override;
         void tagger(std::vector<LangCore::TaggerRes> &input) override;
 
     protected:
@@ -53,18 +59,22 @@ namespace LangPlugins::TemplateTagger
         explicit TaggerDict(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language);
         ~TaggerDict() override;
 
+        LangCore::Expected<void> init() override;
+
     private:
-        static std::set<std::string> loadWordsFromTxtFiles(const std::vector<std::string> &paths);
+        static LangCore::Expected<std::set<std::string>> loadWordsFromTxtFiles(const std::vector<std::string> &paths);
     };
 
     class TaggerUtil {
     public:
-        explicit TaggerUtil(const std::vector<Api::TemplateTagger::L1::TaggerUtilEntry> &entries, std::string language);
+        static LangCore::Expected<std::unique_ptr<TaggerUtil>>
+        Create(const std::vector<Api::TemplateTagger::L1::TaggerUtilEntry> &entries, const std::string& language);
         ~TaggerUtil() = default;
 
         void tagger(std::vector<LangCore::TaggerRes> &input) const;
 
     private:
+        TaggerUtil() = default;
         std::vector<std::unique_ptr<ITaggerUtil>> m_taggerUtils;
     };
 

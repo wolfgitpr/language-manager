@@ -1,29 +1,31 @@
 #include <InferUtil/Verifier.h>
 
+#include <LangCore/Support/Expected.h>
 #include <fstream>
-#include <iostream>
 #include <sstream>
-
-#include "LangCore/Task/Task.h"
 
 namespace LangPlugins::InferUtil
 {
 
     IVerify::IVerify(VerifyEntry entry) : entry_(std::move(entry)) {}
-
     IVerify::~IVerify() = default;
 
     VerifyRegex::VerifyRegex(const VerifyEntry &entry) : IVerify(entry) {
-        RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
-        RegexOptions.set_log_errors(true);
-        RegexOptions.set_max_mem(8 << 20); // 8MB
-
-        regex_ = std::make_unique<RE2>(mergePatterns(entry_.value), RegexOptions);
-        if (!regex_->ok())
-            throw std::runtime_error("Invalid regex: " + regex_->error());
+        regexOptions.set_encoding(RE2::Options::EncodingUTF8);
+        regexOptions.set_log_errors(true);
+        regexOptions.set_max_mem(8 << 20); // 8MB
     }
 
     VerifyRegex::~VerifyRegex() = default;
+
+    LangCore::Expected<void> VerifyRegex::init() {
+        std::string pattern = mergePatterns(entry_.value);
+        regex_ = std::make_unique<RE2>(pattern, regexOptions);
+        if (!regex_->ok()) {
+            return LangCore::Error(LangCore::Error::InvalidArgument, "Invalid regex pattern: " + regex_->error());
+        }
+        return {};
+    }
 
     void VerifyRegex::verify(std::vector<VerifyRes> &input) {
         for (auto &[lyric, mode, error] : input) {
@@ -37,18 +39,15 @@ namespace LangPlugins::InferUtil
     std::string VerifyRegex::mergePatterns(const std::vector<std::string> &patterns) {
         if (patterns.empty())
             return "";
-
         std::ostringstream oss;
         oss << patterns[0];
-
         for (size_t i = 1; i < patterns.size(); ++i)
             oss << "|" << patterns[i];
-
         return oss.str();
     }
 
     VerifyArray::VerifyArray(const VerifyEntry &entry) : IVerify(entry) {
-        array = std::set<std::string>({entry_.value.begin(), entry_.value.end()});
+        array = std::set(entry_.value.begin(), entry_.value.end());
     }
 
     VerifyArray::~VerifyArray() = default;
@@ -62,62 +61,73 @@ namespace LangPlugins::InferUtil
         }
     }
 
-    VerifyDict::VerifyDict(const VerifyEntry &entry) : VerifyArray(entry) {
-        array = loadWordsFromTxtFiles({entry_.value.rbegin(), entry_.value.rend()});
-    }
+    VerifyDict::VerifyDict(const VerifyEntry &entry) : VerifyArray(entry) {}
 
     VerifyDict::~VerifyDict() = default;
 
-    std::set<std::string> VerifyDict::loadWordsFromTxtFiles(const std::vector<std::string> &paths) {
+    LangCore::Expected<void> VerifyDict::init() {
+        auto wordsExp = loadWordsFromTxtFiles({entry_.value.rbegin(), entry_.value.rend()});
+        if (!wordsExp) {
+            return wordsExp.takeError();
+        }
+        array = wordsExp.take();
+        return {};
+    }
+
+    LangCore::Expected<std::set<std::string>> VerifyDict::loadWordsFromTxtFiles(const std::vector<std::string> &paths) {
         std::set<std::string> words;
 
         for (const auto &path : paths) {
             if (!std::filesystem::exists(path)) {
-                std::cerr << "warning: file not exist - " << path << std::endl;
-                continue;
+                return LangCore::Error(LangCore::Error::InvalidArgument, "Dictionary file not found: " + path);
             }
 
             std::ifstream file(path);
             if (!file.is_open()) {
-                std::cerr << "warning: fail to open file - " << path << std::endl;
-                continue;
+                return LangCore::Error(LangCore::Error::InvalidArgument, "Failed to open dictionary file: " + path);
             }
 
             std::string line;
-            size_t line_number = 0;
-
             while (std::getline(file, line)) {
-                line_number++;
-
                 if (line.empty())
                     continue;
-
                 if (const size_t tab_pos = line.find('\t'); tab_pos != std::string::npos) {
                     if (std::string word = line.substr(0, tab_pos); !word.empty())
                         words.insert(word);
                 }
             }
             file.close();
-            std::cout << "from " << path << " load " << line_number << " lines" << std::endl;
         }
         return words;
     }
-    Verifier::Verifier(const std::vector<VerifyEntry> &entries) {
+
+    LangCore::Expected<std::unique_ptr<Verifier>> Verifier::Create(const std::vector<VerifyEntry> &entries) {
+        auto verifier = std::unique_ptr<Verifier>(new Verifier());
         for (const auto &entry : entries) {
-            if (entry.type == "regex")
-                verifiers_.emplace_back(std::make_unique<VerifyRegex>(entry));
-            else if (entry.type == "array")
-                verifiers_.emplace_back(std::make_unique<VerifyArray>(entry));
-            else if (entry.type == "dict")
-                verifiers_.emplace_back(std::make_unique<VerifyDict>(entry));
-            else
-                throw std::errc::invalid_argument;
+            std::unique_ptr<IVerify> v;
+            if (entry.type == "regex") {
+                v = std::make_unique<VerifyRegex>(entry);
+            } else if (entry.type == "array") {
+                v = std::make_unique<VerifyArray>(entry);
+            } else if (entry.type == "dict") {
+                v = std::make_unique<VerifyDict>(entry);
+            } else {
+                return LangCore::Error(LangCore::Error::InvalidArgument, "Unknown verifier type: " + entry.type);
+            }
+
+            if (auto initExp = v->init(); !initExp) {
+                return initExp.takeError();
+            }
+
+            verifier->verifiers_.push_back(std::move(v));
         }
+        return verifier;
     }
 
     std::vector<VerifyRes> Verifier::verify(const std::vector<std::string> &input) const {
         std::vector<VerifyRes> result;
-        for (const auto lyric : input)
+        result.reserve(input.size());
+        for (const auto &lyric : input)
             result.emplace_back(VerifyRes{lyric, "copy", false});
 
         for (const auto &verifier : verifiers_)

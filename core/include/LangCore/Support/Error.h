@@ -24,6 +24,7 @@ namespace LangCore
             SessionError,
             TaskError,
             InterpreterNotFound,
+            RuntimeError
         };
 
         Error() : Error(NoError) {}

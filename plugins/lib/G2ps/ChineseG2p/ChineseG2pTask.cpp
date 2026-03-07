@@ -68,7 +68,12 @@ namespace LangPlugins::ChineseG2p
         }
         const auto config = expConfig.take();
 
-        impl.verifier = std::make_unique<InferUtil::Verifier>(config->verifyEntry);
+        auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
+        if (!expVerifier) {
+            setState(Failed);
+            return expVerifier.takeError();
+        }
+        impl.verifier = expVerifier.take();
 
         Pinyin::setDictionaryPath(config->dictPath);
         impl.m_mandarin = std::make_unique<Pinyin::Pinyin>();
