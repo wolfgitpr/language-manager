@@ -512,6 +512,9 @@ macro(_cur_add_library_internal _target _type)
 
         if (_deps_to_copy)
             list(REMOVE_DUPLICATES _deps_to_copy)
+            if (_deps_to_copy)
+                message(STATUS "Dependencies to copy: ${_deps_to_copy}")
+            endif ()
             add_custom_command(TARGET ${_target} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     ${_deps_to_copy}
