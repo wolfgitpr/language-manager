@@ -30,7 +30,7 @@ find_package(blake3 CONFIG REQUIRED)
 LangPlugins_add_plugin(${PROJECT_NAME} ${CURRENT_PLUGIN_CATEGORY} ${PROJECT_NAME} NO_EXPORT
         SOURCES ${_src}
         FEATURES cxx_std_17
-        LINKS LangPlugins
+        LINKS LangCore::LangCore LangPlugins::LangPlugins
         LINKS_PRIVATE stduuid BLAKE3::blake3 $<BUILD_INTERFACE:OnnxUtil>
         INCLUDE_PRIVATE *
         DEFINES ORT_API_MANUAL_INIT ${_onnxdriver_ep_macros}

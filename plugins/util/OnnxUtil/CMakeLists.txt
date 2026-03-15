@@ -13,7 +13,7 @@ file(GLOB_RECURSE _src "*.cpp")
 
 LangPlugins_add_library(${PROJECT_NAME} STATIC NO_INSTALL
         SOURCES ${_src}
-        LINKS LangPlugins
+        LINKS LangPlugins::LangPlugins
         INCLUDE ${CMAKE_CURRENT_SOURCE_DIR} ${_onnxruntime_default_dir}/include
         DEFINES ORT_API_MANUAL_INIT
 )
