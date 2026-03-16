@@ -56,7 +56,7 @@ bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, c
     onnxArgs->runtimePath = ep_ == LangPlugins::Api::Onnx::L1::CUDAExecutionProvider ? ortParentPath / _TSTR("cuda")
                                                                                      : ortParentPath / _TSTR("default");
 
-    onnxArgs->loadFromProgress = loadFromProgress;
+    onnxArgs->loadFromProcess = loadFromProgress;
     onnxArgs->deviceIndex = deviceIndex;
 
     if (const auto exp = onnxDriver->initialize(onnxArgs); !exp) {

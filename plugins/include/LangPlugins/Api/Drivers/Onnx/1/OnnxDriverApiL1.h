@@ -27,7 +27,7 @@ namespace LangPlugins::Api::Onnx::L1
         DriverInitArgs() : TaskInitArgs(API_NAME, API_CLASS, API_LEVEL) {}
 
         /// Load from progress
-        bool loadFromProgress = false;
+        bool loadFromProcess = false;
 
         /// The execution provider to use.
         ExecutionProvider ep = CPUExecutionProvider;

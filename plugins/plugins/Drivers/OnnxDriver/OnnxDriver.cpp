@@ -203,7 +203,7 @@ namespace LangPlugins
             };
         }
 
-        if (!onnxArgs->loadFromProgress) {
+        if (!onnxArgs->loadFromProcess) {
             const auto dllPath = onnxArgs->runtimePath / ONNXRUNTIME_DYLIB_FILENAME;
             if (auto result = impl.load(dllPath); !result)
                 return result;
