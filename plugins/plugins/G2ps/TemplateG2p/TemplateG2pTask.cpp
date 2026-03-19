@@ -36,8 +36,9 @@ namespace LangPlugins::TemplateG2p
         LangCore::NO<LangCore::G2pResult> result;
         LangCore::NO<Task> g2pInference;
         bool enableOnnxG2p{};
+        bool enableDict{};
         std::unique_ptr<InferUtil::Verifier> verifier;
-        PhonemeDict phonemeDict;
+        PhonemeDict phonemeDict = {};
         mutable std::shared_mutex mutex;
     };
 
@@ -71,9 +72,10 @@ namespace LangPlugins::TemplateG2p
         }
         const auto config = expConfig.take();
 
+        impl.enableOnnxG2p = config->enableOnnxG2p;
+        impl.enableDict = config->enableDict;
         if (!config->enableOnnxG2p) {
             impl.g2pInference = nullptr;
-            impl.enableOnnxG2p = config->enableOnnxG2p;
         } else if (auto res = getObject("g2p", config->onnxG2pId); res) {
             impl.g2pInference = res.take().as<Task>();
         } else {
@@ -164,14 +166,29 @@ namespace LangPlugins::TemplateG2p
                 it.pronunciation = it.lyric;
                 it.candidates = {it.pronunciation};
             } else if (it.mode == "convert") {
-                if (const auto findResult = lookup(it.lyric); findResult.empty()) {
+                if (const auto findResult = lookup(it.lyric); impl.enableDict && !findResult.empty()) {
+                    std::string pronStr;
+                    for (auto &phone : findResult)
+                        pronStr += phone + " ";
+                    it.pronunciation = pronStr;
+                } else {
                     const auto lstmInput = LangCore::NO<LangCore::G2pStartInput>::create(
                         LangCore::G2P_API_NAME, LangCore::G2P_API_CLASS, LangCore::G2P_API_LEVEL);
                     lstmInput->g2pInput.push_back({it.lyric});
 
                     if (!impl.enableOnnxG2p) {
                         it.error = true;
+                        it.pronunciation = it.lyric;
+                        it.candidates = {it.pronunciation};
                         it.errorType = LangCore::G2pDepNotEnabled;
+                        continue;
+                    }
+
+                    if (!impl.g2pInference) {
+                        it.error = true;
+                        it.pronunciation = it.lyric;
+                        it.candidates = {it.pronunciation};
+                        it.errorType = LangCore::G2pDepInitError;
                         continue;
                     }
 
@@ -191,13 +208,10 @@ namespace LangPlugins::TemplateG2p
                                                                  this->spec()->name().text(), g2pResult->errorMessage));
                         }
                         it.error = true;
+                        it.pronunciation = it.lyric;
+                        it.candidates = {it.pronunciation};
                         it.errorType = LangCore::G2pDepRuntimeError;
                     }
-                } else {
-                    std::string pronStr;
-                    for (auto &phone : findResult)
-                        pronStr += phone + " ";
-                    it.pronunciation = pronStr;
                 }
             } else
                 return LangCore::Error(
