@@ -91,14 +91,17 @@ int main() {
         return -1;
     }
 
-    const auto text = "halloween蝉ce 声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方"
-                      "\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
-    const auto resExp = langMgr->tag({text}, true, true, {"cmn"});
+    const auto text = "wo neng tun xia Glass er bu shang shen ti";
+    const auto splitRes = langMgr->split(text);
+    const auto tagExp = langMgr->tag(splitRes, false, true, {});
 
     std::vector<LangCore::G2pInput *> g2pInput;
     std::cout << "tag result: " << std::endl;
-    for (const auto &res : resExp)
+    for (const auto &res : tagExp) {
         g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
+        std::cout << "lyric: '" << res.lyric << "' language: '" << res.language << "' tag: '" << res.tag << "'"
+                  << std::endl;
+    }
 
     const auto g2pResult = langMgr->convert(g2pInput);
 

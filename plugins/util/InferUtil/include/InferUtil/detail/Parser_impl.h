@@ -270,6 +270,18 @@ namespace LangPlugins::InferUtil
                         continue;
                     }
 
+                    if (const auto typeIt = obj.find("tag"); typeIt != obj.end()) {
+                        if (typeIt->second.isString()) {
+                            entry.tag = typeIt->second.toString();
+                        } else {
+                            collectError("tagger entry #" + std::to_string(i) + " field \"tag\" must be string");
+                            continue;
+                        }
+                    } else {
+                        collectError("tagger entry #" + std::to_string(i) + " missing required field \"tag\"");
+                        continue;
+                    }
+
                     if (const auto valueIt = obj.find("value"); valueIt != obj.end()) {
                         const auto &valueArr = valueIt->second.toArray();
                         std::string combined;
