@@ -95,12 +95,12 @@ int main() {
                       "声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方"
                       "\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
     const auto splitRes = langMgr->split(text);
-    const auto tagExp = langMgr->tag(splitRes, false, true, {});
+    const auto tagExp = langMgr->tag(splitRes, false, false, {});
 
     std::vector<LangCore::G2pInput *> g2pInput;
     std::cout << "tag result: " << std::endl;
     for (const auto &res : tagExp) {
-        g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, ""));
+        g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
         std::cout << "lyric: '" << res.lyric << "' language: '" << res.language << "' tag: '" << res.tag << "'"
                   << std::endl;
     }

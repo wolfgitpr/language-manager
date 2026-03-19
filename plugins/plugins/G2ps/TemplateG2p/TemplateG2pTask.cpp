@@ -171,6 +171,7 @@ namespace LangPlugins::TemplateG2p
 
                     if (!impl.enableOnnxG2p) {
                         it.error = true;
+                        it.errorType = LangCore::G2pDepNotEnabled;
                         continue;
                     }
 
