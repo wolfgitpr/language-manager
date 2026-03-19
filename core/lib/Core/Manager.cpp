@@ -19,7 +19,7 @@ namespace LangCore
 {
     Manager::Impl::Impl(Manager *decl) : PackageManager::Impl(decl) {}
 
-    Manager::Impl::~Impl() {}
+    Manager::Impl::~Impl() = default;
 
     std::vector<NO<Task>> Manager::Impl::priorityTaggers(const std::vector<std::string> &priorityTaggerIds) {
         const std::vector<std::string> order = defaultTaggerOrder;
@@ -179,11 +179,13 @@ namespace LangCore
         const auto _input = NO<G2pStartInput>::create(G2P_API_NAME, G2P_API_CLASS, G2P_API_LEVEL);
         std::vector<G2pRes> result;
 
-        for (const auto &[g2pId, lyric] : _lyrics) {
-            _input->g2pInput = lyric;
+        for (const auto &[g2pId, lyricVec] : _lyrics) {
+            _input->g2pInput = lyricVec;
             const auto targetG2pId = "g2p-" + g2pId;
             if (g2ps.find(targetG2pId) == g2ps.end()) {
-                MgrLog.langCoreCritical("Error: fail to find g2p: %1", g2pId);
+                MgrLog.langCoreCritical("Error: fail to find g2p: '%1'", g2pId);
+                for (const auto &lyric : lyricVec)
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", true, G2pNotFound));
                 continue;
             }
 

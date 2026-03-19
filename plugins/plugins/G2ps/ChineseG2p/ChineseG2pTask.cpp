@@ -142,7 +142,8 @@ namespace LangPlugins::ChineseG2p
         const auto verifyRes = impl.verifier->verify(g2pInput->g2pInput);
         res.reserve(verifyRes.size());
         for (const auto &[lyric, mode, error] : verifyRes)
-            res.emplace_back(LangCore::G2pRes{lyric, spec()->name().text(), "", {}, mode, error});
+            res.emplace_back(LangCore::G2pRes{
+                lyric, spec()->name().text(), "", {}, mode, error, error ? LangCore::InvalidLyric : LangCore::NoError});
 
         const auto groupLyric = groupLyrics(res);
 
@@ -161,7 +162,9 @@ namespace LangPlugins::ChineseG2p
 
             for (auto &[hanzi, pinyin, candidates, error] : pinyinRes) {
                 g2pResult->g2pResult.emplace_back(hanzi, spec()->id(), mode == "convert" ? pinyin : hanzi, candidates,
-                                                  mode, mode == "convert" && error);
+                                                  mode, mode == "convert" && error,
+                                                  mode == "convert" && error ? LangCore::G2pDepInternalError
+                                                                             : LangCore::NoError);
             }
         }
 

@@ -24,6 +24,20 @@ namespace LangCore
         G2pInput(std::string lyric, std::string g2pId) : lyric(std::move(lyric)), g2pId(std::move(g2pId)) {}
     };
 
+    enum G2pErrorType {
+        NoError = 0,
+        UnknownError,
+        InvalidLyric,
+        InvalidG2pId,
+        G2pNotFound,
+        G2pInitializedError,
+        TaskError,
+        G2pDepRuntimeError,
+        G2pDepInternalError,
+        ConfigError,
+        ResourceNotFound,
+    };
+
     struct G2pRes {
         std::string lyric;
         std::string g2pId;
@@ -31,11 +45,13 @@ namespace LangCore
         std::vector<std::string> candidates = {pronunciation};
         std::string mode = "copy";
         bool error = true;
+        G2pErrorType errorType = UnknownError;
 
         explicit G2pRes(std::string lyric, std::string g2pId, std::string pronunciation = "",
-                        std::vector<std::string> candidates = {}, std::string mode = "copy", const bool error = true) :
+                        std::vector<std::string> candidates = {}, std::string mode = "copy", const bool error = true,
+                        const G2pErrorType errorType = NoError) :
             lyric(std::move(lyric)), g2pId(std::move(g2pId)), pronunciation(std::move(pronunciation)),
-            candidates(std::move(candidates)), mode(std::move(mode)), error{error} {}
+            candidates(std::move(candidates)), mode(std::move(mode)), error{error}, errorType(errorType) {}
     };
 } // namespace LangCore
 #endif // LANGCORE_LANGCOMMON_H

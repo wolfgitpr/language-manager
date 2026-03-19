@@ -156,7 +156,8 @@ namespace LangPlugins::TemplateG2p
         const auto verifyRes = impl.verifier->verify(g2pInput->g2pInput);
         res.reserve(verifyRes.size());
         for (const auto &[lyric, mode, error] : verifyRes)
-            res.emplace_back(LangCore::G2pRes{lyric, spec()->name().text(), "", {}, mode, error});
+            res.emplace_back(LangCore::G2pRes{
+                lyric, spec()->name().text(), "", {}, mode, error, error ? LangCore::InvalidLyric : LangCore::NoError});
 
         for (auto &it : res) {
             if (it.mode == "copy") {
@@ -189,6 +190,7 @@ namespace LangPlugins::TemplateG2p
                                                                  this->spec()->name().text(), g2pResult->errorMessage));
                         }
                         it.error = true;
+                        it.errorType = LangCore::G2pDepRuntimeError;
                     }
                 } else {
                     std::string pronStr;
