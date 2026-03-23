@@ -1,5 +1,5 @@
 {
-  "packageId": "cmn-official",
+  "packageId": "yue-official",
   "version": "1.0.1",
   "vendor": "小狼Korou",
   "copyright": "Copyright (C) 小狼Korou",
@@ -8,21 +8,21 @@
   "modules": {
     "splitter": [
       {
-        "moduleId": "splitter-cmn",
+        "moduleId": "splitter-yue",
         "class": "splitter.regex.RegexSplitterInference",
-        "configuration": "modules/Splitter-Cmn/config.json",
+        "configuration": "modules/Splitter-Yue/config.json",
         "dependencies": []
       }
     ],
     "tagger": [
       {
-        "moduleId": "tagger-cmn",
+        "moduleId": "tagger-yue",
         "class": "tagger.template.TemplateTaggerInference",
-        "configuration": "modules/Tagger-Cmn/config.json",
+        "configuration": "modules/Tagger-Yue/config.json",
         "dependencies": [
           {
-            "packageId": "cmn-official",
-            "moduleId": "splitter-cmn",
+            "packageId": "yue-official",
+            "moduleId": "splitter-yue",
             "level": 1,
             "version": "*"
           }
@@ -31,9 +31,9 @@
     ],
     "g2p": [
       {
-        "moduleId": "g2p-cmn",
-        "class": "g2p.template.MandarinG2pInference",
-        "configuration": "modules/G2p-Cmn/config.json",
+        "moduleId": "g2p-yue",
+        "class": "g2p.template.CantoneseG2pInference",
+        "configuration": "modules/G2p-Yue/config.json",
         "dependencies": []
       }
     ]

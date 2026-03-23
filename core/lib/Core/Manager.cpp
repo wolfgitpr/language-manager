@@ -27,8 +27,9 @@ namespace LangCore
         const auto &taggers = tasks["tagger"];
 
         std::vector<NO<Task>> result;
-        for (const auto &taggerId : priorityTaggerIds) {
-            const auto it = taggers.find(taggerId);
+        for (const auto &baseId : priorityTaggerIds) {
+            const auto id = "tagger-" + baseId;
+            const auto it = taggers.find(id);
             if (it == taggers.end())
                 continue;
             result.push_back(it->second);

@@ -1,4 +1,4 @@
-#include "ChineseG2pTask.h"
+#include "MandarinG2pTask.h"
 
 #include <mutex>
 #include <shared_mutex>
@@ -16,21 +16,21 @@
 
 #include <InferUtil/Verifier.h>
 
-namespace LangPlugins::ChineseG2p
+namespace LangPlugins::MandarinG2p
 {
     namespace fs = std::filesystem;
 
-    static LangCore::Expected<LangCore::NO<Chinese::ChineseG2pConfiguration>>
+    static LangCore::Expected<LangCore::NO<Mandarin::MandarinG2pConfiguration>>
     getConfig(const LangCore::ModuleSpec *spec) {
         const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
         if (!genericConfig)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "ChineseG2p configuration is nullptr");
-        if (!(genericConfig->className() == Chinese::API_CLASS && genericConfig->objectName() == Chinese::API_NAME))
-            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid ChineseG2p configuration");
-        return genericConfig.as<Chinese::ChineseG2pConfiguration>();
+            return LangCore::Error(LangCore::Error::InvalidArgument, "MandarinG2p configuration is nullptr");
+        if (!(genericConfig->className() == Mandarin::API_CLASS && genericConfig->objectName() == Mandarin::API_NAME))
+            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid MandarinG2p configuration");
+        return genericConfig.as<Mandarin::MandarinG2pConfiguration>();
     }
 
-    class ChineseG2pTask::Impl {
+    class MandarinG2pTask::Impl {
     public:
         LangCore::NO<LangCore::G2pResult> result;
         std::unique_ptr<Pinyin::Pinyin> m_mandarin;
@@ -38,29 +38,29 @@ namespace LangPlugins::ChineseG2p
         mutable std::shared_mutex mutex;
     };
 
-    ChineseG2pTask::ChineseG2pTask(const LangCore::ModuleSpec *spec) : Task(spec), _impl(std::make_unique<Impl>()) {}
+    MandarinG2pTask::MandarinG2pTask(const LangCore::ModuleSpec *spec) : Task(spec), _impl(std::make_unique<Impl>()) {}
 
-    ChineseG2pTask::~ChineseG2pTask() = default;
+    MandarinG2pTask::~MandarinG2pTask() = default;
 
-    LangCore::Expected<void> ChineseG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
+    LangCore::Expected<void> MandarinG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
         // Currently, no args to process. But we still need to enforce callers to pass the correct
         // args type.
         if (!args) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "ChineseG2p task init args is nullptr");
+            return LangCore::Error(LangCore::Error::InvalidArgument, "MandarinG2p task init args is nullptr");
         }
-        // if (auto name = args->objectName(); name != Chinese::API_NAME) {
+        // if (auto name = args->objectName(); name != Mandarin::API_NAME) {
         //     return Error(Error::InvalidArgument,
-        //                           stdc::formatN(R"(invalid ChineseG2p task init args name: expected "%1", got
+        //                           stdc::formatN(R"(invalid MandarinG2p task init args name: expected "%1", got
         //                           "%2")",
-        //                                         Chinese::API_NAME, name));
+        //                                         Mandarin::API_NAME, name));
         // }
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        // Get ChineseG2p config
+        // Get MandarinG2p config
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
         if (!expConfig) {
             setState(Failed);
@@ -106,13 +106,13 @@ namespace LangPlugins::ChineseG2p
     }
 
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
-    ChineseG2pTask::start(const LangCore::NO<LangCore::TaskStartInput> &input) {
+    MandarinG2pTask::start(const LangCore::NO<LangCore::TaskStartInput> &input) {
         __stdc_impl_t;
         {
             std::shared_lock lock(impl.mutex);
             if (!impl.m_mandarin->initialized()) {
                 setState(Failed);
-                return LangCore::Error(LangCore::Error::SessionError, "ChineseG2pTask: chinese g2p not initialized");
+                return LangCore::Error(LangCore::Error::SessionError, "MandarinG2pTask: chinese g2p not initialized");
             }
         }
 
@@ -129,11 +129,11 @@ namespace LangPlugins::ChineseG2p
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
         }
 
-        // if (const auto &name = input->objectName(); name != Chinese::API_NAME) {
+        // if (const auto &name = input->objectName(); name != Mandarin::API_NAME) {
         //     setState(Failed);
         //     return Error(
         //         Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Chinese::API_NAME,
+        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Mandarin::API_NAME,
         //         name));
         // }
 
@@ -174,21 +174,21 @@ namespace LangPlugins::ChineseG2p
         return g2pResult;
     }
 
-    LangCore::Expected<void> ChineseG2pTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                        const StartAsyncCallback &callback) {
+    LangCore::Expected<void> MandarinG2pTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
+                                                         const StartAsyncCallback &callback) {
         // TODO:
         return LangCore::Error(LangCore::Error::NotImplemented);
     }
 
-    bool ChineseG2pTask::stop() {
+    bool MandarinG2pTask::stop() {
         __stdc_impl_t;
         setState(Terminated);
         return true;
     }
 
-    LangCore::NO<LangCore::TaskResult> ChineseG2pTask::result() const {
+    LangCore::NO<LangCore::TaskResult> MandarinG2pTask::result() const {
         __stdc_impl_t;
         std::shared_lock lock(impl.mutex);
         return impl.result;
     }
-} // namespace LangPlugins::ChineseG2p
+} // namespace LangPlugins::MandarinG2p

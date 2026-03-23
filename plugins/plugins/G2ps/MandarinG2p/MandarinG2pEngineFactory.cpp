@@ -1,21 +1,21 @@
-#include "ChineseG2pEngineFactory.h"
+#include "MandarinG2pEngineFactory.h"
 
 #include <stdcorelib/str.h>
 
 #include <InferUtil/Parser.h>
 
-#include "ChineseG2pTask.h"
+#include "MandarinG2pTask.h"
 
-namespace LangPlugins::ChineseG2p
+namespace LangPlugins::MandarinG2p
 {
-    ChineseG2pEngineFactory::ChineseG2pEngineFactory() = default;
+    MandarinG2pEngineFactory::MandarinG2pEngineFactory() = default;
 
-    ChineseG2pEngineFactory::~ChineseG2pEngineFactory() = default;
+    MandarinG2pEngineFactory::~MandarinG2pEngineFactory() = default;
 
-    int ChineseG2pEngineFactory::apiLevel() const { return 1; }
+    int MandarinG2pEngineFactory::apiLevel() const { return 1; }
 
     LangCore::Expected<LangCore::NO<LangCore::TaskConfiguration>>
-    ChineseG2pEngineFactory::createConfiguration(const LangCore::ModuleSpec *spec) const {
+    MandarinG2pEngineFactory::createConfiguration(const LangCore::ModuleSpec *spec) const {
         if (!spec) {
             // fatal error: null pointer, return immediately
             return LangCore::Error{
@@ -24,7 +24,7 @@ namespace LangPlugins::ChineseG2p
             };
         }
 
-        auto result = LangCore::NO<Chinese::ChineseG2pConfiguration>::create();
+        auto result = LangCore::NO<Mandarin::MandarinG2pConfiguration>::create();
 
         // Collect all the errors and return to user
         InferUtil::ErrorCollector ec;
@@ -39,16 +39,16 @@ namespace LangPlugins::ChineseG2p
         if (ec.hasErrors()) {
             return LangCore::Error{
                 LangCore::Error::InvalidFormat,
-                ec.getErrorMessage("error parsing ChineseG2p configuration"),
+                ec.getErrorMessage("error parsing MandarinG2p configuration"),
             };
         }
         return result;
     }
 
     LangCore::Expected<LangCore::NO<LangCore::Task>>
-    ChineseG2pEngineFactory::createTask(const LangCore::ModuleSpec *spec,
+    MandarinG2pEngineFactory::createTask(const LangCore::ModuleSpec *spec,
                                         const LangCore::NO<LangCore::TaskRuntimeOptions> &runtimeOptions) {
-        return LangCore::NO<ChineseG2pTask>::create(spec);
+        return LangCore::NO<MandarinG2pTask>::create(spec);
     }
 
-} // namespace LangPlugins::ChineseG2p
+} // namespace LangPlugins::MandarinG2p

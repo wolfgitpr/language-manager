@@ -1,4 +1,4 @@
-project(ChineseG2p
+project(MandarinG2p
         VERSION ${LANGPLUGINS_VERSION}
         LANGUAGES C CXX
 )

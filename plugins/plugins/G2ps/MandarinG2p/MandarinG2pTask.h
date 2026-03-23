@@ -5,17 +5,17 @@
 #include <LangPlugins/Support/Tensor.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/G2ps/ChineseG2p/1/ChineseG2pL1.h>
+#include <LangPlugins/Api/G2ps/MandarinG2p/1/MandarinG2pL1.h>
 
-namespace LangPlugins::ChineseG2p
+namespace LangPlugins::MandarinG2p
 {
-    namespace Chinese = Api::ChineseG2p::L1;
+    namespace Mandarin = Api::MandarinG2p::L1;
     namespace Onnx = Api::Onnx::L1;
 
-    class ChineseG2pTask : public LangCore::Task {
+    class MandarinG2pTask : public LangCore::Task {
     public:
-        explicit ChineseG2pTask(const LangCore::ModuleSpec *spec);
-        ~ChineseG2pTask() override;
+        explicit MandarinG2pTask(const LangCore::ModuleSpec *spec);
+        ~MandarinG2pTask() override;
 
         LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
 
@@ -32,6 +32,6 @@ namespace LangPlugins::ChineseG2p
         std::unique_ptr<Impl> _impl;
     };
 
-} // namespace LangPlugins
+} // namespace LangPlugins::MandarinG2p
 
 #endif //  LANGPLUGINS_CHINESEG2PTASK_H

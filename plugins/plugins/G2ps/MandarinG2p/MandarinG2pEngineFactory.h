@@ -3,12 +3,12 @@
 
 #include <LangCore/Task/TaskFactory.h>
 
-namespace LangPlugins::ChineseG2p
+namespace LangPlugins::MandarinG2p
 {
-    class ChineseG2pEngineFactory : public LangCore::TaskFactory {
+    class MandarinG2pEngineFactory : public LangCore::TaskFactory {
     public:
-        ChineseG2pEngineFactory();
-        ~ChineseG2pEngineFactory() override;
+        MandarinG2pEngineFactory();
+        ~MandarinG2pEngineFactory() override;
 
         int apiLevel() const override;
         LangCore::Expected<LangCore::NO<LangCore::TaskConfiguration>>
