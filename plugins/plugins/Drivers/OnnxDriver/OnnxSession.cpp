@@ -11,7 +11,7 @@ namespace LangPlugins
     class OnnxSession::Impl {
     public:
         Impl() : sessionId(onnxDriver::Env::nextId()) {}
-        ~Impl() {}
+        ~Impl() = default;
 
         int64_t sessionId;
         onnxDriver::Session session;
@@ -54,22 +54,4 @@ namespace LangPlugins
         __stdc_impl_t;
         return impl.session.run(input);
     }
-
-    LangCore::Expected<void> OnnxSession::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                     const StartAsyncCallback &callback) {
-        __stdc_impl_t;
-        return impl.session.runAsync(input, callback);
-    }
-
-    LangCore::NO<LangCore::TaskResult> OnnxSession::result() const {
-        __stdc_impl_t;
-        return impl.session.result();
-    }
-
-    bool OnnxSession::stop() {
-        __stdc_impl_t;
-        impl.session.terminate();
-        return true;
-    }
-
 } // namespace LangPlugins

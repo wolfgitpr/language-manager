@@ -28,9 +28,6 @@ namespace LangCore
         Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
         Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
 
-        std::vector<std::string> defaultTaggerOrder() const;
-        void setDefaultOrder(const std::vector<std::string> &order);
-
         std::vector<std::string> split(const std::string &input);
         std::vector<std::string> split(const std::vector<std::string> &input);
 

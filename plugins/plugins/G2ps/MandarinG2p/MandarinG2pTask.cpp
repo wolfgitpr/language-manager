@@ -44,17 +44,10 @@ namespace LangPlugins::MandarinG2p
 
     LangCore::Expected<void> MandarinG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
-        // Currently, no args to process. But we still need to enforce callers to pass the correct
-        // args type.
         if (!args) {
             return LangCore::Error(LangCore::Error::InvalidArgument, "MandarinG2p task init args is nullptr");
         }
-        // if (auto name = args->objectName(); name != Mandarin::API_NAME) {
-        //     return Error(Error::InvalidArgument,
-        //                           stdc::formatN(R"(invalid MandarinG2p task init args name: expected "%1", got
-        //                           "%2")",
-        //                                         Mandarin::API_NAME, name));
-        // }
+
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
@@ -62,29 +55,20 @@ namespace LangPlugins::MandarinG2p
 
         // Get MandarinG2p config
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig) {
-            setState(Failed);
+        if (!expConfig)
             return expConfig.takeError();
-        }
         const auto config = expConfig.take();
 
         auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
-        if (!expVerifier) {
-            setState(Failed);
+        if (!expVerifier)
             return expVerifier.takeError();
-        }
         impl.verifier = expVerifier.take();
 
         Pinyin::setDictionaryPath(config->dictPath);
         impl.m_mandarin = std::make_unique<Pinyin::Pinyin>();
 
-        if (!impl.m_mandarin->initialized()) {
-            setState(Failed);
+        if (!impl.m_mandarin->initialized())
             return {};
-        }
-
-        // Initialize inference state
-        setState(Idle);
 
         // return success
         return {};
@@ -110,32 +94,16 @@ namespace LangPlugins::MandarinG2p
         __stdc_impl_t;
         {
             std::shared_lock lock(impl.mutex);
-            if (!impl.m_mandarin->initialized()) {
-                setState(Failed);
+            if (!impl.m_mandarin->initialized())
                 return LangCore::Error(LangCore::Error::SessionError, "MandarinG2pTask: chinese g2p not initialized");
-            }
         }
-
-        setState(Running);
 
         // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig) {
-            setState(Failed);
+        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
             return expConfig.takeError();
-        }
 
-        if (!input) {
-            setState(Failed);
+        if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
-        }
-
-        // if (const auto &name = input->objectName(); name != Mandarin::API_NAME) {
-        //     setState(Failed);
-        //     return Error(
-        //         Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Mandarin::API_NAME,
-        //         name));
-        // }
 
         std::vector<LangCore::G2pRes> res;
         const auto g2pInput = input.as<LangCore::G2pStartInput>();
@@ -168,27 +136,7 @@ namespace LangPlugins::MandarinG2p
             }
         }
 
-
         impl.result = g2pResult;
-        setState(Idle);
         return g2pResult;
-    }
-
-    LangCore::Expected<void> MandarinG2pTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                         const StartAsyncCallback &callback) {
-        // TODO:
-        return LangCore::Error(LangCore::Error::NotImplemented);
-    }
-
-    bool MandarinG2pTask::stop() {
-        __stdc_impl_t;
-        setState(Terminated);
-        return true;
-    }
-
-    LangCore::NO<LangCore::TaskResult> MandarinG2pTask::result() const {
-        __stdc_impl_t;
-        std::shared_lock lock(impl.mutex);
-        return impl.result;
     }
 } // namespace LangPlugins::MandarinG2p

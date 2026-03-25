@@ -30,7 +30,6 @@ namespace LangPlugins::TemplateG2p
         return genericConfig.as<Template::TemplateG2pConfiguration>();
     }
 
-
     class TemplateG2pTask::Impl {
     public:
         LangCore::NO<LangCore::G2pResult> result;
@@ -48,17 +47,10 @@ namespace LangPlugins::TemplateG2p
 
     LangCore::Expected<void> TemplateG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
-        // Currently, no args to process. But we still need to enforce callers to pass the correct
-        // args type.
         if (!args) {
             return LangCore::Error(LangCore::Error::InvalidArgument, "TemplateG2p task init args is nullptr");
         }
-        // if (auto name = args->objectName(); name != Template::API_NAME) {
-        //     return LangCore::Error(LangCore::Error::InvalidArgument,
-        //                           stdc::formatN(R"(invalid TemplateG2p task init args name: expected "%1", got
-        //                           "%2")",
-        //                                         Template::API_NAME, name));
-        // }
+
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
@@ -66,10 +58,8 @@ namespace LangPlugins::TemplateG2p
 
         // Get TemplateG2p config
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig) {
-            setState(Failed);
+        if (!expConfig)
             return expConfig.takeError();
-        }
         const auto config = expConfig.take();
 
         impl.enableOnnxG2p = config->enableOnnxG2p;
@@ -79,15 +69,12 @@ namespace LangPlugins::TemplateG2p
         } else if (auto res = getObject("g2p", config->onnxG2pId); res) {
             impl.g2pInference = res.take().as<Task>();
         } else {
-            setState(Failed);
             return res.takeError();
         }
 
         auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
-        if (!expVerifier) {
-            setState(Failed);
+        if (!expVerifier)
             return expVerifier.takeError();
-        }
         impl.verifier = expVerifier.take();
 
         // Load phoneme dict
@@ -100,10 +87,6 @@ namespace LangPlugins::TemplateG2p
                                        stdc::formatN("Task '%1' - Failed to read dictionary %2:%3",
                                                      this->spec()->name().text(), config->dictPath, ec.value()));
         }
-
-        // Initialize inference state
-        setState(Idle);
-
         // return success
         return {};
     }
@@ -126,32 +109,16 @@ namespace LangPlugins::TemplateG2p
         __stdc_impl_t;
         {
             std::shared_lock lock(impl.mutex);
-            if (!impl.g2pInference && impl.enableOnnxG2p) {
-                setState(Failed);
+            if (!impl.g2pInference && impl.enableOnnxG2p)
                 return LangCore::Error(LangCore::Error::SessionError, "TemplateG2pTask: g2p inference not initialized");
-            }
         }
-
-        setState(Running);
 
         // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig) {
-            setState(Failed);
+        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
             return expConfig.takeError();
-        }
 
-        if (!input) {
-            setState(Failed);
+        if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
-        }
-
-        // if (const auto &name = input->objectName(); name != Template::API_NAME) {
-        //     setState(Failed);
-        //     return LangCore::Error(
-        //         LangCore::Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Template::API_NAME,
-        //         name));
-        // }
 
         const auto g2pInput = input.as<LangCore::G2pStartInput>();
         std::vector<LangCore::G2pRes> res;
@@ -225,25 +192,6 @@ namespace LangPlugins::TemplateG2p
         g2pResult->g2pResult = res;
 
         impl.result = g2pResult;
-        setState(Idle);
         return g2pResult;
-    }
-
-    LangCore::Expected<void> TemplateG2pTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                         const StartAsyncCallback &callback) {
-        // TODO:
-        return LangCore::Error(LangCore::Error::NotImplemented);
-    }
-
-    bool TemplateG2pTask::stop() {
-        __stdc_impl_t;
-        setState(Terminated);
-        return true;
-    }
-
-    LangCore::NO<LangCore::TaskResult> TemplateG2pTask::result() const {
-        __stdc_impl_t;
-        std::shared_lock lock(impl.mutex);
-        return impl.result;
     }
 } // namespace LangPlugins::TemplateG2p

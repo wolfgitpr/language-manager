@@ -128,10 +128,6 @@ namespace LangPlugins::onnxDriver
         }
     };
 
-    struct SessionAsyncRunContext {
-        LangCore::Task::StartAsyncCallback callback;
-    };
-
     class Session::Impl {
     public:
         Ort::RunOptions runOptions;
@@ -143,7 +139,6 @@ namespace LangPlugins::onnxDriver
         std::filesystem::path realPath;
 
         std::unique_ptr<SessionRunContext> context;
-        std::unique_ptr<SessionAsyncRunContext> asyncContext;
         LangCore::NO<Api::Onnx::L1::SessionResult> sessionResult;
 
         Impl() : sessionResult(LangCore::NO<Api::Onnx::L1::SessionResult>::create()) {}
@@ -195,8 +190,7 @@ namespace LangPlugins::onnxDriver
             const auto dtype = tensor->dataType();
             auto shape = tensor->shape();
             const auto dataLength = tensor->elementCount();
-            const auto dataLengthFromShape =
-                std::accumulate(shape.begin(), shape.end(), int64_t{1}, std::multiplies<>());
+            const auto dataLengthFromShape = std::accumulate(shape.begin(), shape.end(), int64_t{1}, std::multiplies());
             if (dataLength != dataLengthFromShape) {
                 if (error) {
                     *error = {LangCore::Error::InvalidArgument, "Shape does not match data length"};
@@ -269,38 +263,6 @@ namespace LangPlugins::onnxDriver
         }
 
         LangCore::Error validateInputValueMap(const LangCore::NO<Api::Onnx::L1::SessionStartInput> &input) const;
-
-        static void runAsyncCallback(void *user_data, OrtValue **outputs, const size_t num_outputs,
-                                     const OrtStatusPtr status) {
-            const auto &impl = *static_cast<Impl *>(user_data);
-            auto &ctx = *impl.context;
-            impl.sessionResult->outputs.clear();
-            if (const Ort::Status runStatus(status); !runStatus.IsOK()) {
-                impl.sessionResult->error = {LangCore::Error::SessionError, runStatus.GetErrorMessage()};
-                impl.asyncContext->callback(impl.sessionResult, impl.sessionResult->error);
-                langCoreCritical("runAsyncCallback failed");
-                return;
-            }
-            for (size_t i = 0; i < num_outputs; ++i) {
-                // Transfer ownership of the raw OrtValue* to an Ort::Value wrapper,
-                // which will subsequently be managed by OnnxTensor. No manual release is required.
-                Ort::Value managedOrtValue(outputs[i]);
-
-                // Null the raw pointer to prevent double release in SessionRunContext's destructor.
-                outputs[i] = nullptr;
-
-                auto exp = OnnxTensor::createFromOrtValue(std::move(managedOrtValue));
-                if (!exp) {
-                    impl.sessionResult->error = exp.takeError();
-                    impl.asyncContext->callback(impl.sessionResult, impl.sessionResult->error);
-                    return;
-                }
-
-                impl.sessionResult->outputs.emplace(ctx.outputNames[i], exp.take());
-            }
-            impl.asyncContext->callback(impl.sessionResult, impl.sessionResult->error);
-            langCoreDebug("runAsyncCallback completed");
-        }
 
         LangCore::NO<Api::Onnx::L1::SessionResult>
         sessionRun(const LangCore::NO<Api::Onnx::L1::SessionStartInput> &sessionStartInput,
@@ -400,85 +362,6 @@ namespace LangPlugins::onnxDriver
                 }
             }
             return {};
-        }
-
-        bool sessionRunAsync(const LangCore::NO<Api::Onnx::L1::SessionStartInput> &sessionStartInput,
-                             const LangCore::Task::StartAsyncCallback &callback, LangCore::Error *error = nullptr) {
-            if (!(sessionStartInput && sessionStartInput->objectName() == Api::Onnx::L1::API_NAME)) {
-                if (error) {
-                    *error = {LangCore::Error::InvalidArgument, "Session start input is not valid"};
-                }
-                return false;
-            }
-
-            if (auto validateError = validateInputValueMap(sessionStartInput); !validateError.ok()) {
-                if (error) {
-                    *error = std::move(validateError);
-                }
-                return false;
-            }
-
-            const auto &inputValueMap = sessionStartInput->inputs;
-            auto inputCount = inputValueMap.size();
-            auto outputCount = sessionStartInput->outputs.size();
-
-            context = std::make_unique<SessionRunContext>(inputCount, outputCount);
-            auto &ctx = *context;
-
-            asyncContext = std::make_unique<SessionAsyncRunContext>();
-            try {
-                const auto memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-
-                for (auto &[name, value] : inputValueMap) {
-                    ctx.inputNames.push_back(name.c_str());
-                    if (value->backend() == "tensor") {
-                        auto ortValue = createOrtValueFromTensor(value, memInfo, error);
-                        if (!ortValue) {
-                            if (error) {
-                                *error = {LangCore::Error::InvalidArgument,
-                                          "Could not create Ort Tensor for input name \"" + name + "\""};
-                            }
-                            return false;
-                        }
-                        ctx.inputValueRegistry.push_back(std::move(ortValue));
-                        ctx.inputValuePtrs.push_back(ctx.inputValueRegistry.back());
-                    } else if (value->backend() == "onnx") {
-                        const auto ortValue = value.as<OnnxTensor>();
-                        ctx.inputValuePtrs.push_back(*ortValue->valuePtr());
-                    } else {
-                        if (error) {
-                            *error = {LangCore::Error::InvalidArgument,
-                                      "Unknown tensor backend for input name \"" + name + "\""};
-                        }
-                        return false;
-                    }
-                }
-
-                for (auto &name : sessionStartInput->outputs) {
-                    ctx.outputNames.push_back(name.c_str());
-                }
-                runOptions.UnsetTerminate();
-
-                asyncContext->callback = callback;
-                const Ort::Status statusRun(
-                    Ort::GetApi().RunAsync(image->session, runOptions, ctx.inputNames.data(), ctx.inputValuePtrs.data(),
-                                           inputCount, ctx.outputNames.data(), outputCount, ctx.outputValuePtrs.data(),
-                                           runAsyncCallback, static_cast<void *>(this)));
-                if (!statusRun.IsOK()) {
-                    ctx.releaseOutputValues();
-                    if (error) {
-                        *error = LangCore::Error(LangCore::Error::SessionError, statusRun.GetErrorMessage());
-                    }
-                    return false;
-                }
-                return true;
-            }
-            catch (const Ort::Exception &err) {
-                if (error) {
-                    *error = LangCore::Error(LangCore::Error::SessionError, err.what());
-                }
-            }
-            return false;
         }
     };
     LangCore::Error
@@ -803,32 +686,5 @@ namespace LangPlugins::onnxDriver
         }
         impl.sessionResult = result;
         return result;
-    }
-
-    LangCore::Expected<void> Session::runAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                               const LangCore::Task::StartAsyncCallback &callback) {
-        __stdc_impl_t;
-        LangCore::Error tmpError;
-        if (!(input && input->objectName() == Api::Onnx::L1::API_NAME)) {
-            tmpError = {LangCore::Error::InvalidArgument, "invalid task start input"};
-            impl.sessionResult->error = tmpError;
-            return tmpError;
-        }
-        if (!impl.group) {
-            tmpError = {LangCore::Error::SessionError, "session is not open"};
-            impl.sessionResult->error = tmpError;
-            return tmpError;
-        }
-        const auto startInput = input.as<Api::Onnx::L1::SessionStartInput>();
-        if (const bool ok = impl.sessionRunAsync(startInput, callback, &tmpError); !ok) {
-            impl.sessionResult->error = tmpError;
-            return tmpError;
-        }
-        return {};
-    }
-
-    LangCore::NO<LangCore::TaskResult> Session::result() const {
-        __stdc_impl_t;
-        return impl.sessionResult.as<LangCore::TaskResult>();
     }
 } // namespace LangPlugins::onnxDriver

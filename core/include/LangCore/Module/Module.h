@@ -18,12 +18,12 @@ namespace LangCore
 {
     class ModuleLocator {
     public:
-        ModuleLocator(std::string package, stdc::VersionNumber version, std::string id) :
-            _package(std::move(package)), _version(std::move(version)), _id(std::move(id)) {}
-        ModuleLocator(std::string package, stdc::VersionNumber version) :
-            _package(std::move(package)), _version(std::move(version)) {}
+        ModuleLocator(std::string package, const stdc::VersionNumber version, std::string id) :
+            _package(std::move(package)), _version(version), _id(std::move(id)) {}
+        ModuleLocator(std::string package, const stdc::VersionNumber version) :
+            _package(std::move(package)), _version(version) {}
         ModuleLocator(std::string package, std::string id) : _package(std::move(package)), _id(std::move(id)) {}
-        ModuleLocator(std::string id) : _id(std::move(id)) {}
+        explicit ModuleLocator(std::string id) : _id(std::move(id)) {}
 
         ModuleLocator() = default;
 
@@ -129,7 +129,7 @@ namespace LangCore
         virtual std::string category() const = 0;
 
         Expected<ModuleSpec *> parseSpec(const std::filesystem::path &basePath, const JsonValue &config) const;
-        Expected<void> loadSpecBase(ModuleSpec *spec, const ModuleSpec::State state);
+        Expected<void> loadSpecBase(ModuleSpec *spec, ModuleSpec::State state);
         Expected<void> loadSpec(ModuleSpec *spec, ModuleSpec::State state);
 
         std::vector<ModuleSpec *> find(const ModuleLocator &loc) const;

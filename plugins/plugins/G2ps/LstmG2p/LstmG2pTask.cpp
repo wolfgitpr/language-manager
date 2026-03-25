@@ -1,7 +1,6 @@
 #include "LstmG2pTask.h"
 
 #include <mutex>
-#include <numeric>
 #include <shared_mutex>
 
 #include <stdcorelib/path.h>
@@ -25,9 +24,6 @@ namespace LangPlugins::LstmG2p
         if (!genericConfig) {
             return LangCore::Error(LangCore::Error::InvalidArgument, "LstmG2p configuration is nullptr");
         }
-        // if (!(genericConfig->className() == Lstm::API_CLASS && genericConfig->objectName() == Lstm::API_NAME)) {
-        //     return LangCore::Error(LangCore::Error::InvalidArgument, "invalid LstmG2p configuration");
-        // }
         return genericConfig.as<Lstm::LstmG2pConfiguration>();
     }
 
@@ -46,17 +42,10 @@ namespace LangPlugins::LstmG2p
 
     LangCore::Expected<void> LstmG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
-        // Currently, no args to process. But we still need to enforce callers to pass the correct
-        // args type.
         if (!args) {
             return LangCore::Error(LangCore::Error::InvalidArgument, "LstmG2p task init args is nullptr");
         }
-        // if (auto name = args->objectName(); name != Lstm::API_NAME) {
-        //     return LangCore::Error(
-        //         LangCore::Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid LstmG2p task init args name: expected "%1", got "%2")", Lstm::API_NAME,
-        //         name));
-        // }
+
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
@@ -65,14 +54,12 @@ namespace LangPlugins::LstmG2p
         if (auto res = getObject("driver", "g2pOnnxDriver"); res) {
             impl.driver = res.take().as<LangCore::SessionFactory>();
         } else {
-            setState(Failed);
             return res.takeError();
         }
 
         // Get LstmG2p config
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
         if (!expConfig) {
-            setState(Failed);
             return expConfig.takeError();
         }
         const auto config = expConfig.take();
@@ -82,7 +69,6 @@ namespace LangPlugins::LstmG2p
         const auto encoderOpenArgs = LangCore::NO<Onnx::SessionOpenArgs>::create();
         encoderOpenArgs->useCpu = false;
         if (auto res = impl.encoderSession->open(config->encoder, encoderOpenArgs); !res) {
-            setState(Failed);
             return res;
         }
 
@@ -90,13 +76,8 @@ namespace LangPlugins::LstmG2p
         const auto predictorOpenArgs = LangCore::NO<Onnx::SessionOpenArgs>::create();
         predictorOpenArgs->useCpu = false;
         if (auto res = impl.decodeSession->open(config->decoder, predictorOpenArgs); !res) {
-            setState(Failed);
             return res;
         }
-
-        // Initialize inference state
-        setState(Idle);
-
         // return success
         return {};
     }
@@ -106,49 +87,30 @@ namespace LangPlugins::LstmG2p
         __stdc_impl_t;
         {
             std::shared_lock lock(impl.mutex);
-            if (!impl.driver) {
-                setState(Failed);
+            if (!impl.driver)
                 return LangCore::Error(LangCore::Error::SessionError, "inference driver not initialized");
-            }
         }
-
-        setState(Running);
 
         // Get configuration
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig) {
-            setState(Failed);
+        if (!expConfig)
             return expConfig.takeError();
-        }
         const auto config = expConfig.take();
 
-        if (!input) {
-            setState(Failed);
+        if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
-        }
-
-        // if (const auto &name = input->objectName(); name != Lstm::API_NAME) {
-        //     setState(Failed);
-        //     return LangCore::Error(
-        //         LangCore::Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Lstm::API_NAME, name));
-        // }
 
         const auto g2pInput = input.as<LangCore::G2pStartInput>();
 
         // Preprocess input word
-        if (g2pInput->g2pInput.empty()) {
-            setState(Failed);
+        if (g2pInput->g2pInput.empty())
             return LangCore::Error(LangCore::Error::InvalidArgument, "input words are empty");
-        }
 
         // For now, process only the first word
         const auto &lyric = g2pInput->g2pInput[0];
         auto preprocessedInput = LstmG2pInferenceHelper::preprocessWord(lyric, config);
-        if (!preprocessedInput) {
-            setState(Failed);
+        if (!preprocessedInput)
             return preprocessedInput.takeError();
-        }
 
         // Run encoder
         auto encoderInput = LangCore::NO<Onnx::SessionStartInput>::create();
@@ -159,19 +121,15 @@ namespace LangPlugins::LstmG2p
         encoderInput->outputs.insert("cell");
 
         std::unique_lock lock(impl.mutex);
-        if (!impl.encoderSession || !impl.encoderSession->isOpen()) {
-            setState(Failed);
+        if (!impl.encoderSession || !impl.encoderSession->isOpen())
             return LangCore::Error(LangCore::Error::SessionError, "encoder session is not initialized");
-        }
 
         LangCore::NO<Onnx::SessionResult> encoderResult;
         if (auto encoderExp = impl.encoderSession->start(encoderInput); !encoderExp) {
-            setState(Failed);
             return encoderExp.takeError();
         } else {
             auto sessionTaskResult = encoderExp.take();
             if (!sessionTaskResult || sessionTaskResult->objectName() != Onnx::API_NAME) {
-                setState(Failed);
                 return LangCore::Error(LangCore::Error::SessionError, "invalid encoder result");
             }
             encoderResult = sessionTaskResult.as<Onnx::SessionResult>();
@@ -182,63 +140,32 @@ namespace LangPlugins::LstmG2p
         auto hidden = LstmG2pInferenceHelper::getTensorFromResult(encoderResult, "hidden");
         auto cell = LstmG2pInferenceHelper::getTensorFromResult(encoderResult, "cell");
 
-        if (!encoderOutputs || !hidden || !cell) {
-            setState(Failed);
+        if (!encoderOutputs || !hidden || !cell)
             return LangCore::Error(LangCore::Error::SessionError, "failed to get encoder outputs");
-        }
 
         // Run decoder with autoregressive generation
         auto phonemeIds = LstmG2pInferenceHelper::runDecoder(impl.decodeSession, encoderOutputs.take(), hidden.take(),
                                                              cell.take(), config);
-        if (!phonemeIds) {
-            setState(Failed);
+        if (!phonemeIds)
             return phonemeIds.takeError();
-        }
 
         // Decode phonemes
         auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), config);
-        if (phonemes->empty()) {
-            setState(Failed);
+        if (phonemes->empty())
             return phonemes.takeError();
-        }
 
         auto phonemes_ = phonemes.take();
 
         // Create result
         auto g2pResult = LangCore::NO<LangCore::G2pResult>::create(LangCore::G2P_API_NAME, LangCore::G2P_API_CLASS,
                                                                    LangCore::G2P_API_LEVEL);
-        std::string pronStr = "";
+        std::string pronStr;
         for (auto &phone : phonemes_)
             pronStr += phone + " ";
         g2pResult->g2pResult = {LangCore::G2pRes(lyric, "eng", pronStr, {}, "copy", true)};
 
         impl.result = g2pResult;
-        setState(Idle);
         return g2pResult;
-    }
-
-    LangCore::Expected<void> LstmG2pTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                     const StartAsyncCallback &callback) {
-        // TODO:
-        return LangCore::Error(LangCore::Error::NotImplemented);
-    }
-
-    bool LstmG2pTask::stop() {
-        __stdc_impl_t;
-        bool flag = true;
-        for (auto &session : {impl.encoderSession, impl.decodeSession}) {
-            if (session) {
-                flag &= session->stop();
-            }
-        }
-        setState(Terminated);
-        return flag;
-    }
-
-    LangCore::NO<LangCore::TaskResult> LstmG2pTask::result() const {
-        __stdc_impl_t;
-        std::shared_lock lock(impl.mutex);
-        return impl.result;
     }
 
     LangCore::Expected<LangCore::NO<ITensor>>

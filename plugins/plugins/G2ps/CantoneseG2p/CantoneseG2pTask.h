@@ -21,11 +21,6 @@ namespace LangPlugins::CantoneseG2p
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskStartInput> &input) override;
-        LangCore::Expected<void> startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                            const StartAsyncCallback &callback) override;
-        bool stop() override;
-
-        LangCore::NO<LangCore::TaskResult> result() const override;
 
     protected:
         class Impl;
@@ -34,4 +29,4 @@ namespace LangPlugins::CantoneseG2p
 
 } // namespace LangPlugins::CantoneseG2p
 
-#endif //  LANGPLUGINS_CHINESEG2PTASK_H
+#endif

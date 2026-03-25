@@ -27,11 +27,6 @@ namespace LangPlugins::LstmG2p
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskStartInput> &input) override;
-        LangCore::Expected<void> startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                            const StartAsyncCallback &callback) override;
-        bool stop() override;
-
-        LangCore::NO<LangCore::TaskResult> result() const override;
 
     protected:
         class Impl;
@@ -58,6 +53,6 @@ namespace LangPlugins::LstmG2p
         static LangCore::Expected<std::vector<std::string>>
         decodePhonemes(const std::vector<int64_t> &phonemeIds, const LangCore::NO<Lstm::LstmG2pConfiguration> &config);
     };
-} // namespace LangPlugins
+} // namespace LangPlugins::LstmG2p
 
 #endif // LANGPLUGINS_LSTMG2PTASK_H

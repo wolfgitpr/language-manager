@@ -2,7 +2,6 @@
 #define LANGCORE_ITASK_H
 
 #include <filesystem>
-#include <functional>
 
 #include <LangCore/Base/NamedObject.h>
 #include <LangCore/LangCoreGlobal.h>
@@ -69,24 +68,9 @@ namespace LangCore
         explicit Task(const ModuleSpec *spec);
         ~Task() override;
 
-        enum State {
-            Idle,
-            Running,
-            Failed,
-            Terminated,
-        };
-
-        using StartAsyncCallback = std::function<void(const NO<TaskResult> &, const Error &)>;
-
         virtual Expected<void> initialize(const NO<TaskInitArgs> &args);
 
         virtual Expected<NO<TaskResult>> start(const NO<TaskStartInput> &input) = 0;
-        virtual Expected<void> startAsync(const NO<TaskStartInput> &input, const StartAsyncCallback &callback);
-        virtual bool stop() = 0;
-
-        State state() const;
-
-        virtual NO<TaskResult> result() const = 0;
 
         const ModuleSpec *spec() const;
         PackageManager *Mgr() const;
@@ -94,8 +78,6 @@ namespace LangCore
         Expected<NO<NamedObject>> getObject(const std::string &category, const std::string &id) const;
 
     protected:
-        void setState(State state);
-
         class Impl;
         explicit Task(Impl &impl);
     };

@@ -27,4 +27,4 @@ namespace LangCore
         static PLUGIN_NAME _instance;                                                                                  \
         return &_instance;                                                                                             \
     }
-#endif // LANGCORE_MANAGER_PLUGIN_H
+#endif // LANGCORE_PLUGIN_H

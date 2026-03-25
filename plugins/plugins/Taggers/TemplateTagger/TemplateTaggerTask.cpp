@@ -44,17 +44,10 @@ namespace LangPlugins::TemplateTagger
 
     LangCore::Expected<void> TemplateTaggerTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
-        // Currently, no args to process. But we still need to enforce callers to pass the correct
-        // args type.
         if (!args) {
             return LangCore::Error(LangCore::Error::InvalidArgument, "TemplateTagger task init args is nullptr.");
         }
-        // if (auto name = args->objectName(); name != Regex::API_NAME) {
-        //     return LangCore::Error(LangCore::Error::InvalidArgument,
-        //                           stdc::formatN(R"(invalid TemplateTagger task init args name: expected "%1", got
-        //                           "%2")",
-        //                                         Regex::API_NAME, name));
-        // }
+
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
@@ -62,10 +55,8 @@ namespace LangPlugins::TemplateTagger
 
         // Get TemplateTagger config
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig) {
-            setState(Failed);
+        if (!expConfig)
             return expConfig.takeError();
-        }
         const auto config = expConfig.take();
 
         impl.RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
@@ -73,14 +64,9 @@ namespace LangPlugins::TemplateTagger
         impl.RegexOptions.set_max_mem(8 << 20); // 8MB
 
         auto expVerifier = TaggerUtil::Create(config->taggerUtilEntry, config->language);
-        if (!expVerifier) {
-            setState(Failed);
+        if (!expVerifier)
             return expVerifier.takeError();
-        }
         impl.taggerUtil = expVerifier.take();
-
-        // Initialize inference state
-        setState(Idle);
 
         // return success
         return {};
@@ -89,26 +75,13 @@ namespace LangPlugins::TemplateTagger
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     TemplateTaggerTask::start(const LangCore::NO<LangCore::TaskStartInput> &input) {
         __stdc_impl_t;
-        setState(Running);
 
         // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig) {
-            setState(Failed);
+        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
             return expConfig.takeError();
-        }
 
-        if (!input) {
-            setState(Failed);
+        if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "Tagger input is nullptr.");
-        }
-
-        // if (const auto &name = input->objectName(); name != Regex::API_NAME) {
-        //     setState(Failed);
-        //     return LangCore::Error(
-        //         LangCore::Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Regex::API_NAME,
-        //         name));
-        // }
 
         const auto taggerInput = input.as<LangCore::TaggerStartInput>();
         std::vector<LangCore::TaggerRes> res = taggerInput->taggerInput;
@@ -120,25 +93,6 @@ namespace LangPlugins::TemplateTagger
         taggerResult->taggerResult = res;
 
         impl.result = taggerResult;
-        setState(Idle);
         return taggerResult;
-    }
-
-    LangCore::Expected<void> TemplateTaggerTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                            const StartAsyncCallback &callback) {
-        // TODO:
-        return LangCore::Error(LangCore::Error::NotImplemented);
-    }
-
-    bool TemplateTaggerTask::stop() {
-        __stdc_impl_t;
-        setState(Terminated);
-        return true;
-    }
-
-    LangCore::NO<LangCore::TaskResult> TemplateTaggerTask::result() const {
-        __stdc_impl_t;
-        std::shared_lock lock(impl.mutex);
-        return impl.result;
     }
 } // namespace LangPlugins::TemplateTagger

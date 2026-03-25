@@ -9,7 +9,6 @@ namespace LangPlugins
     public:
         OnnxDriverPlugin() = default;
 
-    public:
         const char *key() const override { return "onnx"; }
 
         LangCore::NO<LangCore::SessionFactory> create() override { return LangCore::NO<OnnxDriver>::create(); }

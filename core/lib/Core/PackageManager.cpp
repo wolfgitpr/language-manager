@@ -925,7 +925,7 @@ namespace LangCore
     void PackageManager::printDiscoveryInfo(const size_t pathCount, const size_t moduleCount) {
         __stdc_impl_t;
         if (moduleCount == 0) {
-            std::string pathStr = "";
+            std::string pathStr;
             for (const auto &path : impl.packagePaths)
                 pathStr += path.string() + ".\n";
             MgrLog.langCoreCritical(

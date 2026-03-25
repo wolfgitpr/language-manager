@@ -11,7 +11,6 @@ namespace LangCore
     public:
         explicit Impl(Task *task) : NamedObject::Impl(task) {}
 
-        State state = Idle;
         const ModuleSpec *spec_;
     };
 } // namespace LangCore

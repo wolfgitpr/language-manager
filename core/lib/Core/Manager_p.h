@@ -22,9 +22,7 @@ namespace LangCore
         std::vector<NO<Task>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {});
 
         bool initialized = false;
-        std::vector<std::string> defaultTaggerOrder = {"cmn", "yue", "jpn", "eng", "space", "punc", "num", "unknown"};
         std::map<std::string, std::map<std::string, NO<Task>>> tasks;
-        std::string m_pinyinDictPath;
 
         std::unordered_set<ModuleMetadata, ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>
             moduleInfoSet;

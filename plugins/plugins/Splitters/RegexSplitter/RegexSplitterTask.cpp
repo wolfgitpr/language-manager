@@ -118,10 +118,8 @@ namespace LangPlugins::RegexSplitter
 
         // Get RegexSplitter config
         auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig) {
-            setState(Failed);
+        if (!expConfig)
             return expConfig.takeError();
-        }
         const auto config = expConfig.take();
 
         impl.RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
@@ -131,9 +129,6 @@ namespace LangPlugins::RegexSplitter
         for (const auto &regex : config->regexes)
             impl.regexes.push_back(std::make_unique<SplitterRegex>(regex));
 
-        // Initialize inference state
-        setState(Idle);
-
         // return success
         return {};
     }
@@ -141,26 +136,14 @@ namespace LangPlugins::RegexSplitter
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     RegexSplitterTask::start(const LangCore::NO<LangCore::TaskStartInput> &input) {
         __stdc_impl_t;
-        setState(Running);
 
         // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig) {
-            setState(Failed);
+        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
             return expConfig.takeError();
-        }
 
-        if (!input) {
-            setState(Failed);
+
+        if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "splitter input is nullptr");
-        }
-
-        // if (const auto &name = input->objectName(); name != Regex::API_NAME) {
-        //     setState(Failed);
-        //     return LangCore::Error(
-        //         LangCore::Error::InvalidArgument,
-        //         stdc::formatN(R"(invalid g2p task init args name: expected "%1", got "%2")", Regex::API_NAME,
-        //         name));
-        // }
 
         const auto splitterInput = input.as<LangCore::SplitterStartInput>();
         std::vector<std::string> res;
@@ -172,25 +155,6 @@ namespace LangPlugins::RegexSplitter
         taggerResult->splitterResult = res;
 
         impl.result = taggerResult;
-        setState(Idle);
         return taggerResult;
-    }
-
-    LangCore::Expected<void> RegexSplitterTask::startAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                                           const StartAsyncCallback &callback) {
-        // TODO:
-        return LangCore::Error(LangCore::Error::NotImplemented);
-    }
-
-    bool RegexSplitterTask::stop() {
-        __stdc_impl_t;
-        setState(Terminated);
-        return true;
-    }
-
-    LangCore::NO<LangCore::TaskResult> RegexSplitterTask::result() const {
-        __stdc_impl_t;
-        std::shared_lock lock(impl.mutex);
-        return impl.result;
     }
 } // namespace LangPlugins::RegexSplitter

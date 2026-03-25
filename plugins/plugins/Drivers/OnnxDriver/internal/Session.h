@@ -29,22 +29,18 @@ namespace LangPlugins::onnxDriver
         Session &operator=(Session &&other) noexcept;
 
         LangCore::Expected<void> open(const std::filesystem::path &path,
-                                      const LangCore::NO<LangPlugins::Api::Onnx::L1::SessionOpenArgs> &args);
+                                      const LangCore::NO<Api::Onnx::L1::SessionOpenArgs> &args);
         LangCore::Expected<void> close();
 
         const std::vector<std::string> &inputNames() const;
         const std::vector<std::string> &outputNames() const;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>> run(const LangCore::NO<LangCore::TaskStartInput> &input);
-        LangCore::Expected<void> runAsync(const LangCore::NO<LangCore::TaskStartInput> &input,
-                                          const LangCore::Task::StartAsyncCallback &callback);
 
         void terminate();
 
         const std::filesystem::path &path() const;
         bool isOpen() const;
-
-        LangCore::NO<LangCore::TaskResult> result() const;
 
     protected:
         class Impl;

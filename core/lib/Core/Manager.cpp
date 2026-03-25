@@ -22,29 +22,25 @@ namespace LangCore
     Manager::Impl::~Impl() = default;
 
     std::vector<NO<Task>> Manager::Impl::priorityTaggers(const std::vector<std::string> &priorityTaggerIds) {
-        const std::vector<std::string> order = defaultTaggerOrder;
-
         const auto &taggers = tasks["tagger"];
-
         std::vector<NO<Task>> result;
+        std::unordered_set<std::string> addedIds;
+
         for (const auto &baseId : priorityTaggerIds) {
-            const auto id = "tagger-" + baseId;
-            const auto it = taggers.find(id);
-            if (it == taggers.end())
-                continue;
-            result.push_back(it->second);
+            const std::string id = "tagger-" + baseId;
+            if (auto it = taggers.find(id); it != taggers.end() && addedIds.find(id) == addedIds.end()) {
+                result.push_back(it->second);
+                addedIds.insert(id);
+            }
         }
 
-        for (const auto &baseId : order) {
-            const auto id = "tagger-" + baseId;
-            if (std::find(priorityTaggerIds.begin(), priorityTaggerIds.end(), id) != priorityTaggerIds.end())
-                continue;
-
-            const auto it = taggers.find(id);
-            if (it == taggers.end())
-                continue;
-            result.push_back(it->second);
+        for (const auto &[id, tagger] : taggers) {
+            if (addedIds.find(id) == addedIds.end()) {
+                result.push_back(tagger);
+                addedIds.insert(id);
+            }
         }
+
         return result;
     }
 
@@ -66,27 +62,27 @@ namespace LangCore
 
         auto splitters = this->tasks("splitter");
         if (!splitters.hasValue()) {
-            errMsg = "Failed to load packages in order";
+            errMsg = "Failed to load splitter packages in order";
             return false;
         }
         for (const auto &splitter : splitters.take())
-            impl.tasks["splitter"][splitter->spec()->name().text()] = splitter;
+            impl.tasks["splitter"][splitter->spec()->id()] = splitter;
 
         auto g2ps = this->tasks("g2p");
         if (!g2ps.hasValue()) {
-            errMsg = "Failed to load packages in order";
+            errMsg = "Failed to load g2p packages in order";
             return false;
         }
         for (const auto &g2p : g2ps.take())
-            impl.tasks["g2p"][g2p->spec()->name().text()] = g2p;
+            impl.tasks["g2p"][g2p->spec()->id()] = g2p;
 
         auto taggers = this->tasks("tagger");
         if (!taggers.hasValue()) {
-            errMsg = "Failed to load packages in order";
+            errMsg = "Failed to load tagger packages in order";
             return false;
         }
         for (const auto &tagger : taggers.take())
-            impl.tasks["tagger"][tagger->spec()->name().text()] = tagger;
+            impl.tasks["tagger"][tagger->spec()->id()] = tagger;
 
         impl.initialized = true;
         return true;
@@ -125,16 +121,6 @@ namespace LangCore
         if (tasks.empty())
             return Error(Error::SessionError, "category: " + category + " is empty.");
         return tasks;
-    }
-
-    std::vector<std::string> Manager::defaultTaggerOrder() const {
-        __stdc_impl_t;
-        return impl.defaultTaggerOrder;
-    }
-
-    void Manager::setDefaultOrder(const std::vector<std::string> &order) {
-        __stdc_impl_t;
-        impl.defaultTaggerOrder = order;
     }
 
     std::vector<std::string> Manager::split(const std::string &input) {
