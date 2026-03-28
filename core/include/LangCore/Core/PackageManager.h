@@ -54,10 +54,10 @@ namespace LangCore
 
         static void registerCategoryFactory(ModuleCategory *(*fac)(PackageManager *));
 
-        void collectModuleMetadata(const std::string &packageId, const std::string &packageVersion,
-                                   const std::filesystem::path &packageDir, const JsonObject &modulesObj);
-        static void extractModuleMetadataFromJson(const std::string &packageId, const std::string &packageVersion,
-                                                  const JsonObject &moduleEntry, ModuleMetadata &info);
+        void collectModuleMetadata(const std::string &packageId, const std::filesystem::path &packageDir,
+                                   const JsonObject &modulesObj);
+        static void extractModuleMetadataFromJson(const std::string &packageId, const JsonObject &moduleEntry,
+                                                  ModuleMetadata &info);
 
 
         friend class Package;

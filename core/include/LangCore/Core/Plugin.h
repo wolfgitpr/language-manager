@@ -18,6 +18,8 @@ namespace LangCore
 
         virtual const char *key() const = 0;
 
+        virtual int apiLevel() const = 0;
+
         std::filesystem::path path() const { return stdc::SharedLibrary::locateLibraryPath(this); }
     };
 } // namespace LangCore

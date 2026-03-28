@@ -1,18 +1,20 @@
-#include <LangCore/Task/TaskFactoryPlugin.h>
+#include <LangCore/Task/TaskPlugin.h>
 
-#include "RegexSplitterEngineFactory.h"
+#include "RegexSplitterTask.h"
 
 namespace LangPlugins::RegexSplitter
 {
 
-    class RegexSplitterInterpreterPlugin final : public LangCore::TaskFactoryPlugin {
+    class RegexSplitterInterpreterPlugin final : public LangCore::TaskPlugin {
     public:
         RegexSplitterInterpreterPlugin() = default;
 
+        int apiLevel() const override { return 1; }
+
         const char *key() const override { return "splitter.regex.RegexSplitterInference"; }
 
-        LangCore::NO<LangCore::TaskFactory> create() override {
-            return LangCore::NO<RegexSplitterEngineFactory>::create();
+        LangCore::Expected<LangCore::NO<LangCore::Task>> createTask(const LangCore::ModuleSpec *spec) override {
+            return LangCore::NO<RegexSplitterTask>::create(spec);
         }
     };
 

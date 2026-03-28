@@ -7,29 +7,18 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <LangCore/Module/G2pModule.h>
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
 
 #include <cpp-pinyin/G2pglobal.h>
 #include <cpp-pinyin/Jyutping.h>
 
+#include <InferUtil/ErrorCollector.h>
+#include <InferUtil/Parser.h>
 #include <InferUtil/Verifier.h>
 
 namespace LangPlugins::CantoneseG2p
 {
-    namespace fs = std::filesystem;
-
-    static LangCore::Expected<LangCore::NO<Cantonese::CantoneseG2pConfiguration>>
-    getConfig(const LangCore::ModuleSpec *spec) {
-        const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
-        if (!genericConfig)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "CantoneseG2p configuration is nullptr");
-        if (!(genericConfig->className() == Cantonese::API_CLASS && genericConfig->objectName() == Cantonese::API_NAME))
-            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid CantoneseG2p configuration");
-        return genericConfig.as<Cantonese::CantoneseG2pConfiguration>();
-    }
-
     class CantoneseG2pTask::Impl {
     public:
         LangCore::NO<LangCore::G2pResult> result;
@@ -43,6 +32,8 @@ namespace LangPlugins::CantoneseG2p
 
     CantoneseG2pTask::~CantoneseG2pTask() = default;
 
+    int CantoneseG2pTask::apiLevel() const { return 1; }
+
     LangCore::Expected<void> CantoneseG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
         if (!args) {
@@ -54,18 +45,21 @@ namespace LangPlugins::CantoneseG2p
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        // Get CantoneseG2p config
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig)
-            return expConfig.takeError();
-        const auto config = expConfig.take();
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec(), &ec);
 
-        auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
+        std::filesystem::path dictPath;
+        std::vector<InferUtil::VerifyEntry> verifyEntry;
+
+        parser.parse_verify_required(verifyEntry, "verify");
+        parser.parse_path_required(dictPath, "dictPath");
+
+        auto expVerifier = InferUtil::Verifier::Create(verifyEntry);
         if (!expVerifier)
             return expVerifier.takeError();
         impl.verifier = expVerifier.take();
 
-        Pinyin::setDictionaryPath(config->dictPath);
+        Pinyin::setDictionaryPath(dictPath);
         impl.m_cantonese = std::make_unique<Pinyin::Jyutping>();
 
         if (!impl.m_cantonese->initialized())
@@ -98,10 +92,6 @@ namespace LangPlugins::CantoneseG2p
             if (!impl.m_cantonese->initialized())
                 return LangCore::Error(LangCore::Error::SessionError, "CantoneseG2pTask: chinese g2p not initialized");
         }
-
-        // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
-            return expConfig.takeError();
 
         if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");

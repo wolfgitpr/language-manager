@@ -19,7 +19,9 @@ namespace LangPlugins
 
     OnnxSession::OnnxSession() : _impl(std::make_unique<Impl>()) {}
 
-    OnnxSession::~OnnxSession() { __stdc_impl_t; }
+    OnnxSession::~OnnxSession() = default;
+
+    int OnnxSession::apiLevel() const { return 1; }
 
     LangCore::Expected<void> OnnxSession::open(const std::filesystem::path &path,
                                                const LangCore::NO<LangCore::TaskInitArgs> &args) {

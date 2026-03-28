@@ -7,7 +7,6 @@
 #include <InferUtil/ErrorCollector.h>
 
 #include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
-#include <LangPlugins/Api/Taggers/TemplateTagger/1/TemplateTaggerL1.h>
 
 #include "LangCore/Module/Module.h"
 
@@ -35,8 +34,6 @@ namespace LangPlugins::InferUtil
         inline void parse_phonemes(std::map<std::string, int> &out, const std::string &fieldName);
         inline void parse_verify_required(std::vector<VerifyEntry> &out, const std::string &fieldName);
         inline void parse_stringVec_required(std::vector<std::string> &out, const std::string &fieldName);
-        inline void parse_tagger_required(std::vector<Api::TemplateTagger::L1::TaggerUtilEntry> &out,
-                                          const std::string &fieldName);
 
         template <typename T>
         void collectError(T &&msg) {

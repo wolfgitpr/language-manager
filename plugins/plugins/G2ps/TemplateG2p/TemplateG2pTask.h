@@ -17,6 +17,8 @@ namespace LangPlugins::TemplateG2p
         explicit TemplateG2pTask(const LangCore::ModuleSpec *spec);
         ~TemplateG2pTask() override;
 
+        int apiLevel() const override;
+
         LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>

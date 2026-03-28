@@ -74,8 +74,6 @@ namespace LangCore
         NO<TaskConfiguration> configuration() const;
         const std::filesystem::path &path() const;
 
-        Expected<NO<Task>> createTask(const NO<TaskRuntimeOptions> &runtimeOptions) const;
-
         State state() const;
         Package parent() const;
         PackageManager *Mgr() const;

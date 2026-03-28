@@ -9,13 +9,12 @@
 namespace LangPlugins::TemplateTagger
 {
 
-    ITaggerUtil::ITaggerUtil(Api::TemplateTagger::L1::TaggerUtilEntry entry, std::string language) :
+    ITaggerUtil::ITaggerUtil(TaggerUtilEntry entry, std::string language) :
         m_language(std::move(language)), m_entry(std::move(entry)) {}
 
     ITaggerUtil::~ITaggerUtil() = default;
 
-    TaggerRegex::TaggerRegex(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language) :
-        ITaggerUtil(entry, language) {
+    TaggerRegex::TaggerRegex(const TaggerUtilEntry &entry, const std::string &language) : ITaggerUtil(entry, language) {
         RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
         RegexOptions.set_log_errors(true);
         RegexOptions.set_max_mem(8 << 20); // 8MB
@@ -51,7 +50,7 @@ namespace LangPlugins::TemplateTagger
         return oss.str();
     }
 
-    TaggerArray::TaggerArray(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language) :
+    TaggerArray::TaggerArray(const TaggerUtilEntry &entry, const std::string &language) :
         ITaggerUtil(entry, language) {}
 
     TaggerArray::~TaggerArray() = default;
@@ -71,8 +70,7 @@ namespace LangPlugins::TemplateTagger
         }
     }
 
-    TaggerDict::TaggerDict(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language) :
-        TaggerArray(entry, language) {}
+    TaggerDict::TaggerDict(const TaggerUtilEntry &entry, const std::string &language) : TaggerArray(entry, language) {}
 
     TaggerDict::~TaggerDict() = default;
 
@@ -112,9 +110,8 @@ namespace LangPlugins::TemplateTagger
         return words;
     }
 
-    LangCore::Expected<std::unique_ptr<TaggerUtil>>
-    TaggerUtil::Create(const std::vector<Api::TemplateTagger::L1::TaggerUtilEntry> &entries,
-                       const std::string &language) {
+    LangCore::Expected<std::unique_ptr<TaggerUtil>> TaggerUtil::Create(const std::vector<TaggerUtilEntry> &entries,
+                                                                       const std::string &language) {
         auto taggerUtil = std::unique_ptr<TaggerUtil>(new TaggerUtil());
 
         for (const auto &entry : entries) {

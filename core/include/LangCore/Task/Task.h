@@ -68,6 +68,8 @@ namespace LangCore
         explicit Task(const ModuleSpec *spec);
         ~Task() override;
 
+        virtual int apiLevel() const = 0;
+
         virtual Expected<void> initialize(const NO<TaskInitArgs> &args);
 
         virtual Expected<NO<TaskResult>> start(const NO<TaskStartInput> &input) = 0;

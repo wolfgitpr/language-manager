@@ -17,6 +17,8 @@ namespace LangPlugins::CantoneseG2p
         explicit CantoneseG2pTask(const LangCore::ModuleSpec *spec);
         ~CantoneseG2pTask() override;
 
+        int apiLevel() const override;
+
         LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>

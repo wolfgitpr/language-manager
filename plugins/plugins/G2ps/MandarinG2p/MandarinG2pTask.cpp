@@ -7,29 +7,18 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <LangCore/Module/G2pModule.h>
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
 
 #include <cpp-pinyin/G2pglobal.h>
 #include <cpp-pinyin/Pinyin.h>
 
+#include <InferUtil/ErrorCollector.h>
+#include <InferUtil/Parser.h>
 #include <InferUtil/Verifier.h>
 
 namespace LangPlugins::MandarinG2p
 {
-    namespace fs = std::filesystem;
-
-    static LangCore::Expected<LangCore::NO<Mandarin::MandarinG2pConfiguration>>
-    getConfig(const LangCore::ModuleSpec *spec) {
-        const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
-        if (!genericConfig)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "MandarinG2p configuration is nullptr");
-        if (!(genericConfig->className() == Mandarin::API_CLASS && genericConfig->objectName() == Mandarin::API_NAME))
-            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid MandarinG2p configuration");
-        return genericConfig.as<Mandarin::MandarinG2pConfiguration>();
-    }
-
     class MandarinG2pTask::Impl {
     public:
         LangCore::NO<LangCore::G2pResult> result;
@@ -42,6 +31,8 @@ namespace LangPlugins::MandarinG2p
 
     MandarinG2pTask::~MandarinG2pTask() = default;
 
+    int MandarinG2pTask::apiLevel() const { return 1; }
+
     LangCore::Expected<void> MandarinG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
         if (!args) {
@@ -53,18 +44,21 @@ namespace LangPlugins::MandarinG2p
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        // Get MandarinG2p config
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig)
-            return expConfig.takeError();
-        const auto config = expConfig.take();
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec(), &ec);
 
-        auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
+        std::filesystem::path dictPath;
+        std::vector<InferUtil::VerifyEntry> verifyEntry;
+
+        parser.parse_verify_required(verifyEntry, "verify");
+        parser.parse_path_required(dictPath, "dictPath");
+
+        auto expVerifier = InferUtil::Verifier::Create(verifyEntry);
         if (!expVerifier)
             return expVerifier.takeError();
         impl.verifier = expVerifier.take();
 
-        Pinyin::setDictionaryPath(config->dictPath);
+        Pinyin::setDictionaryPath(dictPath);
         impl.m_mandarin = std::make_unique<Pinyin::Pinyin>();
 
         if (!impl.m_mandarin->initialized())
@@ -97,10 +91,6 @@ namespace LangPlugins::MandarinG2p
             if (!impl.m_mandarin->initialized())
                 return LangCore::Error(LangCore::Error::SessionError, "MandarinG2pTask: chinese g2p not initialized");
         }
-
-        // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
-            return expConfig.takeError();
 
         if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");

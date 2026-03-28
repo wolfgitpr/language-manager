@@ -2,20 +2,15 @@
 #define LANG_PLUGINS_REGEXTAGGERTASK_H
 
 #include <LangCore/Task/Task.h>
-#include <LangPlugins/Support/Tensor.h>
-
-#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/Splitters/RegexSplitter/1/RegexSplitterL1.h>
 
 namespace LangPlugins::RegexSplitter
 {
-    namespace Regex = Api::RegexSplitter::L1;
-    namespace Onnx = Api::Onnx::L1;
-
     class RegexSplitterTask : public LangCore::Task {
     public:
         explicit RegexSplitterTask(const LangCore::ModuleSpec *spec);
         ~RegexSplitterTask() override;
+
+        int apiLevel() const override;
 
         LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
 

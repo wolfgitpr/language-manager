@@ -10,10 +10,7 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <LangCore/Core/PackageManager.h>
 #include <LangCore/Package/Package.h>
-#include <LangCore/Task/TaskFactory.h>
-#include <LangCore/Task/TaskFactoryPlugin.h>
 
 #include "PackageManager_p.h"
 #include "Package_p.h"
@@ -146,11 +143,6 @@ namespace LangCore
     const std::filesystem::path &ModuleSpec::path() const {
         __stdc_impl_t;
         return impl.path;
-    }
-
-    Expected<NO<Task>> ModuleSpec::createTask(const NO<TaskRuntimeOptions> &runtimeOptions) const {
-        __stdc_impl_t;
-        return impl.interp->createTask(this, runtimeOptions);
     }
 
     ModuleSpec::State ModuleSpec::state() const {
@@ -447,9 +439,8 @@ namespace LangCore
                 const auto lib = spec_impl->package;
                 const auto it = impl.modules.insert(impl.modules.end(), spec);
 
-                // 修改索引结构，增加level层
                 impl.indexes[lib->id][lib->version][spec_impl->id][spec_impl->apiLevel] = it;
-                return Expected<void>();
+                return {};
             }
 
         case ModuleSpec::Deleted:
@@ -458,25 +449,25 @@ namespace LangCore
                 const auto lib = spec_impl->package;
                 const auto it = impl.indexes.find(lib->id);
                 if (it == impl.indexes.end()) {
-                    return Expected<void>();
+                    return {};
                 }
 
                 auto &versionMap = it->second;
                 const auto it2 = versionMap.find(lib->version);
                 if (it2 == versionMap.end()) {
-                    return Expected<void>();
+                    return {};
                 }
 
                 auto &moduleMap = it2->second;
                 const auto it3 = moduleMap.find(spec_impl->id);
                 if (it3 == moduleMap.end()) {
-                    return Expected<void>();
+                    return {};
                 }
 
                 auto &levelMap = it3->second;
                 const auto it4 = levelMap.find(spec_impl->apiLevel);
                 if (it4 == levelMap.end()) {
-                    return Expected<void>();
+                    return {};
                 }
 
                 impl.modules.erase(it4->second);
@@ -491,7 +482,7 @@ namespace LangCore
                 if (versionMap.empty()) {
                     impl.indexes.erase(it);
                 }
-                return Expected<void>();
+                return {};
             }
         default:
             break;
@@ -501,52 +492,9 @@ namespace LangCore
 
     Expected<void> ModuleCategory::loadSpec(ModuleSpec *spec, const ModuleSpec::State state) {
         __stdc_impl_t;
-        const auto spec_impl = spec->_impl.get();
         switch (state) {
         case ModuleSpec::Initialized:
-            {
-                const auto &key = spec->className();
-                NO<TaskFactory> interp;
-
-                // Search interpreter cache
-                if (const auto it = impl.interpreters.find(key); it != impl.interpreters.end()) {
-                    interp = it->second;
-                } else {
-                    // Search interpreter
-                    const auto plugin = Mgr()->plugin<TaskFactoryPlugin>(spec->className().c_str());
-                    if (!plugin) {
-                        return Error{
-                            Error::FeatureNotSupported,
-                            stdc::formatN(R"(required interpreter "%1" of inference "%2" not found)", spec->className(),
-                                          spec->id()),
-                        };
-                    }
-                    interp = plugin->create();
-                    impl.interpreters[key] = interp;
-                }
-
-                // Check api level
-                if (interp->apiLevel() < spec->apiLevel()) {
-                    return Error{
-                        Error::FeatureNotSupported,
-                        stdc::formatN(
-                            R"(required interpreter "%1" of api level %2 doesn't support inference "%3" of api level %4)",
-                            spec->className(), interp->apiLevel(), spec->id(), spec->apiLevel()),
-                    };
-                }
-
-                auto config = interp->createConfiguration(spec);
-                if (!config) {
-                    return Error{
-                        Error::InvalidFormat,
-                        stdc::formatN(R"(failed to parse inference configuration of "%1": %2)", spec->id(),
-                                      config.error().message()),
-                    };
-                }
-                spec_impl->configuration = config.get();
-                spec_impl->interp = interp;
-                return loadSpecBase(spec, state);
-            }
+            return loadSpecBase(spec, state);
 
         case ModuleSpec::Ready:
         case ModuleSpec::Finished:

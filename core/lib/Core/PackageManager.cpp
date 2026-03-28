@@ -20,7 +20,7 @@
 #include "Module_p.h"
 #include "PackageManager_p.h"
 #include "PluginFactory_p.h"
-#include "TaskFactoryPlugin.h"
+#include "TaskPlugin.h"
 
 namespace fs = std::filesystem;
 
@@ -553,24 +553,6 @@ namespace LangCore
             return false;
         }
 
-        std::set<std::string> iidHistory;
-        auto &ic = *this->category("engine");
-        for (const auto &packageInfo : packageOrder) {
-            for (const auto &moduleInfo : packageInfo.modules) {
-                if (iidHistory.find(moduleInfo.iid) != iidHistory.end())
-                    continue;
-                const auto taskFactoryPlugin = this->plugin<TaskFactoryPlugin>(moduleInfo.iid.c_str());
-                if (!taskFactoryPlugin) {
-                    MgrLog.langCoreCritical("Failed to load FactoryPlugin: iid - %1, type - %2", moduleInfo.iid,
-                                            moduleInfo.type);
-                    return false;
-                }
-                const auto &task = taskFactoryPlugin->create();
-                ic.addObject(moduleInfo.iid, task);
-                iidHistory.insert(moduleInfo.iid);
-            }
-        }
-
         int pkgSize = 0;
 
         for (const auto &packageInfo : packageOrder) {
@@ -611,16 +593,15 @@ namespace LangCore
                          stdc::formatN("Module %1 not found in package %2.", moduleInfo.moduleId, pkg.id()));
         }
 
-        const auto &moduleCategory = *this->category("engine");
-        const auto taskFactory = moduleCategory.getFirstObject(moduleInfo.iid).as<TaskFactory>();
-        if (!taskFactory) {
-            return Error(Error::InterpreterNotFound, stdc::formatN("%1 task Engine not found.", moduleSpec->id()));
+        const auto taskPlugin = this->plugin<TaskPlugin>(moduleInfo.iid.c_str());
+        if (!taskPlugin) {
+            return Error(
+                Error::FileNotFound,
+                stdc::formatN("Failed to load FactoryPlugin: iid - %1, type - %2", moduleInfo.iid, moduleInfo.type));
         }
 
-        const auto runtimeOptions =
-            NO<TaskRuntimeOptions>::create(moduleSpec->id(), moduleSpec->className(), moduleSpec->apiLevel());
 
-        auto taskExp = taskFactory->createTask(moduleSpec, runtimeOptions);
+        auto taskExp = taskPlugin->createTask(moduleSpec);
         if (!taskExp) {
             return Error(Error::InvalidArgument,
                          stdc::formatN("Failed to create task: %1.", taskExp.error().message()));
@@ -673,8 +654,8 @@ namespace LangCore
         return root.toObject();
     }
 
-    void PackageManager::collectModuleMetadata(const std::string &packageId, const std::string &packageVersion,
-                                               const std::filesystem::path &packageDir, const JsonObject &modulesObj) {
+    void PackageManager::collectModuleMetadata(const std::string &packageId, const std::filesystem::path &packageDir,
+                                               const JsonObject &modulesObj) {
         __stdc_impl_t;
         if (!fs::is_directory(packageDir)) {
             MgrLog.langCoreCritical("Invalid package path %1.", packageDir);
@@ -691,7 +672,7 @@ namespace LangCore
                 info.type = moduleType;
                 info.level = 0;
 
-                extractModuleMetadataFromJson(packageId, packageVersion, moduleObj, info);
+                extractModuleMetadataFromJson(packageId, moduleObj, info);
 
                 if (!info.configuration.empty()) {
                     if (std::filesystem::path configPath = packageDir / info.configuration;
@@ -741,8 +722,8 @@ namespace LangCore
         }
     }
 
-    void PackageManager::extractModuleMetadataFromJson(const std::string &packageId, const std::string &packageVersion,
-                                                       const JsonObject &moduleEntry, ModuleMetadata &info) {
+    void PackageManager::extractModuleMetadataFromJson(const std::string &packageId, const JsonObject &moduleEntry,
+                                                       ModuleMetadata &info) {
         info.packageId = packageId;
 
         if (const auto moduleIdIt = moduleEntry.find("moduleId"); moduleIdIt != moduleEntry.end()) {
@@ -910,15 +891,9 @@ namespace LangCore
         }
         const std::string id_ = idIt->second.toString();
 
-        const auto versionIt = obj.find("version");
-        if (versionIt == obj.end()) {
-            return;
-        }
-        const stdc::VersionNumber version_ = stdc::VersionNumber::fromString(versionIt->second.toString());
-
         if (const auto modulesIt = obj.find("modules"); modulesIt != obj.end()) {
             const auto &modulesObj = modulesIt->second.toObject();
-            this->collectModuleMetadata(id_, version_.toString(), descPath.parent_path(), modulesObj);
+            this->collectModuleMetadata(id_, descPath.parent_path(), modulesObj);
         }
     }
 

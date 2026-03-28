@@ -9,7 +9,7 @@
 
 #include <LangCore/Core/Manager.h>
 #include <LangCore/Module/Module.h>
-#include <LangCore/Task/TaskFactoryPlugin.h>
+#include <LangCore/Task/TaskPlugin.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
 
@@ -41,13 +41,18 @@ EP parseExecutionProvider(const std::string &provider) {
 
 bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, const int deviceIndex,
                           const bool loadFromProgress) {
-    const auto onnxDriverPlugin = mgr->plugin<LangCore::DriverFactoryPlugin>("onnx");
+    const auto onnxDriverPlugin = mgr->plugin<LangCore::DriverPlugin>("onnx");
     if (!onnxDriverPlugin) {
         std::cerr << "Failed to load ONNX inference driver" << std::endl;
         return false;
     }
 
-    const auto onnxDriver = onnxDriverPlugin->create();
+    auto expOnnxDriver = onnxDriverPlugin->create();
+    if (!expOnnxDriver) {
+        std::cerr << "Failed to load ONNX inference driver" << std::endl;
+        return false;
+    }
+
     const auto onnxArgs = LangCore::NO<LangPlugins::Api::Onnx::L1::DriverInitArgs>::create();
 
     const auto ep_ = parseExecutionProvider(ep);
@@ -58,6 +63,8 @@ bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, c
 
     onnxArgs->loadFromProcess = loadFromProgress;
     onnxArgs->deviceIndex = deviceIndex;
+
+    const auto onnxDriver = expOnnxDriver.take();
 
     if (const auto exp = onnxDriver->initialize(onnxArgs); !exp) {
         std::cerr << "Failed to initialize ONNX driver: " << exp.error().message() << std::endl;
@@ -73,10 +80,10 @@ int main() {
     const auto langMgr = LangCore::Manager::instance();
 
     const auto defaultPluginDir = getPluginRootDirectory() / _TSTR("LangPlugins");
-    langMgr->addPluginPath("org.openvpi.DriverFactory", defaultPluginDir / _TSTR("Drivers"));
-    langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("G2ps"));
-    langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Taggers"));
-    langMgr->addPluginPath("org.openvpi.TaskFactory", defaultPluginDir / _TSTR("Splitters"));
+    langMgr->addPluginPath("org.openvpi.Driver", defaultPluginDir / _TSTR("Drivers"));
+    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("G2ps"));
+    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Taggers"));
+    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Splitters"));
 
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
     langMgr->addPackagePath(packagesRootDir);

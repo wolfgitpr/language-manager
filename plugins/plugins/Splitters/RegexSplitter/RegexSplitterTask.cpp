@@ -10,25 +10,15 @@
 #include <re2/re2.h>
 #include <stdcorelib/console.h>
 
-#include <LangCore/Module/G2pModule.h>
 #include <LangCore/Module/Module.h>
-#include <LangCore/Task/G2pTask.h>
+#include <LangCore/Task/SplitterTask.h>
+
+#include <InferUtil/ErrorCollector.h>
+#include <InferUtil/Parser.h>
 
 
 namespace LangPlugins::RegexSplitter
 {
-    namespace fs = std::filesystem;
-
-    static LangCore::Expected<LangCore::NO<Regex::RegexSplitterConfiguration>>
-    getConfig(const LangCore::ModuleSpec *spec) {
-        const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
-        if (!genericConfig)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "RegexSplitter configuration is nullptr.");
-        if (!(genericConfig->className() == Regex::API_CLASS && genericConfig->objectName() == Regex::API_NAME))
-            return LangCore::Error(LangCore::Error::InvalidArgument, "Invalid RegexSplitter configuration.");
-        return genericConfig.as<Regex::RegexSplitterConfiguration>();
-    }
-
     class SplitterRegex {
     public:
         explicit SplitterRegex(const std::string &regex) {
@@ -98,6 +88,8 @@ namespace LangPlugins::RegexSplitter
 
     RegexSplitterTask::~RegexSplitterTask() = default;
 
+    int RegexSplitterTask::apiLevel() const { return 1; }
+
     LangCore::Expected<void> RegexSplitterTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
         // Currently, no args to process. But we still need to enforce callers to pass the correct
@@ -105,28 +97,23 @@ namespace LangPlugins::RegexSplitter
         if (!args) {
             return LangCore::Error(LangCore::Error::InvalidArgument, "RegexSplitter task init args is nullptr");
         }
-        // if (auto name = args->objectName(); name != Regex::API_NAME) {
-        //     return LangCore::Error(LangCore::Error::InvalidArgument,
-        //                           stdc::formatN(R"(invalid RegexSplitter task init args name: expected "%1", got
-        //                           "%2")",
-        //                                         Regex::API_NAME, name));
-        // }
+
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        // Get RegexSplitter config
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig)
-            return expConfig.takeError();
-        const auto config = expConfig.take();
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec(), &ec);
+
+        std::vector<std::string> regexes;
+        parser.parse_stringVec_required(regexes, "regexes");
 
         impl.RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
         impl.RegexOptions.set_log_errors(true);
         impl.RegexOptions.set_max_mem(8 << 20); // 8MB
 
-        for (const auto &regex : config->regexes)
+        for (const auto &regex : regexes)
             impl.regexes.push_back(std::make_unique<SplitterRegex>(regex));
 
         // return success
@@ -136,11 +123,6 @@ namespace LangPlugins::RegexSplitter
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     RegexSplitterTask::start(const LangCore::NO<LangCore::TaskStartInput> &input) {
         __stdc_impl_t;
-
-        // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
-            return expConfig.takeError();
-
 
         if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "splitter input is nullptr");

@@ -7,29 +7,17 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <LangCore/Module/G2pModule.h>
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
 
 #include <LangPlugins/Support/PhonemeDict.h>
 
-#include "InferUtil/Verifier.h"
-
+#include <InferUtil/ErrorCollector.h>
+#include <InferUtil/Parser.h>
+#include <InferUtil/Verifier.h>
 
 namespace LangPlugins::TemplateG2p
 {
-    namespace fs = std::filesystem;
-
-    static LangCore::Expected<LangCore::NO<Template::TemplateG2pConfiguration>>
-    getConfig(const LangCore::ModuleSpec *spec) {
-        const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
-        if (!genericConfig)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "TemplateG2p configuration is nullptr");
-        if (!(genericConfig->className() == Template::API_CLASS && genericConfig->objectName() == Template::API_NAME))
-            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid TemplateG2p configuration");
-        return genericConfig.as<Template::TemplateG2pConfiguration>();
-    }
-
     class TemplateG2pTask::Impl {
     public:
         LangCore::NO<LangCore::G2pResult> result;
@@ -45,6 +33,8 @@ namespace LangPlugins::TemplateG2p
 
     TemplateG2pTask::~TemplateG2pTask() = default;
 
+    int TemplateG2pTask::apiLevel() const { return 1; }
+
     LangCore::Expected<void> TemplateG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
         if (!args) {
@@ -56,36 +46,41 @@ namespace LangPlugins::TemplateG2p
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        // Get TemplateG2p config
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig)
-            return expConfig.takeError();
-        const auto config = expConfig.take();
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec(), &ec);
 
-        impl.enableOnnxG2p = config->enableOnnxG2p;
-        impl.enableDict = config->enableDict;
-        if (!config->enableOnnxG2p) {
+        std::string onnxG2pId;
+        std::filesystem::path dictPath;
+        std::vector<InferUtil::VerifyEntry> verifyEntry;
+
+        parser.parse_verify_required(verifyEntry, "verify");
+        parser.parse_bool_optional(impl.enableDict, "enableDict");
+        parser.parse_path_required(dictPath, "dictPath");
+        parser.parse_bool_optional(impl.enableOnnxG2p, "enableOnnxG2p");
+        parser.parse_string_required(onnxG2pId, "onnxG2pId");
+
+        if (!impl.enableOnnxG2p) {
             impl.g2pInference = nullptr;
-        } else if (auto res = getObject("g2p", config->onnxG2pId); res) {
+        } else if (auto res = getObject("g2p", onnxG2pId); res) {
             impl.g2pInference = res.take().as<Task>();
         } else {
             return res.takeError();
         }
 
-        auto expVerifier = InferUtil::Verifier::Create(config->verifyEntry);
+        auto expVerifier = InferUtil::Verifier::Create(verifyEntry);
         if (!expVerifier)
             return expVerifier.takeError();
         impl.verifier = expVerifier.take();
 
         // Load phoneme dict
-        if (config->enableDict) {
-            if (config->dictPath.empty())
+        if (impl.enableDict) {
+            if (dictPath.empty())
                 return LangCore::Error(LangCore::Error::FileNotFound,
                                        stdc::formatN("Task '%1' - No dictPath specified", this->spec()->name().text()));
-            if (std::error_code ec; !impl.phonemeDict.load(config->dictPath, &ec))
+            if (std::error_code error_code; !impl.phonemeDict.load(dictPath, &error_code))
                 return LangCore::Error(LangCore::Error::FileNotFound,
                                        stdc::formatN("Task '%1' - Failed to read dictionary %2:%3",
-                                                     this->spec()->name().text(), config->dictPath, ec.value()));
+                                                     this->spec()->name().text(), dictPath, error_code.value()));
         }
         // return success
         return {};
@@ -112,10 +107,6 @@ namespace LangPlugins::TemplateG2p
             if (!impl.g2pInference && impl.enableOnnxG2p)
                 return LangCore::Error(LangCore::Error::SessionError, "TemplateG2pTask: g2p inference not initialized");
         }
-
-        // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
-            return expConfig.takeError();
 
         if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");

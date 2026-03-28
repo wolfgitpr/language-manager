@@ -5,17 +5,15 @@
 #include <LangPlugins/Support/Tensor.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/Taggers/TemplateTagger/1/TemplateTaggerL1.h>
 
 namespace LangPlugins::TemplateTagger
 {
-    namespace Regex = Api::TemplateTagger::L1;
-    namespace Onnx = Api::Onnx::L1;
-
     class TemplateTaggerTask : public LangCore::Task {
     public:
         explicit TemplateTaggerTask(const LangCore::ModuleSpec *spec);
         ~TemplateTaggerTask() override;
+
+        int apiLevel() const override;
 
         LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
 

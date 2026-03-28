@@ -9,14 +9,21 @@
 
 #include <re2/re2.h>
 
+#include <LangCore/Base/LangCommon.h>
 #include <LangCore/Support/Expected.h>
-#include <LangPlugins/Api/Taggers/TemplateTagger/1/TemplateTaggerL1.h>
 
 namespace LangPlugins::TemplateTagger
 {
+    struct TaggerUtilEntry {
+        std::string type;
+        std::vector<std::string> value;
+        std::string tag;
+        bool discard = false;
+    };
+
     class ITaggerUtil {
     public:
-        explicit ITaggerUtil(Api::TemplateTagger::L1::TaggerUtilEntry entry, std::string language);
+        explicit ITaggerUtil(TaggerUtilEntry entry, std::string language);
         virtual ~ITaggerUtil();
 
         virtual LangCore::Expected<void> init() = 0;
@@ -24,12 +31,12 @@ namespace LangPlugins::TemplateTagger
 
     protected:
         std::string m_language;
-        Api::TemplateTagger::L1::TaggerUtilEntry m_entry;
+        TaggerUtilEntry m_entry;
     };
 
     class TaggerRegex : public ITaggerUtil {
     public:
-        explicit TaggerRegex(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language);
+        explicit TaggerRegex(const TaggerUtilEntry &entry, const std::string &language);
         ~TaggerRegex() override;
 
         LangCore::Expected<void> init() override;
@@ -44,7 +51,7 @@ namespace LangPlugins::TemplateTagger
 
     class TaggerArray : public ITaggerUtil {
     public:
-        explicit TaggerArray(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language);
+        explicit TaggerArray(const TaggerUtilEntry &entry, const std::string &language);
         ~TaggerArray() override;
 
         LangCore::Expected<void> init() override;
@@ -56,7 +63,7 @@ namespace LangPlugins::TemplateTagger
 
     class TaggerDict : public TaggerArray {
     public:
-        explicit TaggerDict(const Api::TemplateTagger::L1::TaggerUtilEntry &entry, const std::string &language);
+        explicit TaggerDict(const TaggerUtilEntry &entry, const std::string &language);
         ~TaggerDict() override;
 
         LangCore::Expected<void> init() override;
@@ -67,8 +74,8 @@ namespace LangPlugins::TemplateTagger
 
     class TaggerUtil {
     public:
-        static LangCore::Expected<std::unique_ptr<TaggerUtil>>
-        Create(const std::vector<Api::TemplateTagger::L1::TaggerUtilEntry> &entries, const std::string& language);
+        static LangCore::Expected<std::unique_ptr<TaggerUtil>> Create(const std::vector<TaggerUtilEntry> &entries,
+                                                                      const std::string &language);
         ~TaggerUtil() = default;
 
         void tagger(std::vector<LangCore::TaggerRes> &input) const;

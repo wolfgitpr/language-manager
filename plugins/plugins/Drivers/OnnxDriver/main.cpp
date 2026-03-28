@@ -1,17 +1,21 @@
-#include <LangCore/Task/TaskFactoryPlugin.h>
+#include <LangCore/Task/TaskPlugin.h>
 
 #include "OnnxDriver.h"
 
 namespace LangPlugins
 {
 
-    class OnnxDriverPlugin : public LangCore::DriverFactoryPlugin {
+    class OnnxDriverPlugin : public LangCore::DriverPlugin {
     public:
         OnnxDriverPlugin() = default;
 
+        int apiLevel() const override { return 1; }
+
         const char *key() const override { return "onnx"; }
 
-        LangCore::NO<LangCore::SessionFactory> create() override { return LangCore::NO<OnnxDriver>::create(); }
+        LangCore::Expected<LangCore::NO<LangCore::SessionFactory>> create() override {
+            return LangCore::NO<OnnxDriver>::create();
+        }
     };
 
 } // namespace LangPlugins

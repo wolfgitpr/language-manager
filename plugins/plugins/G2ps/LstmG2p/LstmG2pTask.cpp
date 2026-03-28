@@ -7,26 +7,19 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <LangCore/Module/G2pModule.h>
 #include <LangCore/Task/Task.h>
-#include <LangCore/Task/TaskFactoryPlugin.h>
+#include <LangCore/Task/TaskPlugin.h>
 #include <LangPlugins/Support/Tensor.h>
 
 #include <InferUtil/TensorHelper.h>
 
-#include "LangCore/Task/G2pTask.h"
+#include <LangCore/Task/G2pTask.h>
+
+#include <InferUtil/ErrorCollector.h>
+#include <InferUtil/Parser.h>
 
 namespace LangPlugins::LstmG2p
 {
-    static LangCore::Expected<LangCore::NO<Lstm::LstmG2pConfiguration>> getConfig(const LangCore::G2pSpec *spec) {
-
-        const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
-        if (!genericConfig) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "LstmG2p configuration is nullptr");
-        }
-        return genericConfig.as<Lstm::LstmG2pConfiguration>();
-    }
-
     class LstmG2pTask::Impl {
     public:
         LangCore::NO<LangCore::G2pResult> result;
@@ -34,11 +27,21 @@ namespace LangPlugins::LstmG2p
         LangCore::NO<LangCore::SessionTask> encoderSession;
         LangCore::NO<LangCore::SessionTask> decodeSession;
         mutable std::shared_mutex mutex;
+
+        std::map<std::string, int> charVocab, phonemeVocab;
+        std::map<int, std::string> idx_to_phoneme;
+        int unkIdx = 0;
+        int padIdx = 1;
+        int bosIdx = 2;
+        int eosIdx = 3;
+        int maxLen = 48;
     };
 
     LstmG2pTask::LstmG2pTask(const LangCore::ModuleSpec *spec) : Task(spec), _impl(std::make_unique<Impl>()) {}
 
     LstmG2pTask::~LstmG2pTask() = default;
+
+    int LstmG2pTask::apiLevel() const { return 1; }
 
     LangCore::Expected<void> LstmG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
@@ -57,28 +60,31 @@ namespace LangPlugins::LstmG2p
             return res.takeError();
         }
 
-        // Get LstmG2p config
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig) {
-            return expConfig.takeError();
-        }
-        const auto config = expConfig.take();
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec(), &ec);
 
-        // Open LstmG2p session (encoder)
+        std::filesystem::path encoder, decoder;
+
+        parser.parse_path_required(encoder, "encoder");
+        parser.parse_path_required(decoder, "decoder");
+        parser.parse_phonemes(impl.charVocab, "charVocab");
+        parser.parse_phonemes(impl.phonemeVocab, "phonemeVocab");
+
+        for (const auto &[phoneme, index] : impl.phonemeVocab)
+            impl.idx_to_phoneme[index] = phoneme;
+
         impl.encoderSession = impl.driver->createSession();
         const auto encoderOpenArgs = LangCore::NO<Onnx::SessionOpenArgs>::create();
         encoderOpenArgs->useCpu = false;
-        if (auto res = impl.encoderSession->open(config->encoder, encoderOpenArgs); !res) {
+        if (auto res = impl.encoderSession->open(encoder, encoderOpenArgs); !res)
             return res;
-        }
 
         impl.decodeSession = impl.driver->createSession();
         const auto predictorOpenArgs = LangCore::NO<Onnx::SessionOpenArgs>::create();
         predictorOpenArgs->useCpu = false;
-        if (auto res = impl.decodeSession->open(config->decoder, predictorOpenArgs); !res) {
+        if (auto res = impl.decodeSession->open(decoder, predictorOpenArgs); !res)
             return res;
-        }
-        // return success
+
         return {};
     }
 
@@ -91,12 +97,6 @@ namespace LangPlugins::LstmG2p
                 return LangCore::Error(LangCore::Error::SessionError, "inference driver not initialized");
         }
 
-        // Get configuration
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig)
-            return expConfig.takeError();
-        const auto config = expConfig.take();
-
         if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
 
@@ -108,7 +108,8 @@ namespace LangPlugins::LstmG2p
 
         // For now, process only the first word
         const auto &lyric = g2pInput->g2pInput[0];
-        auto preprocessedInput = LstmG2pInferenceHelper::preprocessWord(lyric, config);
+        auto preprocessedInput =
+            LstmG2pInferenceHelper::preprocessWord(lyric, impl.charVocab, impl.bosIdx, impl.eosIdx, impl.unkIdx);
         if (!preprocessedInput)
             return preprocessedInput.takeError();
 
@@ -145,12 +146,13 @@ namespace LangPlugins::LstmG2p
 
         // Run decoder with autoregressive generation
         auto phonemeIds = LstmG2pInferenceHelper::runDecoder(impl.decodeSession, encoderOutputs.take(), hidden.take(),
-                                                             cell.take(), config);
+                                                             cell.take(), impl.maxLen, impl.bosIdx, impl.eosIdx);
         if (!phonemeIds)
             return phonemeIds.takeError();
 
         // Decode phonemes
-        auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), config);
+        auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), impl.phonemeVocab, impl.bosIdx,
+                                                               impl.eosIdx, impl.padIdx, impl.unkIdx);
         if (phonemes->empty())
             return phonemes.takeError();
 
@@ -169,24 +171,24 @@ namespace LangPlugins::LstmG2p
     }
 
     LangCore::Expected<LangCore::NO<ITensor>>
-    LstmG2pInferenceHelper::preprocessWord(const std::string &word,
-                                           const LangCore::NO<Lstm::LstmG2pConfiguration> &config) {
+    LstmG2pInferenceHelper::preprocessWord(const std::string &word, std::map<std::string, int> charVocab,
+                                           const int bosIdx, const int eosIdx, const int unkIdx) {
         const std::string processedWord = stdc::to_lower(word);
         stdc::trim(processedWord);
 
         std::vector<int64_t> indices;
-        indices.push_back(config->bosIdx); // BOS
+        indices.push_back(bosIdx); // BOS
 
         for (const char c : processedWord) {
             std::string charStr(1, c);
-            if (auto it = config->charVocab.find(charStr); it != config->charVocab.end()) {
+            if (auto it = charVocab.find(charStr); it != charVocab.end()) {
                 indices.push_back(it->second);
             } else {
-                indices.push_back(config->unkIdx);
+                indices.push_back(unkIdx);
             }
         }
 
-        indices.push_back(config->eosIdx); // EOS
+        indices.push_back(eosIdx); // EOS
 
         const std::vector shape{static_cast<int64_t>(indices.size())};
         if (auto exp = Tensor::createFromView<int64_t>(shape, stdc::array_view<int64_t>{indices}); exp) {
@@ -211,14 +213,12 @@ namespace LangPlugins::LstmG2p
     LangCore::Expected<std::vector<int64_t>>
     LstmG2pInferenceHelper::runDecoder(const LangCore::NO<LangCore::SessionTask> &decodeSession,
                                        const LangCore::NO<ITensor> &encoderOutputs, const LangCore::NO<ITensor> &hidden,
-                                       const LangCore::NO<ITensor> &cell,
-                                       const LangCore::NO<Lstm::LstmG2pConfiguration> &config) {
-
+                                       const LangCore::NO<ITensor> &cell, int maxLen, int bosIdx, int eosIdx) {
         std::vector<int64_t> phonemeIds;
-        const int64_t maxLen = config->maxLen > 0 ? config->maxLen : 48;
+        const int64_t maxLen_ = maxLen > 0 ? maxLen : 48;
 
         // Initialize decoder input with BOS - 创建1D张量
-        std::vector<int64_t> decoderInitData{config->bosIdx};
+        std::vector<int64_t> decoderInitData{bosIdx};
         std::vector<int64_t> decoderInitShape{1};
         LangCore::NO<ITensor> decoderInput;
 
@@ -232,7 +232,7 @@ namespace LangPlugins::LstmG2p
         auto currentHidden = hidden;
         auto currentCell = cell;
 
-        for (int64_t i = 0; i < maxLen; ++i) {
+        for (int64_t i = 0; i < maxLen_; ++i) {
             auto decoderSessionInput = LangCore::NO<Onnx::SessionStartInput>::create();
             decoderSessionInput->inputs["decoder_input"] = decoderInput;
             decoderSessionInput->inputs["hidden"] = currentHidden;
@@ -284,7 +284,7 @@ namespace LangPlugins::LstmG2p
             }
 
             // Check for EOS
-            if (predictedId == config->eosIdx) {
+            if (predictedId == eosIdx) {
                 break;
             }
 
@@ -306,17 +306,18 @@ namespace LangPlugins::LstmG2p
 
     LangCore::Expected<std::vector<std::string>>
     LstmG2pInferenceHelper::decodePhonemes(const std::vector<int64_t> &phonemeIds,
-                                           const LangCore::NO<Lstm::LstmG2pConfiguration> &config) {
+                                           const std::map<std::string, int> &phonemeVocab, const int bosIdx,
+                                           const int eosIdx, const int padIdx, const int unkIdx) {
         std::vector<std::string> phonemes;
 
         std::unordered_map<int64_t, std::string> idToPhoneme;
-        for (const auto &[phoneme, id] : config->phonemeVocab) {
+        for (const auto &[phoneme, id] : phonemeVocab) {
             idToPhoneme[id] = phoneme;
         }
 
         for (const int64_t id : phonemeIds) {
             // Skip special tokens
-            if (id == config->bosIdx || id == config->eosIdx || id == config->padIdx || id == config->unkIdx) {
+            if (id == bosIdx || id == eosIdx || id == padIdx || id == unkIdx) {
                 continue;
             }
 

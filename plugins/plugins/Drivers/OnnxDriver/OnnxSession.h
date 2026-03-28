@@ -11,6 +11,8 @@ namespace LangPlugins
         OnnxSession();
         ~OnnxSession() override;
 
+        int apiLevel() const override;
+
         LangCore::Expected<void> open(const std::filesystem::path &path,
                                       const LangCore::NO<LangCore::TaskInitArgs> &args) override;
         LangCore::Expected<void> close() override;

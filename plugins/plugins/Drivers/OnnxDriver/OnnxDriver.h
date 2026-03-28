@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-#include <LangCore/Task/TaskFactoryPlugin.h>
+#include <LangCore/Task/TaskFactory.h>
 
 namespace LangPlugins
 {

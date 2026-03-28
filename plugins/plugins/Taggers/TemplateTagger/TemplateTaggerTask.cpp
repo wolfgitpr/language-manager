@@ -12,6 +12,9 @@
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
 
+#include <LangCore/Task/TaggerTask.h>
+#include "InferUtil/ErrorCollector.h"
+#include "InferUtil/Parser.h"
 #include "TaggerUtil.h"
 
 
@@ -19,14 +22,92 @@ namespace LangPlugins::TemplateTagger
 {
     namespace fs = std::filesystem;
 
-    static LangCore::Expected<LangCore::NO<Regex::TemplateTaggerConfiguration>>
-    getConfig(const LangCore::ModuleSpec *spec) {
-        const auto genericConfig = spec->as<LangCore::G2pSpec>()->configuration();
-        if (!genericConfig)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "TemplateTagger configuration is nullptr.");
-        if (!(genericConfig->className() == Regex::API_CLASS && genericConfig->objectName() == Regex::API_NAME))
-            return LangCore::Error(LangCore::Error::InvalidArgument, "Invalid TemplateTagger configuration.");
-        return genericConfig.as<Regex::TemplateTaggerConfiguration>();
+    static void parse_tagger_required(std::vector<TaggerUtilEntry> &out, const std::string &fieldName,
+                                      const LangCore::ModuleSpec *spec) {
+        const auto &config = spec->manifestConfiguration();
+
+        if (const auto it = config.find(fieldName); it != config.end()) {
+            if (!it->second.isArray()) {
+                std::cout << ("array field \"" + fieldName + "\" type mismatch");
+            } else {
+                const auto &arr = it->second.toArray();
+                out.clear();
+                out.reserve(arr.size());
+
+                for (size_t i = 0; i < arr.size(); ++i) {
+                    const auto &item = arr[i];
+                    if (!item.isObject()) {
+                        std::cout << ("tagger entry #" + std::to_string(i) + " must be an object");
+                        continue;
+                    }
+
+                    const auto &obj = item.toObject();
+                    TaggerUtilEntry entry;
+
+                    if (const auto typeIt = obj.find("type"); typeIt != obj.end()) {
+                        if (typeIt->second.isString()) {
+                            entry.type = typeIt->second.toString();
+                        } else {
+                            std::cout << ("tagger entry #" + std::to_string(i) + " field \"type\" must be string");
+                            continue;
+                        }
+                    } else {
+                        std::cout << ("tagger entry #" + std::to_string(i) + " missing required field \"type\"");
+                        continue;
+                    }
+
+                    if (const auto typeIt = obj.find("tag"); typeIt != obj.end()) {
+                        if (typeIt->second.isString()) {
+                            entry.tag = typeIt->second.toString();
+                        } else {
+                            std::cout << ("tagger entry #" + std::to_string(i) + " field \"tag\" must be string");
+                            continue;
+                        }
+                    } else {
+                        std::cout << ("tagger entry #" + std::to_string(i) + " missing required field \"tag\"");
+                        continue;
+                    }
+
+                    if (const auto valueIt = obj.find("value"); valueIt != obj.end()) {
+                        const auto &valueArr = valueIt->second.toArray();
+                        std::string combined;
+                        for (size_t j = 0; j < valueArr.size(); ++j) {
+                            if (valueArr[j].isString()) {
+                                if (entry.type == "dict") {
+                                    const auto path = spec->path() / stdc::path::from_utf8(valueArr[j].toString());
+                                    entry.value.push_back(path.string());
+                                } else
+                                    entry.value.push_back(valueArr[j].toString());
+                            } else
+                                std::cout << ("verify entry #" + std::to_string(i) + " array value #" +
+                                              std::to_string(j) + " must be string")
+                                          << std::endl;
+                        }
+                    } else {
+                        std::cout << ("tagger entry #" + std::to_string(i) + " missing required field \"value\"")
+                                  << std::endl;
+                        continue;
+                    }
+
+                    if (const auto modeIt = obj.find("discard"); modeIt != obj.end()) {
+                        if (modeIt->second.isBool()) {
+                            entry.discard = modeIt->second.toBool();
+                        } else {
+                            std::cout << ("tagger entry #" + std::to_string(i) + " field \"discard\" must be string")
+                                      << std::endl;
+                            continue;
+                        }
+                    } else {
+                        std::cout << ("tagger entry #" + std::to_string(i) + " missing required field \"mode\"")
+                                  << std::endl;
+                        continue;
+                    }
+                    out.push_back(std::move(entry));
+                }
+            }
+        } else {
+            std::cout << ("array field \"" + fieldName + "\" is missing") << std::endl;
+        }
     }
 
     class TemplateTaggerTask::Impl {
@@ -42,6 +123,8 @@ namespace LangPlugins::TemplateTagger
 
     TemplateTaggerTask::~TemplateTaggerTask() = default;
 
+    int TemplateTaggerTask::apiLevel() const { return 1; }
+
     LangCore::Expected<void> TemplateTaggerTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;
         if (!args) {
@@ -53,17 +136,20 @@ namespace LangPlugins::TemplateTagger
         // If there are existing result, they will be cleared.
         impl.result.reset();
 
-        // Get TemplateTagger config
-        auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>());
-        if (!expConfig)
-            return expConfig.takeError();
-        const auto config = expConfig.take();
+        InferUtil::ErrorCollector ec;
+        InferUtil::ConfigurationParser parser(spec(), &ec);
+
+        std::string language;
+        std::vector<TaggerUtilEntry> entries;
+
+        parser.parse_string_required(language, "language");
+        parse_tagger_required(entries, "tagger", spec());
 
         impl.RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
         impl.RegexOptions.set_log_errors(true);
         impl.RegexOptions.set_max_mem(8 << 20); // 8MB
 
-        auto expVerifier = TaggerUtil::Create(config->taggerUtilEntry, config->language);
+        auto expVerifier = TaggerUtil::Create(entries, language);
         if (!expVerifier)
             return expVerifier.takeError();
         impl.taggerUtil = expVerifier.take();
@@ -75,10 +161,6 @@ namespace LangPlugins::TemplateTagger
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     TemplateTaggerTask::start(const LangCore::NO<LangCore::TaskStartInput> &input) {
         __stdc_impl_t;
-
-        // Get configuration
-        if (auto expConfig = getConfig(spec()->as<LangCore::G2pSpec>()); !expConfig)
-            return expConfig.takeError();
 
         if (!input)
             return LangCore::Error(LangCore::Error::InvalidArgument, "Tagger input is nullptr.");

@@ -23,6 +23,8 @@ namespace LangPlugins::LstmG2p
         explicit LstmG2pTask(const LangCore::ModuleSpec *spec);
         ~LstmG2pTask() override;
 
+        int apiLevel() const override;
+
         LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
@@ -36,8 +38,9 @@ namespace LangPlugins::LstmG2p
     class LstmG2pInferenceHelper {
     public:
         // Preprocess word into tensor
-        static LangCore::Expected<LangCore::NO<ITensor>>
-        preprocessWord(const std::string &word, const LangCore::NO<Lstm::LstmG2pConfiguration> &config);
+        static LangCore::Expected<LangCore::NO<ITensor>> preprocessWord(const std::string &word,
+                                                                        std::map<std::string, int> charVocab,
+                                                                        int bosIdx, int eosIdx, int unkIdx);
 
         // Get tensor from session result by name
         static LangCore::Expected<LangCore::NO<ITensor>>
@@ -47,11 +50,12 @@ namespace LangPlugins::LstmG2p
         static LangCore::Expected<std::vector<int64_t>>
         runDecoder(const LangCore::NO<LangCore::SessionTask> &decodeSession,
                    const LangCore::NO<ITensor> &encoderOutputs, const LangCore::NO<ITensor> &hidden,
-                   const LangCore::NO<ITensor> &cell, const LangCore::NO<Lstm::LstmG2pConfiguration> &config);
+                   const LangCore::NO<ITensor> &cell, int maxLen, int bosIdx, int eosIdx);
 
         // Decode phoneme indices to phoneme strings
         static LangCore::Expected<std::vector<std::string>>
-        decodePhonemes(const std::vector<int64_t> &phonemeIds, const LangCore::NO<Lstm::LstmG2pConfiguration> &config);
+        decodePhonemes(const std::vector<int64_t> &phonemeIds, const std::map<std::string, int> &phonemeVocab,
+                       int bosIdx, int eosIdx, int padIdx, int unkIdx);
     };
 } // namespace LangPlugins::LstmG2p
 
