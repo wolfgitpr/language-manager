@@ -23,6 +23,8 @@ namespace LangPlugins
 
     int OnnxSession::apiLevel() const { return 1; }
 
+    LangCore::Expected<void> OnnxSession::initialize() { return {}; }
+
     LangCore::Expected<void> OnnxSession::open(const std::filesystem::path &path,
                                                const LangCore::NO<LangCore::TaskInitArgs> &args) {
         __stdc_impl_t;

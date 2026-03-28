@@ -70,7 +70,7 @@ namespace LangCore
 
         virtual int apiLevel() const = 0;
 
-        virtual Expected<void> initialize(const NO<TaskInitArgs> &args);
+        virtual Expected<void> initialize() = 0;
 
         virtual Expected<NO<TaskResult>> start(const NO<TaskStartInput> &input) = 0;
 

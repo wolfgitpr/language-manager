@@ -34,11 +34,8 @@ namespace LangPlugins::CantoneseG2p
 
     int CantoneseG2pTask::apiLevel() const { return 1; }
 
-    LangCore::Expected<void> CantoneseG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
+    LangCore::Expected<void> CantoneseG2pTask::initialize() {
         __stdc_impl_t;
-        if (!args) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "CantoneseG2p task init args is nullptr");
-        }
 
         std::unique_lock lock(impl.mutex);
 

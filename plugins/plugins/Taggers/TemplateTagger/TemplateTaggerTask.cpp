@@ -8,7 +8,6 @@
 
 #include <re2/re2.h>
 
-#include <LangCore/Module/G2pModule.h>
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
 
@@ -125,11 +124,8 @@ namespace LangPlugins::TemplateTagger
 
     int TemplateTaggerTask::apiLevel() const { return 1; }
 
-    LangCore::Expected<void> TemplateTaggerTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
+    LangCore::Expected<void> TemplateTaggerTask::initialize() {
         __stdc_impl_t;
-        if (!args) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "TemplateTagger task init args is nullptr.");
-        }
 
         std::unique_lock lock(impl.mutex);
 

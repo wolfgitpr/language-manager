@@ -35,11 +35,8 @@ namespace LangPlugins::TemplateG2p
 
     int TemplateG2pTask::apiLevel() const { return 1; }
 
-    LangCore::Expected<void> TemplateG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
+    LangCore::Expected<void> TemplateG2pTask::initialize() {
         __stdc_impl_t;
-        if (!args) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "TemplateG2p task init args is nullptr");
-        }
 
         std::unique_lock lock(impl.mutex);
 

@@ -216,14 +216,11 @@ namespace LangPlugins
         devConfig.ep = onnxArgs->ep;
         devConfig.deviceIndex = onnxArgs->deviceIndex;
         onnxDriver::Env::setDeviceConfig(devConfig);
-        return LangCore::Expected<void>();
+        return {};
     }
 
     LangCore::Expected<void> OnnxDriver::loadFromProcess() const { return _impl->loadFromProcess(); }
 
-    LangCore::NO<LangCore::SessionTask> OnnxDriver::createSession() {
-        auto session = LangCore::NO<OnnxSession>::create();
-        return session;
-    }
+    LangCore::NO<LangCore::SessionTask> OnnxDriver::createSession() { return LangCore::NO<OnnxSession>::create(); }
 
 } // namespace LangPlugins

@@ -13,7 +13,7 @@ namespace LangPlugins::MandarinG2p
 
         int apiLevel() const override;
 
-        LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
+        LangCore::Expected<void> initialize() override;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskStartInput> &input) override;

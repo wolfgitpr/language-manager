@@ -5,11 +5,9 @@
 #include <LangPlugins/Support/Tensor.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
 
 namespace LangPlugins::TemplateG2p
 {
-    namespace Template = Api::TemplateG2p::L1;
     namespace Onnx = Api::Onnx::L1;
 
     class TemplateG2pTask : public LangCore::Task {
@@ -19,7 +17,7 @@ namespace LangPlugins::TemplateG2p
 
         int apiLevel() const override;
 
-        LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
+        LangCore::Expected<void> initialize() override;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskStartInput> &input) override;

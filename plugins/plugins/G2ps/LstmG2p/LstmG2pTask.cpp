@@ -43,12 +43,8 @@ namespace LangPlugins::LstmG2p
 
     int LstmG2pTask::apiLevel() const { return 1; }
 
-    LangCore::Expected<void> LstmG2pTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
+    LangCore::Expected<void> LstmG2pTask::initialize() {
         __stdc_impl_t;
-        if (!args) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "LstmG2p task init args is nullptr");
-        }
-
         std::unique_lock lock(impl.mutex);
 
         // If there are existing result, they will be cleared.

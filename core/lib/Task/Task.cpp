@@ -17,8 +17,6 @@ namespace LangCore
 
     Task::~Task() = default;
 
-    Expected<void> Task::initialize(const NO<TaskInitArgs> &args) { return {}; }
-
     Task::Task(Impl &impl) : NamedObject(impl) {}
 
     const ModuleSpec *Task::spec() const {

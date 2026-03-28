@@ -13,6 +13,8 @@ namespace LangPlugins
 
         int apiLevel() const override;
 
+        LangCore::Expected<void> initialize() override;
+
         LangCore::Expected<void> open(const std::filesystem::path &path,
                                       const LangCore::NO<LangCore::TaskInitArgs> &args) override;
         LangCore::Expected<void> close() override;

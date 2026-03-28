@@ -609,12 +609,7 @@ namespace LangCore
 
         auto task = taskExp.take();
 
-        const auto initArgs =
-            NO<TaskInitArgs>::create(moduleSpec->id(), moduleSpec->className(), moduleSpec->apiLevel());
-        if (const auto exp = task->initialize(initArgs); !exp) {
-            return Error(Error::InvalidArgument,
-                         stdc::formatN("Failed to initialize task: %1.", exp.error().message()));
-        }
+        task->initialize();
 
         auto &ic = *this->category(moduleSpec->category());
         ic.addObject(moduleSpec->id(), task);

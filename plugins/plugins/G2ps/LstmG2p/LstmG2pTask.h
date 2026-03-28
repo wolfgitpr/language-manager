@@ -5,7 +5,6 @@
 #include <LangPlugins/Support/Tensor.h>
 
 #include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-#include <LangPlugins/Api/G2ps/LstmG2p/1/LstmG2pL1.h>
 
 
 namespace LangPlugins
@@ -15,7 +14,6 @@ namespace LangPlugins
 
 namespace LangPlugins::LstmG2p
 {
-    namespace Lstm = Api::LstmG2p::L1;
     namespace Onnx = Api::Onnx::L1;
 
     class LstmG2pTask : public LangCore::Task {
@@ -25,7 +23,7 @@ namespace LangPlugins::LstmG2p
 
         int apiLevel() const override;
 
-        LangCore::Expected<void> initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) override;
+        LangCore::Expected<void> initialize() override;
 
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskStartInput> &input) override;

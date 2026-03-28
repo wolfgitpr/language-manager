@@ -90,13 +90,8 @@ namespace LangPlugins::RegexSplitter
 
     int RegexSplitterTask::apiLevel() const { return 1; }
 
-    LangCore::Expected<void> RegexSplitterTask::initialize(const LangCore::NO<LangCore::TaskInitArgs> &args) {
+    LangCore::Expected<void> RegexSplitterTask::initialize() {
         __stdc_impl_t;
-        // Currently, no args to process. But we still need to enforce callers to pass the correct
-        // args type.
-        if (!args) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "RegexSplitter task init args is nullptr");
-        }
 
         std::unique_lock lock(impl.mutex);
 

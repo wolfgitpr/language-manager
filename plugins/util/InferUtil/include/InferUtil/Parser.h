@@ -5,10 +5,9 @@
 #include <vector>
 
 #include <InferUtil/ErrorCollector.h>
+#include <LangCore/Module/Module.h>
 
-#include <LangPlugins/Api/G2ps/TemplateG2p/1/TemplateG2pL1.h>
-
-#include "LangCore/Module/Module.h"
+#include "Verifier.h"
 
 namespace LangPlugins::InferUtil
 {
