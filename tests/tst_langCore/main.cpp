@@ -11,9 +11,7 @@
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/TaskPlugin.h>
 
-#include <LangPlugins/Api/Drivers/Onnx/1/OnnxDriverApiL1.h>
-
-using EP = LangPlugins::Api::Onnx::L1::ExecutionProvider;
+#include <LangCore/Task/SessionTask.h>
 
 std::filesystem::path getPluginRootDirectory() {
 #if defined(Q_OS_MAC)
@@ -24,7 +22,7 @@ std::filesystem::path getPluginRootDirectory() {
     return stdc::system::application_directory().parent_path() / _TSTR("lib/plugins");
 #endif
 }
-
+using EP = LangCore::ExecutionProvider;
 EP parseExecutionProvider(const std::string &provider) {
     const auto providerLower = stdc::to_lower(provider);
     if (providerLower == "dml" || providerLower == "directml") {
@@ -53,13 +51,13 @@ bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, c
         return false;
     }
 
-    const auto onnxArgs = LangCore::NO<LangPlugins::Api::Onnx::L1::DriverInitArgs>::create();
+    const auto onnxArgs = LangCore::NO<LangCore::DriverInitArgs>::create();
 
     const auto ep_ = parseExecutionProvider(ep);
     onnxArgs->ep = ep_;
     const auto ortParentPath = onnxDriverPlugin->path().parent_path() / _TSTR("runtimes") / _TSTR("onnx");
-    onnxArgs->runtimePath = ep_ == LangPlugins::Api::Onnx::L1::CUDAExecutionProvider ? ortParentPath / _TSTR("cuda")
-                                                                                     : ortParentPath / _TSTR("default");
+    onnxArgs->runtimePath =
+        ep_ == EP::CUDAExecutionProvider ? ortParentPath / _TSTR("cuda") : ortParentPath / _TSTR("default");
 
     onnxArgs->loadFromProcess = loadFromProgress;
     onnxArgs->deviceIndex = deviceIndex;

@@ -1,0 +1,52 @@
+#ifndef LANGPLUGINS_ONNXDRIVER_SESSION_H
+#define LANGPLUGINS_ONNXDRIVER_SESSION_H
+
+#include <filesystem>
+#include <memory>
+
+#include <LangCore/Support/Expected.h>
+#include <LangCore/Task/Task.h>
+
+#include <LangCore/Task/SessionTask.h>
+
+namespace LangPlugins::OnnxDriver::V1
+{
+
+    class Session {
+    public:
+        enum SessionHint {
+            SH_NoHint,
+            SH_PreferCPUHint = 0x1,
+        };
+
+        Session();
+        ~Session();
+
+        Session(const Session &) = delete;
+        Session &operator=(const Session &) = delete;
+
+        Session(Session &&other) noexcept;
+        Session &operator=(Session &&other) noexcept;
+
+        LangCore::Expected<void> open(const std::filesystem::path &path,
+                                      const LangCore::NO<LangCore::SessionOpenArgs> &args);
+        LangCore::Expected<void> close();
+
+        const std::vector<std::string> &inputNames() const;
+        const std::vector<std::string> &outputNames() const;
+
+        LangCore::Expected<LangCore::NO<LangCore::TaskResult>> run(const LangCore::NO<LangCore::TaskInput> &input);
+
+        void terminate();
+
+        const std::filesystem::path &path() const;
+        bool isOpen() const;
+
+    protected:
+        class Impl;
+        std::unique_ptr<Impl> _impl;
+    };
+
+} // namespace LangPlugins::OnnxDriver::V1
+
+#endif // LANGPLUGINS_ONNXDRIVER_SESSION_H

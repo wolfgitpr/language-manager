@@ -17,49 +17,35 @@ namespace LangCore
     /// by a specific inference interpreter.
     class TaskInfoBase : public NamedObject {
     public:
-        TaskInfoBase(std::string name, std::string className, const int apiLevel) :
-            NamedObject(std::move(name)), _className(std::move(className)), _apiLevel(apiLevel) {}
+        TaskInfoBase() {}
         ~TaskInfoBase() override = default;
-
-        /// Related interpreter information.
-        const std::string &className() const { return _className; }
-        int apiLevel() const { return _apiLevel; }
-
-    protected:
-        std::string _className;
-        int _apiLevel;
     };
 
     class TaskInitArgs : public TaskInfoBase {
     public:
-        explicit TaskInitArgs(std::string name, std::string iid, const int apiLevel) :
-            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+        explicit TaskInitArgs() {}
     };
 
-    class TaskStartInput : public TaskInfoBase {
+    class TaskInput : public TaskInfoBase {
     public:
-        explicit TaskStartInput(std::string name, std::string iid, const int apiLevel) :
-            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+        explicit TaskInput() {}
     };
 
     class TaskResult : public TaskInfoBase {
     public:
-        explicit TaskResult(std::string name, std::string iid, const int apiLevel) :
-            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+        explicit TaskResult() {}
 
         Error error;
     };
 
     class TaskConfiguration : public TaskInfoBase {
     public:
-        TaskConfiguration(std::string name, std::string iid, const int apiLevel) :
-            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+        TaskConfiguration() {}
     };
 
     class TaskRuntimeOptions : public TaskInfoBase {
     public:
-        TaskRuntimeOptions(std::string name, std::string iid, const int apiLevel) :
-            TaskInfoBase(std::move(name), std::move(iid), apiLevel) {}
+        TaskRuntimeOptions() {}
     };
 
     class LANGCORE_EXPORT Task : public NamedObject {
@@ -72,7 +58,7 @@ namespace LangCore
 
         virtual Expected<void> initialize() = 0;
 
-        virtual Expected<NO<TaskResult>> start(const NO<TaskStartInput> &input) = 0;
+        virtual Expected<NO<TaskResult>> start(const NO<TaskInput> &input) = 0;
 
         const ModuleSpec *spec() const;
         PackageManager *Mgr() const;

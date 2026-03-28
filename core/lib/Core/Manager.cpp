@@ -132,12 +132,12 @@ namespace LangCore
     std::vector<std::string> Manager::split(const std::vector<std::string> &input) {
         __stdc_impl_t;
         const auto &splitters = impl.tasks["splitter"];
-        const auto _input = NO<SplitterStartInput>::create(TAGGER_API_NAME, TAGGER_API_CLASS, TAGGER_API_LEVEL);
+        const auto _input = NO<SplitterInputV1>::create();
         _input->splitterInput = input;
 
         for (const auto &[splitterId, task] : splitters) {
             auto resExp = task->start(_input);
-            _input->splitterInput = resExp.take().as<SplitterOutput>()->splitterResult;
+            _input->splitterInput = resExp.take().as<SplitterResultV1>()->splitterResult;
         }
         return _input->splitterInput;
     }
@@ -163,7 +163,7 @@ namespace LangCore
         __stdc_impl_t;
         auto &g2ps = impl.tasks["g2p"];
         const auto _lyrics = groupLyrics(input);
-        const auto _input = NO<G2pStartInput>::create(G2P_API_NAME, G2P_API_CLASS, G2P_API_LEVEL);
+        const auto _input = NO<G2pInputV1>::create();
         std::vector<G2pRes> result;
 
         for (const auto &[g2pId, lyricVec] : _lyrics) {
@@ -181,7 +181,7 @@ namespace LangCore
                 throw std::runtime_error(stdc::formatN("inference failed: %1", resultExp.error().message()));
 
             const auto _result = resultExp.take();
-            if (const auto g2pRes = _result.as<G2pOutput>()) {
+            if (const auto g2pRes = _result.as<G2pResultV1>()) {
                 result.insert(result.end(), g2pRes->g2pResult.begin(), g2pRes->g2pResult.end());
 
                 if (!g2pRes->errorMessage.empty())
@@ -204,7 +204,7 @@ namespace LangCore
         const auto splitRes = split ? this->split(input) : input;
 
         const auto &taggersList = impl.priorityTaggers(priorityLanguages);
-        const auto _input = NO<TaggerStartInput>::create(TAGGER_API_NAME, TAGGER_API_CLASS, TAGGER_API_LEVEL);
+        const auto _input = NO<TaggerInputV1>::create();
         for (const auto &lyric : splitRes)
             inputNote.emplace_back(lyric);
 
@@ -212,7 +212,7 @@ namespace LangCore
 
         for (const auto &task : taggersList) {
             auto resExp = task->start(_input);
-            _input->taggerInput = resExp.take().as<TaggerOutput>()->taggerResult;
+            _input->taggerInput = resExp.take().as<TaggerResultV1>()->taggerResult;
         }
 
         auto res = _input->taggerInput;

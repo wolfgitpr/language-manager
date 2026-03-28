@@ -50,10 +50,9 @@ endif ()
 # Add source modules
 # ----------------------------------
 
-add_subdirectory(lib)
+add_subdirectory(Utils)
 
-add_subdirectory(util)
-
-add_subdirectory(plugins)
-
-LangPlugins_install()
+add_subdirectory(Drivers)
+add_subdirectory(Splitters)
+add_subdirectory(Taggers)
+add_subdirectory(G2ps)
