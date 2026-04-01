@@ -22,7 +22,7 @@ namespace LangPlugins::InferUtil
         std::string pattern = mergePatterns(entry_.value);
         regex_ = std::make_unique<RE2>(pattern, regexOptions);
         if (!regex_->ok()) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "Invalid regex pattern: " + regex_->error());
+            return LangCore::Error(LangCore::Error::ConfigError, "Invalid regex pattern: " + regex_->error());
         }
         return {};
     }
@@ -79,12 +79,12 @@ namespace LangPlugins::InferUtil
 
         for (const auto &path : paths) {
             if (!std::filesystem::exists(path)) {
-                return LangCore::Error(LangCore::Error::InvalidArgument, "Dictionary file not found: " + path);
+                return LangCore::Error(LangCore::Error::ConfigError, "Dictionary file not found: " + path);
             }
 
             std::ifstream file(path);
             if (!file.is_open()) {
-                return LangCore::Error(LangCore::Error::InvalidArgument, "Failed to open dictionary file: " + path);
+                return LangCore::Error(LangCore::Error::ConfigError, "Failed to open dictionary file: " + path);
             }
 
             std::string line;
@@ -112,7 +112,7 @@ namespace LangPlugins::InferUtil
             } else if (entry.type == "dict") {
                 v = std::make_unique<VerifyDict>(entry);
             } else {
-                return LangCore::Error(LangCore::Error::InvalidArgument, "Unknown verifier type: " + entry.type);
+                return LangCore::Error(LangCore::Error::ConfigError, "Unknown verifier type: " + entry.type);
             }
 
             if (auto initExp = v->init(); !initExp) {

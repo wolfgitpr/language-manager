@@ -23,4 +23,4 @@ namespace LangCore
         std::string errorMessage;
     };
 } // namespace LangCore
-#endif
+#endif // LANGCORE_TAGGERTASK_H

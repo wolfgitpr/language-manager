@@ -82,6 +82,10 @@ namespace LangCore
         bool dependencyResolutionSuccessful = true;
         std::vector<std::string> dependencyErrors;
 
+        int currentLevel = 1;
+        int maximumLevel = 1;
+        int minimumLevel = 1;
+
         mutable std::shared_mutex su_mtx;
         static llvm::SmallVector<ModuleCategory *(*)(PackageManager *)> categoryFactories;
     };

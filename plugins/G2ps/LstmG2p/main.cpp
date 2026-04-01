@@ -19,6 +19,6 @@ namespace LangPlugins::LstmG2p::V1
         }
     };
 
-} // namespace LangPlugins::LstmG2p
+} // namespace LangPlugins::LstmG2p::V1
 
 LANGCORE_EXPORT_PLUGIN(LangPlugins::LstmG2p::V1::LstmG2pEnginePlugin)

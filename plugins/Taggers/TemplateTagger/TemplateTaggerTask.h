@@ -1,5 +1,5 @@
-#ifndef LANG_PLUGINS_REGEXTAGGERTASK_H
-#define LANG_PLUGINS_REGEXTAGGERTASK_H
+#ifndef LANGPLUGINS_TEMPLATETAGGERTASK_H
+#define LANGPLUGINS_TEMPLATETAGGERTASK_H
 
 #include <LangCore/Task/Task.h>
 
@@ -17,6 +17,8 @@ namespace LangPlugins::TemplateTagger::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
+        LangCore::Expected<void> updateConfig(const std::string &config);
+
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
@@ -24,4 +26,4 @@ namespace LangPlugins::TemplateTagger::V1
 
 } // namespace LangPlugins::TemplateTagger::V1
 
-#endif //  LANG_PLUGINS_REGEXTAGGERTASK_H
+#endif // LANGPLUGINS_TEMPLATETAGGERTASK_H

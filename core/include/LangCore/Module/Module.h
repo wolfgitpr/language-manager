@@ -153,4 +153,4 @@ namespace LangCore
         return static_cast<const T *>(this);
     }
 } // namespace LangCore
-#endif
+#endif // LANGCORE_MODULE_H

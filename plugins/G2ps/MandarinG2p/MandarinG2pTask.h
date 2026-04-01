@@ -1,7 +1,6 @@
-#ifndef LANGPLUGINS_CHINESEG2PTASK_H
-#define LANGPLUGINS_CHINESEG2PTASK_H
+#ifndef LANGPLUGINS_MANDARING2PTASK_H
+#define LANGPLUGINS_MANDARING2PTASK_H
 
-#include <../../../../core/include/LangCore/Support/Tensor.h>
 #include <LangCore/Task/Task.h>
 
 namespace LangPlugins::MandarinG2p::V1
@@ -18,6 +17,8 @@ namespace LangPlugins::MandarinG2p::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
+        LangCore::Expected<void> updateConfig(const std::string &config);
+
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
@@ -25,4 +26,4 @@ namespace LangPlugins::MandarinG2p::V1
 
 } // namespace LangPlugins::MandarinG2p::V1
 
-#endif //  LANGPLUGINS_CHINESEG2PTASK_H
+#endif // LANGPLUGINS_MANDARING2PTASK_H

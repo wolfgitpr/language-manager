@@ -19,14 +19,21 @@
 
 namespace LangPlugins::RegexSplitter::V1
 {
+    namespace {
+        // 提取重复的RE2配置为常量
+        static const RE2::Options g_utf8RegexOptions = []() {
+            RE2::Options options;
+            options.set_encoding(RE2::Options::EncodingUTF8);
+            options.set_log_errors(true);
+            options.set_max_mem(8 << 20); // 8MB
+            return options;
+        }();
+    }
+
     class SplitterRegex {
     public:
         explicit SplitterRegex(const std::string &regex) {
-            RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
-            RegexOptions.set_log_errors(true);
-            RegexOptions.set_max_mem(8 << 20); // 8MB
-
-            regex_ = std::make_unique<RE2>(regex, RegexOptions);
+            regex_ = std::make_unique<RE2>(regex, g_utf8RegexOptions);
             if (!regex_->ok())
                 throw std::runtime_error("Invalid regex: " + regex_->error());
         }
@@ -34,8 +41,9 @@ namespace LangPlugins::RegexSplitter::V1
 
         std::vector<std::string> split(const std::vector<std::string> &input) const {
             std::vector<std::string> result;
+            result.reserve(input.size() * 2);  // 预分配足够空间
+            
             for (const auto &rawStr : input) {
-                std::vector<std::string> _result;
                 if (rawStr.empty())
                     continue;
 
@@ -51,34 +59,28 @@ namespace LangPlugins::RegexSplitter::V1
                     const size_t match_start = match.data() - rawStr.data();
 
                     if (match_start > last_end) {
-                        _result.emplace_back(rawStr.data() + last_end, match_start - last_end);
+                        result.emplace_back(rawStr.data() + last_end, match_start - last_end);
                     }
 
-                    _result.emplace_back(match.data(), match.size());
+                    result.emplace_back(match.data(), match.size());
                     last_end = match_start + match.size();
                 }
 
                 if (last_end < rawStr.size())
-                    _result.emplace_back(rawStr.data() + last_end, rawStr.size() - last_end);
+                    result.emplace_back(rawStr.data() + last_end, rawStr.size() - last_end);
 
-                if (_result.empty())
-                    _result.emplace_back(rawStr);
-
-                for (auto &it : _result)
-                    result.emplace_back(it);
+                if (result.empty())
+                    result.emplace_back(rawStr);
             }
             return result;
         }
 
     private:
-        RE2::Options RegexOptions;
         std::unique_ptr<RE2> regex_;
     };
 
     class RegexSplitterTask::Impl {
     public:
-        LangCore::NO<LangCore::SplitterResultV1> result;
-        RE2::Options RegexOptions;
         std::vector<std::unique_ptr<SplitterRegex>> regexes;
         mutable std::shared_mutex mutex;
     };
@@ -95,23 +97,18 @@ namespace LangPlugins::RegexSplitter::V1
 
         std::unique_lock lock(impl.mutex);
 
-        // If there are existing result, they will be cleared.
-        impl.result.reset();
-
         InferUtil::ErrorCollector ec;
         InferUtil::ConfigurationParser parser(spec(), &ec);
 
         std::vector<std::string> regexes;
         parser.parse_stringVec_required(regexes, "regexes");
 
-        impl.RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
-        impl.RegexOptions.set_log_errors(true);
-        impl.RegexOptions.set_max_mem(8 << 20); // 8MB
-
+        impl.regexes.clear();
+        impl.regexes.reserve(regexes.size());
+        
         for (const auto &regex : regexes)
             impl.regexes.push_back(std::make_unique<SplitterRegex>(regex));
 
-        // return success
         return {};
     }
 
@@ -120,17 +117,22 @@ namespace LangPlugins::RegexSplitter::V1
         __stdc_impl_t;
 
         if (!input)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "splitter input is nullptr");
+            return LangCore::Error(LangCore::Error::ConfigError, "splitter input is nullptr");
 
         const auto splitterInput = input.as<LangCore::SplitterInputV1>();
-        std::vector<std::string> res;
-        for (const auto &regex : impl.regexes)
-            res = regex->split(splitterInput->splitterInput);
-        // Create result
+        
+        // 修正：链式处理所有regex，每个regex处理前一个的结果
+        std::vector<std::string> res = splitterInput->splitterInput;
+        for (const auto &regex : impl.regexes) {
+            res = regex->split(res);
+        }
+        
+        // Create result using move semantics
         auto taggerResult = LangCore::NO<LangCore::SplitterResultV1>::create();
-        taggerResult->splitterResult = res;
+        taggerResult->splitterResult = std::move(res);
 
-        impl.result = taggerResult;
         return taggerResult;
     }
+
+    LangCore::Expected<void> RegexSplitterTask::updateConfig(const std::string &config) { return setConfig(config); }
 } // namespace LangPlugins::RegexSplitter::V1

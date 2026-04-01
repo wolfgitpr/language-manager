@@ -24,7 +24,7 @@ namespace LangPlugins::TemplateTagger::V1
     LangCore::Expected<void> TaggerRegex::init() {
         regex_ = std::make_unique<RE2>(mergePatterns(m_entry.value), RegexOptions);
         if (!regex_->ok()) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "Invalid regex pattern: " + regex_->error());
+            return LangCore::Error(LangCore::Error::ConfigError, "Invalid regex pattern: " + regex_->error());
         }
         return {};
     }
@@ -87,12 +87,12 @@ namespace LangPlugins::TemplateTagger::V1
 
         for (const auto &path : paths) {
             if (!std::filesystem::exists(path)) {
-                return LangCore::Error(LangCore::Error::InvalidArgument, "Dictionary file not found: " + path);
+                return LangCore::Error(LangCore::Error::ConfigError, "Dictionary file not found: " + path);
             }
 
             std::ifstream file(path);
             if (!file.is_open()) {
-                return LangCore::Error(LangCore::Error::InvalidArgument, "Failed to open dictionary file: " + path);
+                return LangCore::Error(LangCore::Error::ConfigError, "Failed to open dictionary file: " + path);
             }
 
             std::string line;
@@ -122,7 +122,7 @@ namespace LangPlugins::TemplateTagger::V1
             } else if (entry.type == "dict") {
                 util = std::make_unique<TaggerDict>(entry, language);
             } else {
-                return LangCore::Error(LangCore::Error::InvalidArgument, "Unknown tagger util type: " + entry.type);
+                return LangCore::Error(LangCore::Error::ConfigError, "Unknown tagger util type: " + entry.type);
             }
 
             if (auto initExp = util->init(); !initExp) {

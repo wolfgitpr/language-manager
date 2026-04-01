@@ -12,6 +12,7 @@
 
 #include <LangCore/LangCoreGlobal.h>
 #include <LangCore/Support/Expected.h>
+#include <LangCore/Task/Task.h>
 
 namespace LangCore
 {
@@ -35,6 +36,9 @@ namespace LangCore
                                    const std::vector<std::string> &priorityLanguages = {});
 
         std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
+
+    private:
+        Expected<bool> loadTasksForCategory(const std::string &category);
 
     protected:
         class Impl;

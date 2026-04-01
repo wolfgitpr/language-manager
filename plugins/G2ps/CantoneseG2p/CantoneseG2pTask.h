@@ -1,7 +1,7 @@
 #ifndef LANGPLUGINS_CANTONESEG2PTASK_H
 #define LANGPLUGINS_CANTONESEG2PTASK_H
 
-#include <../../../../core/include/LangCore/Support/Tensor.h>
+#include <LangCore/Support/Tensor.h>
 #include <LangCore/Task/Task.h>
 
 namespace LangPlugins::CantoneseG2p::V1
@@ -19,11 +19,13 @@ namespace LangPlugins::CantoneseG2p::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
+        LangCore::Expected<void> updateConfig(const std::string &config);
+
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
     };
 
-} // namespace LangPlugins::CantoneseG2p
+} // namespace LangPlugins::CantoneseG2p::V1
 
-#endif
+#endif // LANGPLUGINS_CANTONESEG2PTASK_H

@@ -1,4 +1,4 @@
-project(TemplateTaggerV1
+project(TemplateTagger
         VERSION ${LANGPLUGINS_VERSION}
         LANGUAGES C CXX
 )

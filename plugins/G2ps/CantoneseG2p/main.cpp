@@ -17,6 +17,6 @@ namespace LangPlugins::CantoneseG2p::V1
         }
     };
 
-} // namespace LangPlugins::CantoneseG2p
+} // namespace LangPlugins::CantoneseG2p::V1
 
 LANGCORE_EXPORT_PLUGIN(LangPlugins::CantoneseG2p::V1::CantoneseG2pEnginePlugin)

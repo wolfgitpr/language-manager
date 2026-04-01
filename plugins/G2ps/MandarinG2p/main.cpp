@@ -17,6 +17,6 @@ namespace LangPlugins::MandarinG2p::V1
         }
     };
 
-} // namespace LangPlugins::MandarinG2p
+} // namespace LangPlugins::MandarinG2p::V1
 
 LANGCORE_EXPORT_PLUGIN(LangPlugins::MandarinG2p::V1::MandarinG2pEnginePlugin)

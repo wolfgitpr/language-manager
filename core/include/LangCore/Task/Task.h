@@ -17,35 +17,30 @@ namespace LangCore
     /// by a specific inference interpreter.
     class TaskInfoBase : public NamedObject {
     public:
-        TaskInfoBase() {}
+        TaskInfoBase() = default;
         ~TaskInfoBase() override = default;
     };
 
     class TaskInitArgs : public TaskInfoBase {
     public:
-        explicit TaskInitArgs() {}
+        explicit TaskInitArgs() = default;
     };
 
     class TaskInput : public TaskInfoBase {
     public:
-        explicit TaskInput() {}
+        explicit TaskInput() = default;
     };
 
     class TaskResult : public TaskInfoBase {
     public:
-        explicit TaskResult() {}
+        explicit TaskResult() = default;
 
         Error error;
     };
 
     class TaskConfiguration : public TaskInfoBase {
     public:
-        TaskConfiguration() {}
-    };
-
-    class TaskRuntimeOptions : public TaskInfoBase {
-    public:
-        TaskRuntimeOptions() {}
+        TaskConfiguration() = default;
     };
 
     class LANGCORE_EXPORT Task : public NamedObject {
@@ -64,6 +59,12 @@ namespace LangCore
         PackageManager *Mgr() const;
 
         Expected<NO<NamedObject>> getObject(const std::string &category, const std::string &id) const;
+
+        /// 获取完整配置（JSON 字符串）
+        virtual std::string getConfig() const;
+
+        /// 设置完整配置（JSON 字符串）
+        virtual Expected<void> setConfig(const std::string &config);
 
     protected:
         class Impl;

@@ -2,8 +2,12 @@
 #define LANGCORE_G2PTASK_H
 
 #include <filesystem>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <LangCore/Base/LangCommon.h>
+#include <LangCore/Base/NamedObject.h>
 #include <LangCore/Task/Task.h>
 
 namespace LangCore
@@ -23,4 +27,5 @@ namespace LangCore
         std::string errorMessage;
     };
 } // namespace LangCore
-#endif
+
+#endif // LANGCORE_G2PTASK_H

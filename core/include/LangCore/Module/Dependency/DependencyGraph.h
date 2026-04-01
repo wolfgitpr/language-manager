@@ -68,8 +68,7 @@ namespace LangCore
     struct LANGCORE_EXPORT PackageInitializationPlan {
         std::string packageId;
         std::filesystem::path packagePath;
-        std::vector<ModuleMetadata> modules;
-        std::vector<ModuleMetadata> initializationOrder;
+        std::vector<ModuleMetadata> initializationOrder; // 包含该包的所有模块，按初始化顺序排列
     };
 
     class LANGCORE_EXPORT DependencyGraph {

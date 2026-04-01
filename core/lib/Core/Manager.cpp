@@ -53,36 +53,57 @@ namespace LangCore
         return &instance;
     }
 
+    Expected<bool> Manager::loadTasksForCategory(const std::string &category) {
+        __stdc_impl_t;
+        auto categoryTasks = this->tasks(category);
+        if (!categoryTasks.hasValue()) {
+            return Error(
+                Error::RuntimeError,
+                stdc::formatN("Failed to load %1 tasks: %2. This indicates that either:\n"
+                               "  1. No %1 modules were found in the loaded packages\n"
+                               "  2. All %1 modules failed to create (check logs above)\n"
+                               "  3. Plugin loading path is incorrect",
+                               category, categoryTasks.error().message()));
+        }
+        for (const auto &task : categoryTasks.take())
+            impl.tasks[category][task->spec()->id()] = task;
+        return true;
+    }
+
     bool Manager::initialize(std::string &errMsg) {
         __stdc_impl_t;
         if (const auto loadPackages = this->loadPackagesInOrder(); !loadPackages) {
-            errMsg = "Failed to load packages in order";
+            // 获取依赖解析器的错误信息
+            const auto &errors = this->getDependencyErrors();
+            if (!errors.empty()) {
+                errMsg = "Failed to load packages in order due to dependency or Level compatibility issues:\n";
+                for (const auto &error : errors) {
+                    errMsg += "  - " + error + "\n";
+                }
+                errMsg += "\nPlease check:\n";
+                errMsg += "  1. Plugin dependencies are correctly declared in package.json\n";
+                errMsg += "  2. Plugin Level values are within the system's supported range\n";
+                errMsg += "  3. Plugin .dll files are present in the plugin directories\n";
+                errMsg += "  4. Configuration files exist and are valid JSON\n";
+            } else {
+                errMsg = "Failed to load packages in order. No specific dependency errors found.\n";
+                errMsg += "Please check:\n";
+                errMsg += "  1. Plugin .dll files are present in the plugin directories\n";
+                errMsg += "  2. package.json files are valid and not corrupted\n";
+                errMsg += "  3. Plugin paths are correctly added to the Manager\n";
+                errMsg += "  4. Check detailed logs for Level compatibility issues\n";
+            }
             return false;
         }
 
-        auto splitters = this->tasks("splitter");
-        if (!splitters.hasValue()) {
-            errMsg = "Failed to load splitter packages in order";
-            return false;
+        // 加载各类任务
+        const std::vector<std::string> categories = {"splitter", "g2p", "tagger"};
+        for (const auto &category : categories) {
+            if (auto result = loadTasksForCategory(category); !result) {
+                errMsg = result.error().message();
+                return false;
+            }
         }
-        for (const auto &splitter : splitters.take())
-            impl.tasks["splitter"][splitter->spec()->id()] = splitter;
-
-        auto g2ps = this->tasks("g2p");
-        if (!g2ps.hasValue()) {
-            errMsg = "Failed to load g2p packages in order";
-            return false;
-        }
-        for (const auto &g2p : g2ps.take())
-            impl.tasks["g2p"][g2p->spec()->id()] = g2p;
-
-        auto taggers = this->tasks("tagger");
-        if (!taggers.hasValue()) {
-            errMsg = "Failed to load tagger packages in order";
-            return false;
-        }
-        for (const auto &tagger : taggers.take())
-            impl.tasks["tagger"][tagger->spec()->id()] = tagger;
 
         impl.initialized = true;
         return true;
@@ -96,11 +117,11 @@ namespace LangCore
     Expected<NO<Task>> Manager::task(const std::string &category, const std::string &id) const {
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
-            return Error(Error::SessionError, "could not find category: " + category);
+            return Error(Error::RuntimeError, "could not find category: " + category);
 
         const auto inferenceObject = inferenceCate->getFirstObject(id);
         if (!inferenceObject)
-            return Error(Error::SessionError, "could not find id: " + id);
+            return Error(Error::RuntimeError, "could not find id: " + id);
 
         return inferenceObject.as<Task>();
     }
@@ -108,18 +129,18 @@ namespace LangCore
     Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category) const {
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
-            return Error(Error::SessionError, "could not find category: " + category);
+            return Error(Error::RuntimeError, "could not find category: " + category);
 
         const auto inferenceObject = inferenceCate->allObjects();
         if (inferenceObject.empty())
-            return Error(Error::SessionError, "category: " + category + " is empty.");
+            return Error(Error::RuntimeError, "category: " + category + " is empty.");
 
         std::vector<NO<Task>> tasks;
         tasks.reserve(inferenceObject.size());
         std::transform(inferenceObject.begin(), inferenceObject.end(), std::back_inserter(tasks),
                        [](const auto &obj) { return obj.template as<Task>(); });
         if (tasks.empty())
-            return Error(Error::SessionError, "category: " + category + " is empty.");
+            return Error(Error::RuntimeError, "category: " + category + " is empty.");
         return tasks;
     }
 
@@ -177,8 +198,14 @@ namespace LangCore
             }
 
             auto resultExp = g2ps[targetG2pId]->start(_input);
-            if (!resultExp)
-                throw std::runtime_error(stdc::formatN("inference failed: %1", resultExp.error().message()));
+            if (!resultExp) {
+                MgrLog.langCoreCritical("inference failed for g2p '%1': %2", 
+                                        g2pId, resultExp.error().message());
+                for (const auto &lyric : lyricVec)
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", true, 
+                                              TaskError));
+                continue;
+            }
 
             const auto _result = resultExp.take();
             if (const auto g2pRes = _result.as<G2pResultV1>()) {
@@ -188,7 +215,10 @@ namespace LangCore
                     MgrLog.langCoreCritical("Error: %1", g2pRes->errorMessage);
 
             } else {
-                throw std::runtime_error("unexpected result type");
+                MgrLog.langCoreCritical("unexpected result type for g2p '%1'", g2pId);
+                for (const auto &lyric : lyricVec)
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", true, 
+                                              InvalidG2pId));
             }
         }
 

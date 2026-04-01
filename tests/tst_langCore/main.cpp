@@ -1,6 +1,5 @@
 #include <filesystem>
 #include <iostream>
-
 #include <string>
 #include <vector>
 
@@ -9,9 +8,8 @@
 
 #include <LangCore/Core/Manager.h>
 #include <LangCore/Module/Module.h>
-#include <LangCore/Task/TaskPlugin.h>
-
 #include <LangCore/Task/SessionTask.h>
+#include <LangCore/Task/TaskPlugin.h>
 
 std::filesystem::path getPluginRootDirectory() {
 #if defined(Q_OS_MAC)
@@ -22,7 +20,9 @@ std::filesystem::path getPluginRootDirectory() {
     return stdc::system::application_directory().parent_path() / _TSTR("lib/plugins");
 #endif
 }
+
 using EP = LangCore::ExecutionProvider;
+
 EP parseExecutionProvider(const std::string &provider) {
     const auto providerLower = stdc::to_lower(provider);
     if (providerLower == "dml" || providerLower == "directml") {
@@ -74,7 +74,7 @@ bool initializeOnnxDriver(const LangCore::Manager *mgr, const std::string &ep, c
     return true;
 }
 
-int main() {
+bool initializeManager() {
     const auto langMgr = LangCore::Manager::instance();
 
     const auto defaultPluginDir = getPluginRootDirectory() / _TSTR("LangPlugins");
@@ -83,39 +83,119 @@ int main() {
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Taggers"));
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Splitters"));
 
+    // 添加包路径
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
     langMgr->addPackagePath(packagesRootDir);
 
-    if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized)
-        return -1;
+    // 初始化 ONNX Driver
+    if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized) {
+        std::cerr << "Failed to initialize ONNX driver" << std::endl;
+        return false;
+    }
 
+    // 初始化 Manager
     std::string errorMessage;
     langMgr->initialize(errorMessage);
     if (!langMgr->initialized()) {
         std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+int main() {
+    std::cout << "========================================" << std::endl;
+    std::cout << "Language Manager - G2p Test Suite" << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    try {
+        // 初始化 Manager（加载所有插件和包）
+        if (!initializeManager()) {
+            std::cerr << "Failed to initialize Manager" << std::endl;
+            return -1;
+        }
+
+        // ========================================
+        // 测试配置 API
+        // ========================================
+        std::cout << "\n=== Testing Configuration API ===" << std::endl;
+
+        const auto langMgr = LangCore::Manager::instance();
+
+        // 测试配置 API
+        if (auto g2pTask = langMgr->task("g2p", "g2p-chain")) {
+            std::cout << "Testing getConfig()..." << std::endl;
+            auto configJson = g2pTask.get()->getConfig();
+            std::cout << "Config size: " << configJson.size() << " bytes" << std::endl;
+
+            // 插件应该自己解析 JSON 配置
+            std::cout << "\nNote: Config parsing should be done by plugins using Support/JSON.h" << std::endl;
+
+            // 测试 setConfig 和 updateConfig
+            std::cout << "\nTesting setConfig()..." << std::endl;
+            std::string newConfig = R"({
+  "processors": [
+    {
+      "processorId": "verifier",
+      "processorType": "verifier",
+      "enabled": true,
+      "priority": 0,
+      "config": {},
+      "dependencies": []
+    }
+  ]
+})";
+            if (auto setResult = g2pTask.get()->setConfig(newConfig)) {
+                std::cout << "Successfully set new config" << std::endl;
+            }
+
+            // 注意：updateConfig() 已移除，配置更新由插件自行实现
+        }
+
+        // ========================================
+        // 测试 G2p 责任链
+        // ========================================
+        std::cout << "\n=== Testing G2p Chain Task ===" << std::endl;
+
+        // 测试文本
+        const auto text =
+            "wo neng tun xia Glass er bu shang shen ti\nhalloween蝉ce "
+            "声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
+
+        const auto splitRes = langMgr->split(text);
+        const auto tagExp = langMgr->tag(splitRes, false, true, {"cmn"});
+
+        std::vector<LangCore::G2pInput *> g2pInput;
+        std::cout << "Tag result:" << std::endl;
+        for (const auto &res : tagExp) {
+            g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
+            std::cout << "  lyric: '" << res.lyric << "' language: '" << res.language << "' tag: '" << res.tag << "'"
+                      << std::endl;
+        }
+
+        // 测试使用责任链 G2p
+        std::cout << "\nTesting G2p Chain:" << std::endl;
+        const auto g2pResult = langMgr->convert(g2pInput);
+
+        for (const auto &g2pRes : g2pResult) {
+            std::cout << "  lyric: '" << g2pRes.lyric << "' g2pId: '" << g2pRes.g2pId << "' pronunciation: '"
+                      << g2pRes.pronunciation << "' mode: '" << g2pRes.mode << "' error: " << g2pRes.error
+                      << "' errorType: " << g2pRes.errorType << "'" << std::endl;
+        }
+
+        // 清理
+        for (auto *input : g2pInput) {
+            delete input;
+        }
+
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "All tests completed successfully!" << std::endl;
+        std::cout << "========================================" << std::endl;
+    }
+    catch (const std::exception &e) {
+        std::cerr << "Test failed with exception: " << e.what() << std::endl;
         return -1;
-    }
-
-    const auto text =
-        "wo neng tun xia Glass er bu shang shen ti\nhalloween蝉ce "
-        "声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
-    const auto splitRes = langMgr->split(text);
-    const auto tagExp = langMgr->tag(splitRes, false, false, {"yue"});
-
-    std::vector<LangCore::G2pInput *> g2pInput;
-    std::cout << "tag result: " << std::endl;
-    for (const auto &res : tagExp) {
-        g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
-        std::cout << "lyric: '" << res.lyric << "' language: '" << res.language << "' tag: '" << res.tag << "'"
-                  << std::endl;
-    }
-
-    const auto g2pResult = langMgr->convert(g2pInput);
-
-    for (const auto &g2pRes : g2pResult) {
-        std::cout << "lyric: '" << g2pRes.lyric << "' g2pId: '" << g2pRes.g2pId << "' pronunciation: '"
-                  << g2pRes.pronunciation << "' mode: " << g2pRes.mode << "' error: " << g2pRes.error << " errorType: '"
-                  << g2pRes.errorType << "'" << std::endl;
     }
 
     return 0;

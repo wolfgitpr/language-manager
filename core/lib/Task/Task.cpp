@@ -32,14 +32,26 @@ namespace LangCore
     Expected<NO<NamedObject>> Task::getObject(const std::string &category, const std::string &id) const {
         const auto inferenceCate = this->Mgr()->category(category);
         if (!inferenceCate)
-            return Error(Error::SessionError, "could not find category: " + category);
+            return Error(Error::RuntimeError, "could not find category: " + category);
 
         const auto inferenceObject = inferenceCate->getFirstObject(id);
         if (!inferenceObject)
-            return Error(Error::SessionError, "could not find id: " + id);
+            return Error(Error::RuntimeError, "could not find id: " + id);
 
         return inferenceObject;
     }
 
+    std::string Task::getConfig() const {
+        __stdc_impl_t;
+        std::shared_lock lock(impl.mutex);
+        return impl.config;
+    }
+
+    Expected<void> Task::setConfig(const std::string &config) {
+        __stdc_impl_t;
+        std::unique_lock lock(impl.mutex);
+        impl.config = config;
+        return {};
+    }
 
 } // namespace LangCore

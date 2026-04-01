@@ -17,6 +17,8 @@ namespace LangPlugins::TemplateG2p::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
+        LangCore::Expected<void> updateConfig(const std::string &config);
+
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
@@ -27,4 +29,4 @@ namespace LangPlugins::TemplateG2p::V1
 
 } // namespace LangPlugins::TemplateG2p::V1
 
-#endif //  LANGPLUGINS_TEMPLATEG2PTASK_H
+#endif // LANGPLUGINS_TEMPLATEG2PTASK_H

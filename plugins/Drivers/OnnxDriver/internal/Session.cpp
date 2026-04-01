@@ -192,7 +192,7 @@ namespace LangPlugins::OnnxDriver::V1
             const auto dataLengthFromShape = std::accumulate(shape.begin(), shape.end(), int64_t{1}, std::multiplies());
             if (dataLength != dataLengthFromShape) {
                 if (error) {
-                    *error = {Error::InvalidArgument, "Shape does not match data length"};
+                    *error = {Error::ConfigError, "Shape does not match data length"};
                 }
                 return Ort::Value(nullptr);
             }
@@ -205,7 +205,7 @@ namespace LangPlugins::OnnxDriver::V1
                 return _createOrtValueFromTensorImpl<bool>(rawBuffer, dataLength, shape);
             default:
                 if (error) {
-                    *error = {Error::InvalidArgument, "Unsupported data type"};
+                    *error = {Error::ConfigError, "Unsupported data type"};
                 }
                 return Ort::Value(nullptr);
             }
@@ -214,7 +214,7 @@ namespace LangPlugins::OnnxDriver::V1
         static NO<ITensor> createTensorFromOrtValue(const Ort::Value &ortValue, Error *error = nullptr) {
             if (!ortValue.IsTensor()) {
                 if (error) {
-                    *error = {Error::InvalidArgument, "Ort::Value is not a tensor"};
+                    *error = {Error::ConfigError, "Ort::Value is not a tensor"};
                 }
                 return {};
             }
@@ -242,7 +242,7 @@ namespace LangPlugins::OnnxDriver::V1
                 break;
             default:
                 if (error) {
-                    *error = {Error::InvalidArgument, "Unsupported ONNX tensor element type"};
+                    *error = {Error::ConfigError, "Unsupported ONNX tensor element type"};
                 }
                 return {};
             }
@@ -287,7 +287,7 @@ namespace LangPlugins::OnnxDriver::V1
                         auto ortValue = createOrtValueFromTensor(value, memInfo, error);
                         if (!ortValue) {
                             if (error) {
-                                *error = {Error::InvalidArgument,
+                                *error = {Error::ConfigError,
                                           "Could not create Ort Tensor for input name \"" + name + "\""};
                             }
                             return {};
@@ -299,7 +299,7 @@ namespace LangPlugins::OnnxDriver::V1
                         ctx.inputValuePtrs.push_back(*ortValue->valuePtr());
                     } else {
                         if (error) {
-                            *error = {Error::InvalidArgument, "Unknown tensor backend for input name \"" + name + "\""};
+                            *error = {Error::ConfigError, "Unknown tensor backend for input name \"" + name + "\""};
                         }
                         return {};
                     }
@@ -317,7 +317,7 @@ namespace LangPlugins::OnnxDriver::V1
                 if (!statusRun.IsOK()) {
                     ctx.releaseOutputValues();
                     if (error) {
-                        *error = Error(Error::SessionError, statusRun.GetErrorMessage());
+                        *error = Error(Error::RuntimeError, statusRun.GetErrorMessage());
                     }
                     return {};
                 }
@@ -346,7 +346,7 @@ namespace LangPlugins::OnnxDriver::V1
             }
             catch (const Ort::Exception &err) {
                 if (error) {
-                    *error = Error(Error::SessionError, err.what());
+                    *error = Error(Error::RuntimeError, err.what());
                 }
             }
             return {};
@@ -355,7 +355,7 @@ namespace LangPlugins::OnnxDriver::V1
     Error Session::Impl::validateInputValueMap(const NO<SessionStartInput> &input) const {
         const auto &inputValueMap = input->inputs;
         if (inputValueMap.empty()) {
-            return {Error::SessionError, "Input map is empty"};
+            return {Error::RuntimeError, "Input map is empty"};
         }
 
         const auto &requiredInputNames = image->inputNames;
@@ -401,7 +401,7 @@ namespace LangPlugins::OnnxDriver::V1
             }
 
             if (flagMissing || flagExtra) {
-                return {Error::SessionError, msgStream.str()};
+                return {Error::RuntimeError, msgStream.str()};
             }
         }
         return {}; // no error
@@ -465,13 +465,13 @@ namespace LangPlugins::OnnxDriver::V1
 
         if (isOpen()) {
             Log.langCoreWarning("Session - Session %1 is already open!", path.string());
-            return Error(Error::SessionError, "session is already open");
+            return Error(Error::RuntimeError, "session is already open");
         }
 
         // Open
         Log.langCoreDebug("Session - Try open " + path.string());
         if (!fs::is_regular_file(path)) {
-            return Error(Error::FileNotOpen, "not a regular file");
+            return Error(Error::FileSystemError, "not a regular file");
         }
 
         const fs::path canonical_path = fs::canonical(path);
@@ -510,7 +510,7 @@ namespace LangPlugins::OnnxDriver::V1
         {
             std::string hash_str;
             if (!getFileInfo(canonical_path, hash, hash_str, size)) {
-                return Error(Error::FileNotOpen, "failed to read file");
+                return Error(Error::FileSystemError, "failed to read file");
             }
             Log.langCoreDebug("Session - BLAKE3 hash is %1", hash_str);
         }
@@ -536,7 +536,7 @@ namespace LangPlugins::OnnxDriver::V1
         if (std::string error1; !image->open(canonical_path, hints, &error1)) {
             delete image;
             return Error{
-                Error::FileNotOpen,
+                Error::FileSystemError,
                 "failed to read file: " + error1,
             };
         }
@@ -573,7 +573,7 @@ namespace LangPlugins::OnnxDriver::V1
         __stdc_impl_t;
 
         if (!impl.group)
-            return Error(Error::SessionError, "session is not open");
+            return Error(Error::RuntimeError, "session is not open");
 
         const auto &path = impl.realPath;
         const auto &filename = path.filename();
@@ -654,7 +654,7 @@ namespace LangPlugins::OnnxDriver::V1
         __stdc_impl_t;
         Error tmpError;
         if (!impl.group) {
-            tmpError = {Error::SessionError, "session is not open"};
+            tmpError = {Error::RuntimeError, "session is not open"};
             impl.sessionResult->error = tmpError;
             return tmpError;
         }

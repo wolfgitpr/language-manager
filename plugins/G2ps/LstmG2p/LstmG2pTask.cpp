@@ -22,7 +22,6 @@ namespace LangPlugins::LstmG2p::V1
 {
     class LstmG2pTask::Impl {
     public:
-        LangCore::NO<LangCore::G2pResultV1> result;
         LangCore::NO<LangCore::SessionFactory> driver;
         LangCore::NO<LangCore::SessionTask> encoderSession;
         LangCore::NO<LangCore::SessionTask> decodeSession;
@@ -46,9 +45,6 @@ namespace LangPlugins::LstmG2p::V1
     LangCore::Expected<void> LstmG2pTask::initialize() {
         __stdc_impl_t;
         std::unique_lock lock(impl.mutex);
-
-        // If there are existing result, they will be cleared.
-        impl.result.reset();
 
         if (auto res = getObject("driver", "g2pOnnxDriver"); res) {
             impl.driver = res.take().as<LangCore::SessionFactory>();
@@ -90,17 +86,17 @@ namespace LangPlugins::LstmG2p::V1
         {
             std::shared_lock lock(impl.mutex);
             if (!impl.driver)
-                return LangCore::Error(LangCore::Error::SessionError, "inference driver not initialized");
+                return LangCore::Error(LangCore::Error::RuntimeError, "inference driver not initialized");
         }
 
         if (!input)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
+            return LangCore::Error(LangCore::Error::ConfigError, "g2p input is nullptr");
 
         const auto g2pInput = input.as<LangCore::G2pInputV1>();
 
         // Preprocess input word
         if (g2pInput->g2pInput.empty())
-            return LangCore::Error(LangCore::Error::InvalidArgument, "input words are empty");
+            return LangCore::Error(LangCore::Error::ConfigError, "input words are empty");
 
         // For now, process only the first word
         const auto &lyric = g2pInput->g2pInput[0];
@@ -119,7 +115,7 @@ namespace LangPlugins::LstmG2p::V1
 
         std::unique_lock lock(impl.mutex);
         if (!impl.encoderSession || !impl.encoderSession->isOpen())
-            return LangCore::Error(LangCore::Error::SessionError, "encoder session is not initialized");
+            return LangCore::Error(LangCore::Error::RuntimeError, "encoder session is not initialized");
 
         LangCore::NO<LangCore::SessionResult> encoderResult;
         if (auto encoderExp = impl.encoderSession->start(encoderInput); !encoderExp) {
@@ -127,7 +123,7 @@ namespace LangPlugins::LstmG2p::V1
         } else {
             auto sessionTaskResult = encoderExp.take();
             if (!sessionTaskResult) {
-                return LangCore::Error(LangCore::Error::SessionError, "invalid encoder result");
+                return LangCore::Error(LangCore::Error::RuntimeError, "invalid encoder result");
             }
             encoderResult = sessionTaskResult.as<LangCore::SessionResult>();
         }
@@ -138,7 +134,7 @@ namespace LangPlugins::LstmG2p::V1
         auto cell = LstmG2pInferenceHelper::getTensorFromResult(encoderResult, "cell");
 
         if (!encoderOutputs || !hidden || !cell)
-            return LangCore::Error(LangCore::Error::SessionError, "failed to get encoder outputs");
+            return LangCore::Error(LangCore::Error::RuntimeError, "failed to get encoder outputs");
 
         // Run decoder with autoregressive generation
         auto phonemeIds = LstmG2pInferenceHelper::runDecoder(impl.decodeSession, encoderOutputs.take(), hidden.take(),
@@ -147,7 +143,7 @@ namespace LangPlugins::LstmG2p::V1
             return phonemeIds.takeError();
 
         // Decode phonemes
-        auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), impl.phonemeVocab, impl.bosIdx,
+        auto phonemes = LstmG2pInferenceHelper::decodePhonemes(phonemeIds.take(), impl.idx_to_phoneme, impl.bosIdx,
                                                                impl.eosIdx, impl.padIdx, impl.unkIdx);
         if (phonemes->empty())
             return phonemes.takeError();
@@ -161,7 +157,6 @@ namespace LangPlugins::LstmG2p::V1
             pronStr += phone + " ";
         g2pResult->g2pResult = {LangCore::G2pRes(lyric, "eng", pronStr, {}, "copy", true)};
 
-        impl.result = g2pResult;
         return g2pResult;
     }
 
@@ -189,7 +184,7 @@ namespace LangPlugins::LstmG2p::V1
         if (auto exp = LangCore::Tensor::createFromView<int64_t>(shape, stdc::array_view<int64_t>{indices}); exp) {
             return exp.take();
         }
-        return LangCore::Error(LangCore::Error::InvalidArgument,
+        return LangCore::Error(LangCore::Error::ConfigError,
                                stdc::formatN("Failed to create tensor for word: %1", word));
     }
 
@@ -199,7 +194,7 @@ namespace LangPlugins::LstmG2p::V1
 
         const auto it = result->outputs.find(name);
         if (it == result->outputs.end()) {
-            return LangCore::Error(LangCore::Error::SessionError,
+            return LangCore::Error(LangCore::Error::RuntimeError,
                                    stdc::formatN("output '%1' not found in session result", name));
         }
         return it->second;
@@ -246,7 +241,7 @@ namespace LangPlugins::LstmG2p::V1
             } else {
                 auto sessionTaskResult = decoderExp.take();
                 if (!sessionTaskResult) {
-                    return LangCore::Error(LangCore::Error::SessionError, "invalid decoder result");
+                    return LangCore::Error(LangCore::Error::RuntimeError, "invalid decoder result");
                 }
                 decoderResult = sessionTaskResult.as<LangCore::SessionResult>();
             }
@@ -256,18 +251,18 @@ namespace LangPlugins::LstmG2p::V1
             currentCell = getTensorFromResult(decoderResult, "cell_new").take();
 
             if (!output || !currentHidden || !currentCell) {
-                return LangCore::Error(LangCore::Error::SessionError, "failed to get decoder outputs");
+                return LangCore::Error(LangCore::Error::RuntimeError, "failed to get decoder outputs");
             }
 
             // Get predicted phoneme ID (argmax)
             const auto outputTensor = output.take();
             if (outputTensor->dataType() != LangCore::ITensor::Float) {
-                return LangCore::Error(LangCore::Error::SessionError, "decoder output is not float");
+                return LangCore::Error(LangCore::Error::RuntimeError, "decoder output is not float");
             }
 
             auto outputView = outputTensor->view<float>();
             if (outputView.empty()) {
-                return LangCore::Error(LangCore::Error::SessionError, "decoder output is empty");
+                return LangCore::Error(LangCore::Error::RuntimeError, "decoder output is empty");
             }
 
             int64_t predictedId = 0;
@@ -303,14 +298,9 @@ namespace LangPlugins::LstmG2p::V1
 
     LangCore::Expected<std::vector<std::string>>
     LstmG2pInferenceHelper::decodePhonemes(const std::vector<int64_t> &phonemeIds,
-                                           const std::map<std::string, int> &phonemeVocab, const int bosIdx,
+                                           const std::map<int, std::string> &idxToPhoneme, const int bosIdx,
                                            const int eosIdx, const int padIdx, const int unkIdx) {
         std::vector<std::string> phonemes;
-
-        std::unordered_map<int64_t, std::string> idToPhoneme;
-        for (const auto &[phoneme, id] : phonemeVocab) {
-            idToPhoneme[id] = phoneme;
-        }
 
         for (const int64_t id : phonemeIds) {
             // Skip special tokens
@@ -318,11 +308,18 @@ namespace LangPlugins::LstmG2p::V1
                 continue;
             }
 
-            if (auto it = idToPhoneme.find(id); it != idToPhoneme.end()) {
+            auto it = idxToPhoneme.find(static_cast<int>(id));
+            if (it != idxToPhoneme.end()) {
                 phonemes.push_back(it->second);
             }
         }
 
         return phonemes;
+    }
+
+    LangCore::Expected<void> LstmG2pTask::updateConfig(const std::string &config) {
+        // 简单实现：将配置存储到 Task 基类中
+        // 具体的配置解析和更新逻辑可以在需要时由插件自行实现
+        return setConfig(config);
     }
 } // namespace LangPlugins::LstmG2p::V1

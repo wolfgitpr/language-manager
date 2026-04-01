@@ -63,8 +63,22 @@ namespace LangCore
         console::puts(console::nostyle, color, console::nocolor, message);
     }
 
+    static bool matchesPattern(const std::string &text, const std::string &pattern) {
+        if (pattern == "*") {
+            return true;
+        }
+
+        if (pattern.back() == '*') {
+            std::string prefix = pattern.substr(0, pattern.size() - 1);
+            return text.find(prefix) == 0;
+        }
+
+        return text == pattern;
+    }
+
     static void defaultLogCategoryFilter(LogCategory *category) {
-        // TODO
+        // 简单的默认实现：不做任何过滤
+        (void)category;
     }
 
     void Logger::print(const int level, const std::string_view &message) const {

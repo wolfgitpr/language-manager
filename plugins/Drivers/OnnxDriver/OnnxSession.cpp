@@ -31,7 +31,7 @@ namespace LangPlugins::OnnxDriver::V1
         const auto openArgs = args.as<LangCore::SessionOpenArgs>();
         if (!openArgs) {
             return LangCore::Error{
-                LangCore::Error::InvalidArgument,
+                LangCore::Error::ConfigError,
                 "session open args is null pointer",
             };
         }
@@ -57,5 +57,11 @@ namespace LangPlugins::OnnxDriver::V1
     OnnxSession::start(const LangCore::NO<LangCore::TaskInput> &input) {
         __stdc_impl_t;
         return impl.session.run(input);
+    }
+
+    LangCore::Expected<void> OnnxSession::updateConfig(const std::string &config) {
+        // 简单实现：将配置存储到 Task 基类中
+        // 具体的配置解析和更新逻辑可以在需要时由插件自行实现
+        return setConfig(config);
     }
 } // namespace LangPlugins::OnnxDriver::V1

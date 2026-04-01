@@ -85,10 +85,10 @@ namespace LangPlugins
 
     LangCore::Expected<void> verify(ITensor::DataType dataType, const std::vector<int64_t> &shape, size_t dataSize) {
         if (dataType == ITensor::Undefined) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "data type can not be Undefined");
+            return LangCore::Error(LangCore::Error::ConfigError, "data type can not be Undefined");
         }
         if (!verifyShape(dataType, shape, dataSize)) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "data size and shape mismatch");
+            return LangCore::Error(LangCore::Error::ConfigError, "data size and shape mismatch");
         }
         return LangCore::Expected<void>();
     }
@@ -125,19 +125,19 @@ namespace LangPlugins
         // Check if shape is valid
         auto maybeTotalElements = getElementCountFromShape(dataType, shape);
         if (!maybeTotalElements.has_value()) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid shape");
+            return LangCore::Error(LangCore::Error::ConfigError, "invalid shape");
         }
         const uint64_t totalElements = maybeTotalElements.value();
 
         const size_t elementSize = getElementSize(dataType);
         if (elementSize == 0) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "invalid data type");
+            return LangCore::Error(LangCore::Error::ConfigError, "invalid data type");
         }
 
         // Create OnnxTensor object
         auto tensor = LangCore::NO<OnnxTensor>::create();
         if (!tensor) {
-            return LangCore::Error(LangCore::Error::SessionError, "failed to create OnnxTensor");
+            return LangCore::Error(LangCore::Error::RuntimeError, "failed to create OnnxTensor");
         }
         ONNXTensorElementDataType onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
         switch (dataType) {
@@ -151,7 +151,7 @@ namespace LangPlugins
             onnxType = ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
             break;
         default:
-            return LangCore::Error(LangCore::Error::InvalidArgument, "unsupported data type");
+            return LangCore::Error(LangCore::Error::ConfigError, "unsupported data type");
         }
 
         // Populate OnnxTensor metadata
@@ -164,7 +164,7 @@ namespace LangPlugins
         Ort::AllocatorWithDefaultOptions allocator{};
         tensor->_value = Ort::Value::CreateTensor(allocator, shape.data(), shape.size(), onnxType);
         if (!tensor->_value) {
-            return LangCore::Error(LangCore::Error::SessionError, "failed to create Ort::Value tensor");
+            return LangCore::Error(LangCore::Error::RuntimeError, "failed to create Ort::Value tensor");
         }
 
         return tensor;
@@ -190,10 +190,10 @@ namespace LangPlugins
     LangCore::Expected<LangCore::NO<OnnxTensor>> OnnxTensor::createFromOrtValue(Ort::Value &&value) {
         auto tensor = LangCore::NO<OnnxTensor>::create();
         if (!tensor) {
-            return LangCore::Error(LangCore::Error::SessionError, "failed to create OnnxTensor");
+            return LangCore::Error(LangCore::Error::RuntimeError, "failed to create OnnxTensor");
         }
         if (!value || !value.IsTensor()) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "Ort::Value is null or not a tensor");
+            return LangCore::Error(LangCore::Error::ConfigError, "Ort::Value is null or not a tensor");
         }
         auto typeInfo = value.GetTensorTypeAndShapeInfo();
         auto ortType = typeInfo.GetElementType();
@@ -213,7 +213,7 @@ namespace LangPlugins
             tensor->_dataType = Int64;
             break;
         default:
-            return LangCore::Error(LangCore::Error::InvalidArgument, "unsupported data type");
+            return LangCore::Error(LangCore::Error::ConfigError, "unsupported data type");
         }
 
         tensor->_value = std::move(value);
@@ -222,7 +222,7 @@ namespace LangPlugins
 
     LangCore::Expected<LangCore::NO<OnnxTensor>> OnnxTensor::createFromTensor(const LangCore::NO<ITensor> &tensor) {
         if (!tensor) {
-            return LangCore::Error(LangCore::Error::InvalidArgument, "tensor must not be nullptr");
+            return LangCore::Error(LangCore::Error::ConfigError, "tensor must not be nullptr");
         }
         return createFromRawView(tensor->dataType(), tensor->shape(), tensor->rawView());
     }

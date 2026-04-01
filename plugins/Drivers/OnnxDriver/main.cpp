@@ -18,6 +18,6 @@ namespace LangPlugins::OnnxDriver::V1
         }
     };
 
-} // namespace LangPlugins
+} // namespace LangPlugins::OnnxDriver::V1
 
 LANGCORE_EXPORT_PLUGIN(LangPlugins::OnnxDriver::V1::OnnxDriverPlugin)

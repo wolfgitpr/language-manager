@@ -1,5 +1,5 @@
-#ifndef LANG_PLUGINS_REGEXTAGGERTASK_H
-#define LANG_PLUGINS_REGEXTAGGERTASK_H
+#ifndef LANGPLUGINS_REGEXSPLITTERTASK_H
+#define LANGPLUGINS_REGEXSPLITTERTASK_H
 
 #include <LangCore/Task/Task.h>
 
@@ -17,6 +17,8 @@ namespace LangPlugins::RegexSplitter::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
+        LangCore::Expected<void> updateConfig(const std::string &config);
+
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
@@ -24,4 +26,4 @@ namespace LangPlugins::RegexSplitter::V1
 
 } // namespace LangPlugins::RegexSplitter::V1
 
-#endif //  LANG_PLUGINS_REGEXTAGGERTASK_H
+#endif // LANGPLUGINS_REGEXSPLITTERTASK_H

@@ -5,54 +5,39 @@ namespace LangCore
 
     std::shared_ptr<std::string> Error::defaultMessage(const int type) {
         switch (type) {
-        case NoError:
+        case Success:
             {
                 static auto message = std::make_shared<std::string>();
                 return message;
             }
-        case InvalidFormat:
+        case ConfigError:
             {
-                static auto message = std::make_shared<std::string>("invalid format");
+                static auto message = std::make_shared<std::string>("config error");
                 return message;
             }
-        case FileNotFound:
+        case FileSystemError:
             {
-                static auto message = std::make_shared<std::string>("file not found");
+                static auto message = std::make_shared<std::string>("file system error");
                 return message;
             }
-        case FileNotOpen:
+        case DependencyError:
             {
-                static auto message = std::make_shared<std::string>("file not open");
+                static auto message = std::make_shared<std::string>("dependency error");
                 return message;
             }
-        case FileDuplicated:
+        case RuntimeError:
             {
-                static auto message = std::make_shared<std::string>("file duplicated");
+                static auto message = std::make_shared<std::string>("runtime error");
                 return message;
             }
-        case RecursiveDependency:
+        case NotImplementedError:
             {
-                static auto message = std::make_shared<std::string>("recursive dependency");
+                static auto message = std::make_shared<std::string>("not implemented error");
                 return message;
             }
-        case FeatureNotSupported:
+        case InitializationError:
             {
-                static auto message = std::make_shared<std::string>("feature not supported");
-                return message;
-            }
-        case InvalidArgument:
-            {
-                static auto message = std::make_shared<std::string>("invalid argument");
-                return message;
-            }
-        case NotImplemented:
-            {
-                static auto message = std::make_shared<std::string>("not implemented");
-                return message;
-            }
-        case SessionError:
-            {
-                static auto message = std::make_shared<std::string>("session error");
+                static auto message = std::make_shared<std::string>("initialization error");
                 return message;
             }
         default:

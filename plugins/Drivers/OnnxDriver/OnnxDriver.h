@@ -25,6 +25,6 @@ namespace LangPlugins::OnnxDriver::V1
         std::unique_ptr<Impl> _impl;
     };
 
-} // namespace LangPlugins
+} // namespace LangPlugins::OnnxDriver::V1
 
 #endif // LANGPLUGINS_ONNXDRIVER_H

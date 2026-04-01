@@ -237,14 +237,14 @@ namespace LangCore
             auto it = obj.find("moduleId");
             if (it == obj.end()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     R"(missing "moduleId" field in inference module field)",
                 };
             }
             id_ = it->second.toString();
             if (!ModuleLocator::isValidLocator(id_)) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     R"("moduleId" field has invalid value in inference module field)",
                 };
             }
@@ -253,14 +253,14 @@ namespace LangCore
             it = obj.find("class");
             if (it == obj.end()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     R"(missing "class" field in inference module field)",
                 };
             }
             className_ = it->second.toString();
             if (className_.empty()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     R"("class" field has invalid value in inference module field)",
                 };
             }
@@ -269,7 +269,7 @@ namespace LangCore
             it = obj.find("configuration");
             if (it == obj.end()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     R"(missing "configuration" field in inference module field)",
                 };
             }
@@ -277,7 +277,7 @@ namespace LangCore
             std::string configPathString = it->second.toString();
             if (configPathString.empty()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     R"("configuration" field has invalid value in inference module field)",
                 };
             }
@@ -298,7 +298,7 @@ namespace LangCore
             std::ifstream file(configPath);
             if (!file.is_open()) {
                 return Error{
-                    Error::FileNotOpen,
+                    Error::FileSystemError,
                     stdc::formatN(R"(%1: failed to open inference manifest)", configPath),
                 };
             }
@@ -310,13 +310,13 @@ namespace LangCore
             auto root = JsonValue::fromJson(ss.str(), true, &error2);
             if (!error2.empty()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: invalid inference manifest format: %2)", configPath, error2),
                 };
             }
             if (!root.isObject()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: invalid inference manifest format)", configPath),
                 };
             }
@@ -332,7 +332,7 @@ namespace LangCore
                 fmtVersion_ = stdc::VersionNumber::fromString(it->second.toString());
                 if (fmtVersion_ > stdc::VersionNumber(1)) {
                     return Error{
-                        Error::FeatureNotSupported,
+                        Error::NotImplementedError,
                         stdc::formatN(R"(%1: format version "%2" is not supported)", configPath,
                                       fmtVersion_.toString()),
                     };
@@ -353,14 +353,14 @@ namespace LangCore
             auto it = configObj.find("level");
             if (it == configObj.end()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: missing "level" field)", configPath),
                 };
             }
             apiLevel_ = it->second.toInt();
             if (apiLevel_ == 0) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: "level" field has invalid value)", configPath),
                 };
             }
@@ -371,7 +371,7 @@ namespace LangCore
             if (auto it = configObj.find("configuration"); it != configObj.end()) {
                 if (!it->second.isObject()) {
                     return Error{
-                        Error::InvalidFormat,
+                        Error::ConfigError,
                         stdc::formatN(R"(%1: "configuration" field has invalid value)", configPath),
                     };
                 }
@@ -416,7 +416,7 @@ namespace LangCore
         __stdc_impl_t;
         if (!config.isObject()) {
             return Error{
-                Error::InvalidFormat,
+                Error::ConfigError,
                 R"(invalid inference specification)",
             };
         }

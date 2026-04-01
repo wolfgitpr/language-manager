@@ -20,6 +20,8 @@ namespace LangPlugins::LstmG2p::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
+        LangCore::Expected<void> updateConfig(const std::string &config);
+
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
@@ -44,7 +46,7 @@ namespace LangPlugins::LstmG2p::V1
 
         // Decode phoneme indices to phoneme strings
         static LangCore::Expected<std::vector<std::string>>
-        decodePhonemes(const std::vector<int64_t> &phonemeIds, const std::map<std::string, int> &phonemeVocab,
+        decodePhonemes(const std::vector<int64_t> &phonemeIds, const std::map<int, std::string> &idxToPhoneme,
                        int bosIdx, int eosIdx, int padIdx, int unkIdx);
     };
 } // namespace LangPlugins::LstmG2p::V1

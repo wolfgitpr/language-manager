@@ -21,4 +21,4 @@ namespace LangCore
         std::vector<std::string> splitterResult;
     };
 } // namespace LangCore
-#endif
+#endif // LANGCORE_SPLITTERTASK_H

@@ -13,6 +13,7 @@
 
 #include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Module/Dependency/DependencyResolver.h>
+#include <LangCore/Module/Dependency/LevelCompatibilityChecker.h>
 #include <LangCore/Package/Package.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Support/JSON.h>
@@ -48,7 +49,7 @@ namespace LangCore
         auto canonicalPath = stdc::path::canonical(path);
         if (canonicalPath.empty() || !fs::is_directory(canonicalPath)) {
             return Error{
-                Error::FileNotOpen,
+                Error::FileSystemError,
                 stdc::formatN("Invalid package path %1.", path),
             };
         }
@@ -106,7 +107,7 @@ namespace LangCore
                     if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
                         auto pkg = *it2->second;
                         error1 = {
-                            Error::FileDuplicated,
+                            Error::FileSystemError,
                             stdc::formatN("duplicated package %1[%2] in %3 is loaded.", pd->id, pd->version.toString(),
                                           pkg.spec->path),
                         };
@@ -121,7 +122,7 @@ namespace LangCore
                     const auto &versionMap = it->second;
                     if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
                         error1 = {
-                            Error::RecursiveDependency,
+                            Error::DependencyError,
                             stdc::formatN("recursive dependency chain detected: package %1[%2] in %3 is being loaded.",
                                           pd->id, pd->version.toString(), it2->second),
                         };
@@ -166,7 +167,7 @@ namespace LangCore
                 auto it = categories.find(cateName);
                 if (it == categories.end()) {
                     error1 = {
-                        Error::FeatureNotSupported,
+                        Error::NotImplementedError,
                         stdc::formatN(".category %1 not found.", cateName),
                     };
                     failed = true;
@@ -421,39 +422,111 @@ namespace LangCore
     }
 
     bool PackageManager::checkDependencies() {
+
         const auto moduleInfos = this->getModuleMetadatas();
 
+
         if (moduleInfos.empty()) {
-            MgrLog.langCoreCritical("Dependency resolution failed. Cannot load packages.");
+
+            MgrLog.langCoreCritical("Dependency resolution failed: No modules found. Cannot load packages.");
+
+            MgrLog.langCoreCritical("Possible causes:");
+
+            MgrLog.langCoreCritical("  1. package.json files are missing or corrupted");
+
+            MgrLog.langCoreCritical("  2. Module definitions in package.json are invalid");
+
+            MgrLog.langCoreCritical("  3. Package paths are incorrect");
+
             return false;
         }
+
+
+        // Level 兼容性检查（Strict 模式：不兼容插件拒绝加载）
+        LevelCompatibilityChecker::LevelConfig levelConfig;
+        levelConfig.currentLevel = _impl->currentLevel;
+        levelConfig.minimumLevel = _impl->minimumLevel;
+        levelConfig.maximumLevel = _impl->maximumLevel;
+
+        for (const auto &info : moduleInfos) {
+            auto checkResult = LevelCompatibilityChecker::checkCorePlugin(info.level, levelConfig);
+
+            if (!checkResult.isCompatible) {
+                MgrLog.langCoreCritical("Level Compatibility Check Failed:");
+                MgrLog.langCoreCritical("  Module: %1:%2", info.packageId, info.moduleId.c_str());
+                MgrLog.langCoreCritical("  Module Level: %1", std::to_string(info.level));
+                MgrLog.langCoreCritical("  System Level Range: %1-%2", std::to_string(_impl->minimumLevel),
+                                        std::to_string(levelConfig.getEffectiveMaximumLevel()));
+                MgrLog.langCoreCritical("  Details: %1", checkResult.message);
+                MgrLog.langCoreCritical("  Suggestion: %1", checkResult.suggestion);
+
+                // 保存错误信息到列表
+                _impl->dependencyErrors.push_back(
+                    stdc::formatN("Module %1:%2 (Level %3) not compatible with system (Level %4-%5): %6",
+                                  info.packageId, info.moduleId.c_str(), std::to_string(info.level),
+                                  std::to_string(_impl->minimumLevel),
+                                  std::to_string(levelConfig.getEffectiveMaximumLevel()),
+                                  checkResult.message));
+
+                MgrLog.langCoreCritical("Strict compatibility mode: rejecting incompatible module.");
+
+                return false;
+            }
+        }
+
 
         for (const auto &info : moduleInfos)
+
             _impl->dependencyGraph.addModule(info);
 
+
         if (!_impl->dependencyGraph.buildGraph()) {
+
             MgrLog.langCoreCritical("Failed to build dependency graph due to missing dependencies");
+
+            MgrLog.langCoreCritical("Please check that all dependencies are correctly declared in package.json");
+
+            MgrLog.langCoreCritical("and that the required plugin packages are available.");
+
             return false;
         }
 
+
         if (const auto cycles = _impl->dependencyGraph.findCycles(); !cycles.empty()) {
-            MgrLog.langCoreInfo("Found %1 dependency cycle(s):", cycles.size());
+
+            MgrLog.langCoreCritical("Found %1 dependency cycle(s) - circular dependencies detected:", cycles.size());
+
             for (size_t i = 0; i < cycles.size(); ++i) {
-                MgrLog.langCoreInfo("Cycle %1:", i + 1);
+
+                MgrLog.langCoreCritical("Cycle %1:", i + 1);
+
                 for (const auto &module : cycles[i]) {
-                    MgrLog.langCoreInfo("  %1: %2 %3", module.packageId, module.moduleId, module.version);
+
+                    MgrLog.langCoreCritical("  - %1:%2 %3", module.packageId, module.moduleId, module.version);
                 }
             }
-            MgrLog.langCoreCritical("Cannot load packages.");
+
+            MgrLog.langCoreCritical("Circular dependencies are not allowed. Please modify dependency declarations.");
+
             return false;
         }
+
         return true;
     }
 
     std::vector<PackageInitializationPlan> PackageManager::getPackageInitializationOrder() {
-        if (!this->checkDependencies())
+        if (!this->checkDependencies()) {
+            MgrLog.langCoreCritical(
+                "Failed to determine package initialization order due to dependency or compatibility issues");
             return {};
+        }
         return _impl->dependencyGraph.getPackageInitializationOrder();
+    }
+
+    std::vector<std::string> PackageManager::getDependencyErrors() const {
+        __stdc_impl_t;
+        std::shared_lock lock(impl.su_mtx);
+        return impl.dependencyErrors;
     }
 
     void PackageManager::addPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
@@ -577,7 +650,8 @@ namespace LangCore
                     MgrLog.langCoreInfo("  Created task for module: %1 (type: %2, class: %3)", moduleInfo.moduleId,
                                         moduleInfo.type, moduleInfo.iid);
                 } else {
-                    MgrLog.langCoreCritical("  Failed to create task for module: %1: %2", moduleInfo.moduleId,
+                    MgrLog.langCoreCritical("  Failed to create task for module: %1 (package=%2, type=%3, iid=%4): %5",
+                                            moduleInfo.moduleId, moduleInfo.packageId, moduleInfo.type, moduleInfo.iid,
                                             taskExp.error().message());
                 }
             }
@@ -589,27 +663,68 @@ namespace LangCore
     Expected<NO<Task>> PackageManager::createModuleTask(const ModuleMetadata &moduleInfo, const Package &pkg) const {
         const auto moduleSpec = pkg.moduleSpec(moduleInfo.type, moduleInfo.moduleId);
         if (!moduleSpec) {
-            return Error(Error::FileNotFound,
-                         stdc::formatN("Module %1 not found in package %2.", moduleInfo.moduleId, pkg.id()));
+            // 获取指定类型的所有模块 ID
+            auto specs = pkg.moduleSpecs(moduleInfo.type);
+            std::vector<std::string> availableIds;
+            for (const auto *spec : specs) {
+                availableIds.push_back(spec->id());
+            }
+
+            return Error(
+                Error::FileSystemError,
+                stdc::formatN(
+                    "Module not found: package=%1, moduleId=%2, type=%3, iid=%4. Available modules in this package: %5",
+                    moduleInfo.packageId, moduleInfo.moduleId, moduleInfo.type, moduleInfo.iid,
+                    stdc::join(availableIds, ", ")));
         }
 
-        const auto taskPlugin = this->plugin<TaskPlugin>(moduleInfo.iid.c_str());
+        // 使用完整的 iid 作为 pluginKey
+        const auto taskPlugin = this->plugin<TaskPlugin>("org.openvpi.Task", moduleInfo.iid.c_str());
         if (!taskPlugin) {
-            return Error(
-                Error::FileNotFound,
-                stdc::formatN("Failed to load FactoryPlugin: iid - %1, type - %2", moduleInfo.iid, moduleInfo.type));
+            // 尝试获取同一 iid 下的所有可用插件
+            auto allTaskPlugins = this->plugins("org.openvpi.Task");
+            std::string availableKeys;
+            for (const auto *plugin : allTaskPlugins) {
+                if (!availableKeys.empty())
+                    availableKeys += ", ";
+                availableKeys += plugin->key();
+            }
+
+            return Error(Error::FileSystemError,
+                         stdc::formatN("Failed to load FactoryPlugin: package=%1, module=%2/%3, type=%4, iid=%5. "
+                                       "Expected plugin with iid='org.openvpi.Task' and key='%5'. "
+                                       "Available plugins (iid=org.openvpi.Task): [%6]. "
+                                       "Configuration file: %7",
+                                       moduleInfo.packageId, moduleInfo.packageId, moduleInfo.moduleId, moduleInfo.type,
+                                       moduleInfo.iid, availableKeys.empty() ? "none" : availableKeys,
+                                       moduleInfo.configuration));
         }
 
 
         auto taskExp = taskPlugin->createTask(moduleSpec);
         if (!taskExp) {
-            return Error(Error::InvalidArgument,
-                         stdc::formatN("Failed to create task: %1.", taskExp.error().message()));
+            return Error(
+                Error::RuntimeError,
+                stdc::formatN(
+                    "Failed to create task instance: package=%1, module=%2/%3, type=%4, iid=%5. "
+                    "Error: %6. "
+                    "Possible causes: 1) Plugin class not found, 2) Constructor failed, 3) Memory allocation failed",
+                    moduleInfo.packageId, moduleInfo.packageId, moduleInfo.moduleId, moduleInfo.type, moduleInfo.iid,
+                    taskExp.error().message()));
         }
 
         auto task = taskExp.take();
 
-        task->initialize();
+        auto initResult = task->initialize();
+        if (!initResult) {
+            return Error(Error::RuntimeError,
+                         stdc::formatN("Failed to initialize task: package=%1, module=%2/%3, type=%4, iid=%5. "
+                                       "Error: %6. "
+                                       "Possible causes: 1) Initialization code failed, 2) Required resources not "
+                                       "found, 3) Dependency plugin not loaded",
+                                       moduleInfo.packageId, moduleInfo.packageId, moduleInfo.moduleId, moduleInfo.type,
+                                       moduleInfo.iid, initResult.error().message()));
+        }
 
         auto &ic = *this->category(moduleSpec->category());
         ic.addObject(moduleSpec->id(), task);
@@ -624,7 +739,7 @@ namespace LangCore
         const std::ifstream file(path);
         if (!file.is_open()) {
             return Error{
-                Error::FileNotOpen,
+                Error::FileSystemError,
                 stdc::formatN("%1: failed to open package manifest.", path),
             };
         }
@@ -636,13 +751,13 @@ namespace LangCore
         const auto root = JsonValue::fromJson(ss.str(), true, &error2);
         if (!error2.empty()) {
             return Error{
-                Error::InvalidFormat,
+                Error::ConfigError,
                 stdc::formatN("%1: Invalid package manifest format: %2.", path, error2),
             };
         }
         if (!root.isObject()) {
             return Error{
-                Error::InvalidFormat,
+                Error::ConfigError,
                 stdc::formatN("%1: Invalid package manifest format: not an object.", path),
             };
         }
@@ -685,7 +800,19 @@ namespace LangCore
                                 }
                             }
                         }
+                        catch (const std::exception &e) {
+                            std::string errorMsg = std::string("Failed to read module config at ") + 
+                                                  configPath.string() + ": " + e.what();
+                            MgrLog.langCoreCritical(errorMsg);
+                            std::unique_lock lock(impl.su_mtx);
+                            impl.dependencyErrors.push_back(errorMsg);
+                        }
                         catch (...) {
+                            std::string errorMsg = std::string("Unknown exception reading module config at ") + 
+                                                  configPath.string();
+                            MgrLog.langCoreCritical(errorMsg);
+                            std::unique_lock lock(impl.su_mtx);
+                            impl.dependencyErrors.push_back(errorMsg);
                         }
                     }
                 }

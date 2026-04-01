@@ -52,14 +52,14 @@ namespace LangCore
             auto it = obj.find("packageId");
             if (it == obj.end()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: missing "packageId" field)", descPath),
                 };
             }
             id_ = it->second.toString();
             if (!ModuleLocator::isValidLocator(id_)) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: "id" field has invalid value)", descPath),
                 };
             }
@@ -69,14 +69,14 @@ namespace LangCore
             auto it = obj.find("version");
             if (it == obj.end()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: missing "version" field)", descPath),
                 };
             }
             version_ = stdc::VersionNumber::fromString(it->second.toString());
             if (version_.isEmpty()) {
                 return Error{
-                    Error::InvalidFormat,
+                    Error::ConfigError,
                     stdc::formatN(R"(%1: invalid version)", descPath),
                 };
             }
@@ -87,7 +87,7 @@ namespace LangCore
                 compatVersion_ = stdc::VersionNumber::fromString(it->second.toString());
                 if (compatVersion_ > version_) {
                     return Error{
-                        Error::InvalidFormat,
+                        Error::ConfigError,
                         stdc::formatN(R"(%1: invalid compat version)", descPath),
                     };
                 }
@@ -131,7 +131,7 @@ namespace LangCore
             if (it != obj.end()) {
                 if (!it->second.isObject()) {
                     return Error{
-                        Error::InvalidFormat,
+                        Error::ConfigError,
                         R"("modules" field has invalid value in package manifest)",
                     };
                 }
@@ -144,7 +144,7 @@ namespace LangCore
                     auto it2 = categories.find(moduleKey);
                     if (it2 == categories.end()) {
                         error1 = {
-                            Error::FeatureNotSupported,
+                            Error::NotImplementedError,
                             stdc::formatN(R"(unknown module "%1")", moduleKey),
                         };
                         goto out_failed;
@@ -153,7 +153,7 @@ namespace LangCore
                     const auto &cc = it2->second;
                     if (!snd.isArray()) {
                         error1 = {
-                            Error::InvalidFormat,
+                            Error::ConfigError,
                             stdc::formatN(R"(module "%1" field has invalid value in package manifest)", moduleKey),
                         };
                         goto out_failed;
@@ -172,7 +172,7 @@ namespace LangCore
                         const auto &moduleId = module.get()->id();
                         if (idSet.count(moduleId)) {
                             error1 = {
-                                Error::InvalidFormat,
+                                Error::ConfigError,
                                 stdc::formatN(R"(module "%1" object has duplicated id "%2")", fst, moduleId),
                             };
                             goto out_failed;
@@ -207,7 +207,7 @@ namespace LangCore
         const std::ifstream file(descPath);
         if (!file.is_open()) {
             return Error{
-                Error::FileNotOpen,
+                Error::FileSystemError,
                 stdc::formatN(R"("%1": failed to open package manifest)", descPath),
             };
         }
@@ -219,13 +219,13 @@ namespace LangCore
         const auto root = JsonValue::fromJson(ss.str(), true, &error2);
         if (!error2.empty()) {
             return Error{
-                Error::InvalidFormat,
+                Error::ConfigError,
                 stdc::formatN(R"("%1": invalid package manifest format: %2)", descPath, error2),
             };
         }
         if (!root.isObject()) {
             return Error{
-                Error::InvalidFormat,
+                Error::ConfigError,
                 stdc::formatN(R"("%1": invalid package manifest format: not an object)", descPath),
             };
         }

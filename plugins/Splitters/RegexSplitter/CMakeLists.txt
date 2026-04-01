@@ -1,4 +1,4 @@
-project(RegexTaggerV1
+project(RegexTagger
         VERSION ${LANGPLUGINS_VERSION}
         LANGUAGES C CXX
 )

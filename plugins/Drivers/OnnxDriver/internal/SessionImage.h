@@ -22,6 +22,6 @@ namespace LangPlugins::OnnxDriver::V1
         Ort::Session session;
     };
 
-} // namespace LangPlugins::onnxDriver
+} // namespace LangPlugins::OnnxDriver::V1
 
 #endif // LANGPLUGINS_ONNXDRIVER_SESSIONIMAGE_P_H

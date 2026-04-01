@@ -86,11 +86,11 @@ namespace LangPlugins::MandarinG2p::V1
         {
             std::shared_lock lock(impl.mutex);
             if (!impl.m_mandarin->initialized())
-                return LangCore::Error(LangCore::Error::SessionError, "MandarinG2pTask: chinese g2p not initialized");
+                return LangCore::Error(LangCore::Error::RuntimeError, "MandarinG2pTask: chinese g2p not initialized");
         }
 
         if (!input)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
+            return LangCore::Error(LangCore::Error::ConfigError, "g2p input is nullptr");
 
         std::vector<LangCore::G2pRes> res;
         const auto g2pInput = input.as<LangCore::G2pInputV1>();
@@ -124,5 +124,11 @@ namespace LangPlugins::MandarinG2p::V1
 
         impl.result = g2pResult;
         return g2pResult;
+    }
+
+    LangCore::Expected<void> MandarinG2pTask::updateConfig(const std::string &config) {
+        // 简单实现：将配置存储到 Task 基类中
+        // 具体的配置解析和更新逻辑可以在需要时由插件自行实现
+        return setConfig(config);
     }
 } // namespace LangPlugins::MandarinG2p::V1

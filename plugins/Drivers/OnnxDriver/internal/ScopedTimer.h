@@ -31,6 +31,6 @@ namespace LangPlugins::OnnxDriver::V1
         callback_t m_callback;
         std::chrono::time_point<std::chrono::steady_clock> m_timeStart;
     };
-} // namespace LangPlugins::onnxDriver
+} // namespace LangPlugins::OnnxDriver::V1
 
 #endif

@@ -69,10 +69,10 @@ namespace LangCore
 
     Expected<void> verify(const ITensor::DataType dataType, const std::vector<int64_t> &shape, const size_t dataSize) {
         if (dataType == ITensor::Undefined)
-            return Error(Error::InvalidArgument, "data type can not be Undefined");
+            return Error(Error::ConfigError, "data type can not be Undefined");
 
         if (!verifyShape(dataType, shape, dataSize))
-            return Error(Error::InvalidArgument, "data size and shape mismatch");
+            return Error(Error::ConfigError, "data size and shape mismatch");
 
         return Expected<void>();
     }
@@ -80,13 +80,13 @@ namespace LangCore
     Expected<NO<Tensor>> Tensor::create(const DataType dataType, const std::vector<int64_t> &shape) {
         const auto maybeTotalElements = getElementCountFromShape(dataType, shape);
         if (!maybeTotalElements.has_value())
-            return Error(Error::InvalidArgument, "invalid shape");
+            return Error(Error::ConfigError, "invalid shape");
 
         const uint64_t totalElements = maybeTotalElements.value();
 
         const size_t elementSize = getElementSize(dataType);
         if (elementSize == 0)
-            return Error(Error::InvalidArgument, "invalid data type");
+            return Error(Error::ConfigError, "invalid data type");
 
         auto tensor = NO<Tensor>::create();
         tensor->_dataType = dataType;

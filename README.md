@@ -26,23 +26,35 @@ library for [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
 ## How To Use
 
 ```c++
-const auto langMgr = ILanguageManager::instance();  // 获取单例
-const auto langFactory = langMgr->language("cmn");  // 获取g2p
+#include <LangCore/Runtime/Manager.h>
 
-QList<LangNote *> langNotes;    // 构建输入结构体
-langNotes.append(new LangNote("xxx好的123"));  // 混合文本
-langMgr->correct(langNotes);    // 为g2pId为unknown的结构体标注
-langMgr->convert(langNotes);    // 按分析结果、调用相应G2p转换
+const auto langMgr = LangCore::Manager::instance();  // 获取单例
 
-// 将混合语言的文本拆分为QList<LangNote>并标记语种、分类，priorityG2pIds为强制优先的g2pId（下属languageAnalyzer的分析）
-QList<LangNote> split(const QString &input, const QStringList &priorityG2pIds = {});
-// 为g2pId=unknown的结构体标注
-void correct(const QList<LangNote *> &input, const QStringList &priorityG2pIds = {}) const;
-// 按分析结果、调用相应G2p转换
-void convert(const QList<LangNote *> &input) const;
-// 按分析字符串语种
-QString analysis(const QString &input, const QStringList &priorityG2pIds = {}) const;
-QStringList analysis(const QStringList &input, const QStringList &priorityG2pIds = {}) const;
+// 初始化 Manager
+std::string errorMessage;
+if (!langMgr->initialize(errorMessage)) {
+    std::cerr << "Failed to initialize: " << errorMessage << std::endl;
+    return -1;
+}
+
+// 文本分割
+std::string text = "xxx好的123";
+auto segments = langMgr->split(text);
+
+// 语言标记
+auto tags = langMgr->tag(segments);
+
+// G2p 转换
+std::vector<LangCore::G2pInput *> g2pInput;
+for (const auto &tag : tags) {
+    g2pInput.emplace_back(new LangCore::G2pInput(tag.lyric, tag.language));
+}
+auto results = langMgr->convert(g2pInput);
+
+// 清理
+for (auto *input : g2pInput) {
+    delete input;
+}
 ```
 
 ## Dependencies
@@ -55,7 +67,7 @@ Temporarily using the vcpkg environment of [ds-editor-lite](https://github.com/f
 
 ```bash
 -DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/cmake/buildsystems/vcpkg.cmake
--DCMAKE_PREFIX_PATH=path/to/qt/6.7.3/msvc2022_64;
+-DCMAKE_PREFIX_PATH=path/to/qmsetup;path/to/qt/6.10.2/msvc2022_64;
 -DCMAKE_INSTALL_PREFIX=install
 ```
 
@@ -66,5 +78,4 @@ phonetic notation system, such as "eng-cmu", "cmn-pinyin", "jpn-romaji".
 
 Name the new G2p according to the standard and add it to the above table.
 
-Refer to [LanguageAnalyzer](./docs/LanguageAnalyzer.md) and [G2pFactory](./docs/G2pFactory.md) to develop two modules, and add
-them to Language Manager.
+Refer to [PRD](./docs/PRD-v3.0.md) and [API Usage Guide](./docs/API-Usage-Guide.md) for development details.

@@ -20,6 +20,17 @@ namespace LangPlugins::TemplateTagger::V1
 {
     namespace fs = std::filesystem;
 
+    namespace {
+        // 提取重复的RE2配置为常量
+        static const RE2::Options g_utf8RegexOptions = []() {
+            RE2::Options options;
+            options.set_encoding(RE2::Options::EncodingUTF8);
+            options.set_log_errors(true);
+            options.set_max_mem(8 << 20); // 8MB
+            return options;
+        }();
+    }
+
     static void parse_tagger_required(std::vector<TaggerUtilEntry> &out, const std::string &fieldName,
                                       const LangCore::ModuleSpec *spec) {
         const auto &config = spec->manifestConfiguration();
@@ -68,7 +79,7 @@ namespace LangPlugins::TemplateTagger::V1
 
                     if (const auto valueIt = obj.find("value"); valueIt != obj.end()) {
                         const auto &valueArr = valueIt->second.toArray();
-                        std::string combined;
+                        entry.value.reserve(valueArr.size());
                         for (size_t j = 0; j < valueArr.size(); ++j) {
                             if (valueArr[j].isString()) {
                                 if (entry.type == "dict") {
@@ -110,8 +121,6 @@ namespace LangPlugins::TemplateTagger::V1
 
     class TemplateTaggerTask::Impl {
     public:
-        LangCore::NO<LangCore::TaggerResultV1> result;
-        RE2::Options RegexOptions;
         std::unique_ptr<TaggerUtil> taggerUtil;
         mutable std::shared_mutex mutex;
     };
@@ -128,9 +137,6 @@ namespace LangPlugins::TemplateTagger::V1
 
         std::unique_lock lock(impl.mutex);
 
-        // If there are existing result, they will be cleared.
-        impl.result.reset();
-
         InferUtil::ErrorCollector ec;
         InferUtil::ConfigurationParser parser(spec(), &ec);
 
@@ -140,16 +146,11 @@ namespace LangPlugins::TemplateTagger::V1
         parser.parse_string_required(language, "language");
         parse_tagger_required(entries, "tagger", spec());
 
-        impl.RegexOptions.set_encoding(RE2::Options::EncodingUTF8);
-        impl.RegexOptions.set_log_errors(true);
-        impl.RegexOptions.set_max_mem(8 << 20); // 8MB
-
         auto expVerifier = TaggerUtil::Create(entries, language);
         if (!expVerifier)
             return expVerifier.takeError();
         impl.taggerUtil = expVerifier.take();
 
-        // return success
         return {};
     }
 
@@ -158,17 +159,19 @@ namespace LangPlugins::TemplateTagger::V1
         __stdc_impl_t;
 
         if (!input)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "Tagger input is nullptr.");
+            return LangCore::Error(LangCore::Error::ConfigError, "Tagger input is nullptr.");
 
         const auto taggerInput = input.as<LangCore::TaggerInputV1>();
         std::vector<LangCore::TaggerRes> res = taggerInput->taggerInput;
         impl.taggerUtil->tagger(res);
 
-        // Create result
         auto taggerResult = LangCore::NO<LangCore::TaggerResultV1>::create();
         taggerResult->taggerResult = res;
 
-        impl.result = taggerResult;
         return taggerResult;
+    }
+
+    LangCore::Expected<void> TemplateTaggerTask::updateConfig(const std::string &config) {
+        return setConfig(config);
     }
 } // namespace LangPlugins::TemplateTagger::V1

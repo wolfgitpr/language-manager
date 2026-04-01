@@ -8,10 +8,13 @@
 #include <stdcorelib/support/versionnumber.h>
 
 #include <LangCore/Base/NamedObject.h>
+
+namespace fs = std::filesystem;
 #include <LangCore/Core/PluginFactory.h>
 #include <LangCore/LangCoreGlobal.h>
 #include <LangCore/Module/Dependency/DependencyGraph.h>
 #include <LangCore/Module/Module.h>
+#include <LangCore/Package/Package.h>
 
 
 namespace LangCore
@@ -30,6 +33,7 @@ namespace LangCore
 
         bool checkDependencies();
         std::vector<PackageInitializationPlan> getPackageInitializationOrder();
+        std::vector<std::string> getDependencyErrors() const;
 
         ModuleCategory *category(const std::string_view &name) const;
 

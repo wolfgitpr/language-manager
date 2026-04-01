@@ -55,7 +55,7 @@ namespace LangPlugins::OnnxDriver::V1
             if (!dylib->open(path, stdc::SharedLibrary::ResolveAllSymbolsHint)) {
                 std::string msg = stdc::formatN("Load library failed: %1 [%2]", dylib->lastError(), path);
                 Log.langCoreCritical("Init - %1", msg);
-                return LangCore::Error(LangCore::Error::SessionError, std::move(msg));
+                return LangCore::Error(LangCore::Error::RuntimeError, std::move(msg));
             }
 #ifdef _WIN32
             stdc::SharedLibrary::setLibraryPath(orgLibPath);
@@ -69,7 +69,7 @@ namespace LangPlugins::OnnxDriver::V1
             if (!handle) {
                 std::string msg = stdc::formatN("Failed to get API handle: %1 [%2]", dylib->lastError(), path);
                 Log.langCoreCritical("Init - %1", msg);
-                return LangCore::Error(LangCore::Error::SessionError, std::move(msg));
+                return LangCore::Error(LangCore::Error::RuntimeError, std::move(msg));
             }
 
             return initializeFromHandle(handle, std::move(dylib));
@@ -105,7 +105,7 @@ namespace LangPlugins::OnnxDriver::V1
             if (!handle) {
                 std::string msg = "Failed to find OrtGetApiBase in current process";
                 Log.langCoreCritical("Init - %1", msg);
-                return LangCore::Error(LangCore::Error::SessionError, std::move(msg));
+                return LangCore::Error(LangCore::Error::RuntimeError, std::move(msg));
             }
 
             fromCurrentProcess = true;
@@ -125,7 +125,7 @@ namespace LangPlugins::OnnxDriver::V1
             if (!api) {
                 std::string msg = stdc::formatN("Failed to get API instance for version %1", ORT_API_VERSION);
                 Log.langCoreCritical("Init - %1", msg);
-                return LangCore::Error(LangCore::Error::SessionError, std::move(msg));
+                return LangCore::Error(LangCore::Error::RuntimeError, std::move(msg));
             }
             Log.langCoreDebug("Init - ORT library version is %1", apiBase->GetVersionString());
 
@@ -151,10 +151,8 @@ namespace LangPlugins::OnnxDriver::V1
         // Metadata
         bool loaded = false;
         bool fromCurrentProcess = false;
-        fs::path ortPath;
 
         // Library data
-        void *hLibrary = nullptr;
         const OrtApi *ortApi = nullptr;
         const OrtApiBase *ortApiBase = nullptr;
     };
@@ -172,7 +170,7 @@ namespace LangPlugins::OnnxDriver::V1
 
         const auto onnxArgs = args.as<LangCore::DriverInitArgs>();
         if (!onnxArgs) {
-            return LangCore::Error{LangCore::Error::InvalidArgument, "onnx args is null pointer"};
+            return LangCore::Error{LangCore::Error::ConfigError, "onnx args is null pointer"};
         }
 
         // Example logging
@@ -180,7 +178,7 @@ namespace LangPlugins::OnnxDriver::V1
 
         if (impl.loaded) {
             return LangCore::Error{
-                LangCore::Error::FileDuplicated,
+                LangCore::Error::FileSystemError,
                 "onnx runtime has been initialized by another instance",
             };
         }

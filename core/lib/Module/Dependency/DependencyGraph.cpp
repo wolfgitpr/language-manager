@@ -190,20 +190,10 @@ namespace LangCore
 
         std::unordered_map<std::string, PackageInitializationPlan> packageMap;
         for (const auto &module : globalOrder) {
-            auto &[packageId, packagePath, modules, initializationOrder] = packageMap[module.packageId];
+            auto &[packageId, packagePath, initializationOrder] = packageMap[module.packageId];
             packageId = module.packageId;
             packagePath = module.packagePath;
             initializationOrder.push_back(module);
-
-            bool found = false;
-            for (const auto &existing : modules) {
-                if (existing.key() == module.key()) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                modules.push_back(module);
         }
 
         std::unordered_set<std::string> seenPackages;

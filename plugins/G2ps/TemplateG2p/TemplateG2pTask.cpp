@@ -20,7 +20,6 @@ namespace LangPlugins::TemplateG2p::V1
 {
     class TemplateG2pTask::Impl {
     public:
-        LangCore::NO<LangCore::G2pResultV1> result;
         LangCore::NO<Task> g2pInference;
         bool enableOnnxG2p{};
         bool enableDict{};
@@ -39,9 +38,6 @@ namespace LangPlugins::TemplateG2p::V1
         __stdc_impl_t;
 
         std::unique_lock lock(impl.mutex);
-
-        // If there are existing result, they will be cleared.
-        impl.result.reset();
 
         InferUtil::ErrorCollector ec;
         InferUtil::ConfigurationParser parser(spec(), &ec);
@@ -72,10 +68,10 @@ namespace LangPlugins::TemplateG2p::V1
         // Load phoneme dict
         if (impl.enableDict) {
             if (dictPath.empty())
-                return LangCore::Error(LangCore::Error::FileNotFound,
+                return LangCore::Error(LangCore::Error::FileSystemError,
                                        stdc::formatN("Task '%1' - No dictPath specified", this->spec()->name().text()));
             if (std::error_code error_code; !impl.phonemeDict.load(dictPath, &error_code))
-                return LangCore::Error(LangCore::Error::FileNotFound,
+                return LangCore::Error(LangCore::Error::FileSystemError,
                                        stdc::formatN("Task '%1' - Failed to read dictionary %2:%3",
                                                      this->spec()->name().text(), dictPath, error_code.value()));
         }
@@ -102,11 +98,11 @@ namespace LangPlugins::TemplateG2p::V1
         {
             std::shared_lock lock(impl.mutex);
             if (!impl.g2pInference && impl.enableOnnxG2p)
-                return LangCore::Error(LangCore::Error::SessionError, "TemplateG2pTask: g2p inference not initialized");
+                return LangCore::Error(LangCore::Error::RuntimeError, "TemplateG2pTask: g2p inference not initialized");
         }
 
         if (!input)
-            return LangCore::Error(LangCore::Error::InvalidArgument, "g2p input is nullptr");
+            return LangCore::Error(LangCore::Error::ConfigError, "g2p input is nullptr");
 
         const auto g2pInput = input.as<LangCore::G2pInputV1>();
         std::vector<LangCore::G2pRes> res;
@@ -148,7 +144,7 @@ namespace LangPlugins::TemplateG2p::V1
 
                     auto resultExp = impl.g2pInference->start(lstmInput);
                     if (!resultExp)
-                        return LangCore::Error(LangCore::Error::TaskError,
+                        return LangCore::Error(LangCore::Error::RuntimeError,
                                                stdc::formatN(R"(Task "%1" - LstmG2p inference failed: "%2")",
                                                              this->spec()->name().text(), resultExp.error().message()));
 
@@ -157,7 +153,7 @@ namespace LangPlugins::TemplateG2p::V1
                         it.pronunciation = g2pResult->g2pResult[0].pronunciation;
                     } else {
                         if (!g2pResult->errorMessage.empty()) {
-                            return LangCore::Error(LangCore::Error::TaskError,
+                            return LangCore::Error(LangCore::Error::RuntimeError,
                                                    stdc::formatN(R"(Task "%1" - Fail: "%2")",
                                                                  this->spec()->name().text(), g2pResult->errorMessage));
                         }
@@ -169,7 +165,7 @@ namespace LangPlugins::TemplateG2p::V1
                 }
             } else
                 return LangCore::Error(
-                    LangCore::Error::InvalidArgument,
+                    LangCore::Error::ConfigError,
                     stdc::formatN(R"(Task "%1" - Fail: it.mode - "%2")", this->spec()->name().text(), it.mode));
         }
 
@@ -177,7 +173,12 @@ namespace LangPlugins::TemplateG2p::V1
         auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
         g2pResult->g2pResult = res;
 
-        impl.result = g2pResult;
         return g2pResult;
+    }
+
+    LangCore::Expected<void> TemplateG2pTask::updateConfig(const std::string &config) {
+        // 简单实现：将配置存储到 Task 基类中
+        // 具体的配置解析和更新逻辑可以在需要时由插件自行实现
+        return setConfig(config);
     }
 } // namespace LangPlugins::TemplateG2p::V1
