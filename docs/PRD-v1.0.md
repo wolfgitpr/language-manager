@@ -6,15 +6,8 @@
 
 **核心目标**：实现长期免维护的第三方插件加载系统，遵循"Write Once, Run Forever"的设计理念。
 
-**版本**：5.2
+**版本**：1.0
 **日期**：2026-04-02
-**更新内容**：
-- 简化架构设计，移除责任链相关内容
-- 删除冗余和无效部分，保持简洁可靠
-- 新增"目录结构设计原则"章节，明确 core 目录的设计规范
-- 详细说明各子目录的职责和依赖关系
-- 将 LevelCompatibilityChecker 从 Support 移到 Module/Dependency/ 目录
-- 统一依赖和兼容性管理功能，提高内聚性
 
 ---
 
@@ -67,7 +60,7 @@ Language Manager 是一个基于 C++ 的可扩展语言处理框架，主要用�
 **核心插件（CorePlugin）**：
 - 使用 Core 结构体（如 TaskInput、TaskResult）
 - 需要 Level 检查
-- 示例：Splitter、Tagger、G2p、Driver
+- 示例：Splitter、Tagger、G2p
 
 **工具插件（UtilityPlugin）**：
 - 独立功能，不使用 Core 结构体
@@ -91,7 +84,6 @@ Language Manager 是一个基于 C++ 的可扩展语言处理框架，主要用�
 - `start(input)`：执行任务
 - `getConfig()`：获取配置
 - `setConfig(config)`：设置配置
-- `updateConfig(config)`：更新配置
 
 **SessionTask**：AI 模型驱动的特殊任务
 - `open(path, args)`：打开会话
@@ -279,32 +271,45 @@ core/include/LangCore/Task/
 
 ## 4. 插件系统
 
-### 3.1 插件接口
+### 4.1 插件接口
 
 **TaskPlugin**：任务工厂插件
 
 ```cpp
-class TaskPlugin : public FactoryPlugin {
+class TaskPlugin : public Plugin {
 public:
+    const char *iid() const override { return "org.openvpi.Task"; }
+
     virtual int apiLevel() const = 0;
     virtual const char *key() const = 0;
     virtual Expected<NO<Task>> createTask(const ModuleSpec *spec) = 0;
 };
 ```
 
-**SessionFactoryPlugin**：会话工厂插件（AI 模型驱动）
+**DriverPlugin**：驱动工厂插件
 
 ```cpp
-class SessionFactoryPlugin : public FactoryPlugin {
+class DriverPlugin : public Plugin {
 public:
-    virtual Expected<NO<Task>> createSession(
-        const std::filesystem::path &path,
-        const NO<TaskInitArgs> &args
-    ) = 0;
+    const char *iid() const override { return "org.openvpi.Driver"; }
+
+    virtual Expected<NO<SessionFactory>> create() = 0;
 };
 ```
 
-### 3.2 插件注册
+**SessionFactory**：会话工厂接口（由 DriverPlugin 创建）
+
+```cpp
+class SessionFactory : public NamedObject {
+public:
+    virtual std::string arch() const = 0;
+    virtual std::string backend() const = 0;
+    virtual Expected<void> initialize(const NO<TaskInitArgs> &args) = 0;
+    virtual NO<SessionTask> createSession() = 0;
+};
+```
+
+### 4.2 插件注册
 
 使用 `LANGCORE_EXPORT_PLUGIN` 宏导出插件：
 
@@ -321,7 +326,7 @@ public:
 LANGCORE_EXPORT_PLUGIN(MyPlugin)
 ```
 
-### 3.3 包格式
+### 4.3 包格式
 
 ```
 xxx.lmpk
@@ -360,7 +365,7 @@ xxx.lmpk
 }
 ```
 
-### 3.4 依赖声明
+### 4.4 依赖声明
 
 支持多依赖声明：
 
@@ -387,7 +392,7 @@ xxx.lmpk
 
 ## 5. 兼容性设计
 
-### 4.1 Level 兼容性规则
+### 5.1 Level 兼容性规则
 
 **兼容条件**：
 
@@ -404,74 +409,63 @@ Manager 最大 Level = maxL
 - 如果 `maximumLevel = 0`，则上限为 `currentLevel`
 - 如果 `maximumLevel > 0`，则上限为 `maximumLevel`
 
-### 4.2 LevelCompatibilityChecker
+**兼容性规则表**：
+
+| Manager Level | Plugin Level | 兼容性 | 说明 |
+|---------------|--------------|--------|------|
+| 2 | 2 | ✅ 兼容 | 同级别 |
+| 2 | 1 | ✅ 兼容 | 向下兼容一代 |
+| 2 | 0 | ❌ 不兼容 | 低于 Manager 超过 1 代 |
+| 2 | 3 | ❌ 不兼容 | 高于 Manager |
+
+### 5.2 LevelCompatibilityChecker
 
 ```cpp
 class LevelCompatibilityChecker {
 public:
-    struct LevelCompatibilityResult {
-        bool isCompatible;
-        int pluginLevel;
-        int systemCurrentLevel;
-        int systemMinimumLevel;
-        int systemMaximumLevel;
-        std::string message;
-        std::string suggestion;
+    struct LevelConfig {
+        int currentLevel;   /// 系统当前 Level
+        int minimumLevel;   /// 系统最小支持 Level
+        int maximumLevel;   /// 系统最大支持 Level（0 表示无限制，使用 currentLevel）
 
+        LevelConfig(int current = 1, int minimum = 1, int maximum = 1)
+            : currentLevel(current), minimumLevel(minimum), maximumLevel(maximum) {}
+
+        /// 获取有效的最大 Level（考虑 maximumLevel=0 的情况）
+        int getEffectiveMaximumLevel() const {
+            return maximumLevel > 0 ? maximumLevel : currentLevel;
+        }
+    };
+
+    struct ValidationResult {
+        bool isCompatible;  /// 是否兼容
+        int pluginLevel;    /// 插件 Level
+        int systemMinimum;  /// 系统最小 Level
+        int systemMaximum;  /// 系统最大 Level
+        std::string message;    /// 详细消息
+        std::string suggestion; /// 建议
+
+        /// 检查是否在支持范围内
         bool isInSupportedRange() const;
     };
 
     /// 检查核心插件的 Level 兼容性
-    /// @param pluginLevel 插件 Level
-    /// @param currentLevel 系统 Level
-    /// @param maximumLevel 系统最大支持 Level（0 表示无限制，使用 currentLevel）
-    /// @param minimumLevel 系统最小支持 Level
-    /// @return 兼容性检查结果
-    static LevelCompatibilityResult checkCorePlugin(
-        int pluginLevel,
-        int currentLevel,
-        int maximumLevel,
-        int minimumLevel
-    );
+    static ValidationResult checkCorePlugin(int pluginLevel, const LevelConfig &config);
 
     /// 检查依赖插件的 Level 兼容性
-    /// @param pluginLevel 依赖插件 Level
-    /// @param currentLevel 系统 Level
-    /// @param maximumLevel 系统最大支持 Level（0 表示无限制，使用 currentLevel）
-    /// @param minimumLevel 系统最小支持 Level
-    /// @return 兼容性检查结果
-    static LevelCompatibilityResult checkDependencyPlugin(
-        int pluginLevel,
-        int currentLevel,
-        int maximumLevel,
-        int minimumLevel
-    );
+    static ValidationResult checkDependencyPlugin(int pluginLevel, const LevelConfig &config);
 
     /// 批量检查所有插件和依赖
-    /// @param pluginLevels 插件 Level 列表
-    /// @param dependencyLevels 依赖 Level 列表
-    /// @param currentLevel 系统 Level
-    /// @param maximumLevel 系统最大支持 Level（0 表示无限制，使用 currentLevel）
-    /// @param minimumLevel 系统最小支持 Level
-    /// @return 所有检查结果
-    static std::vector<LevelCompatibilityResult> checkAll(
-        const std::vector<std::pair<std::string, int>> &pluginLevels,
-        const std::vector<std::pair<std::string, int>> &dependencyLevels,
-        int currentLevel,
-        int maximumLevel,
-        int minimumLevel
-    );
+    static std::vector<ValidationResult>
+    checkAll(const std::vector<std::pair<std::string, int>> &pluginLevels,
+             const std::vector<std::pair<std::string, int>> &dependencyLevels, const LevelConfig &config);
 
-    /// 生成兼容性检查报告
-    /// @param results 检查结果列表
-    /// @return 格式化的报告字符串
-    static std::string generateReport(
-        const std::vector<LevelCompatibilityResult> &results
-    );
+    /// 生成验证报告
+    static std::string generateReport(const std::vector<ValidationResult> &results);
 };
 ```
 
-### 4.3 依赖解析
+### 5.3 依赖解析
 
 **DependencyResolver**：解析模块依赖关系，计算初始化顺序
 
@@ -481,7 +475,7 @@ public:
 
 ## 6. 插件开发规范
 
-### 5.1 插件类型判断规则
+### 6.1 插件类型判断规则
 
 **核心原则**：任何使用 Core 声明的结构体（如 TaskInput、TaskResult、Expected 等）的插件都是核心插件，必须进行 Level 检查。
 
@@ -491,7 +485,7 @@ public:
 3. 继承自 SessionTask → CorePlugin
 4. 其他 → UtilityPlugin
 
-### 5.2 TaskPlugin 开发规范
+### 6.2 TaskPlugin 开发规范
 
 **基本结构**：
 
@@ -533,34 +527,22 @@ LANGCORE_EXPORT_PLUGIN(LangPlugins::MyPlugin::MyTaskPlugin)
 - `tagger` - 语言标记插件
 - `driver` - AI 模型驱动插件
 
-### 5.3 SessionFactoryPlugin 开发规范
+### 6.3 DriverPlugin 开发规范
 
 **基本结构**：
 
 ```cpp
-#include <LangCore/Task/SessionTask.h>
+#include <LangCore/Task/TaskPlugin.h>
+#include "MySessionFactory.h"
 
 namespace LangPlugins::MyDriver
 {
-    class MySessionFactoryPlugin final : public LangCore::SessionFactoryPlugin {
+    class MySessionFactoryPlugin final : public LangCore::DriverPlugin {
     public:
         MySessionFactoryPlugin() = default;
 
-        int apiLevel() const override { return 1; }
-
-        const char *key() const override {
-            return "driver.my-driver";
-        }
-
-        LangCore::Expected<LangCore::NO<LangCore::Task>> createTask(const LangCore::ModuleSpec *spec) override {
-            return LangCore::NO<MySessionTask>::create(spec);
-        }
-
-        LangCore::Expected<LangCore::NO<LangCore::Task>> createSession(
-            const std::filesystem::path &path,
-            const LangCore::NO<LangCore::TaskInitArgs> &args
-        ) override {
-            return LangCore::NO<MySessionTask>::create(spec);
+        LangCore::Expected<LangCore::NO<LangCore::SessionFactory>> create() override {
+            return LangCore::NO<MySessionFactory>::create();
         }
     };
 }
@@ -572,7 +554,7 @@ LANGCORE_EXPORT_PLUGIN(LangPlugins::MyDriver::MySessionFactoryPlugin)
 
 ## 7. Task 开发规范
 
-### 6.1 Task 基本结构
+### 7.1 Task 基本结构
 
 **最小实现**：
 
@@ -645,7 +627,48 @@ LangCore::Expected<void> initialize() override {
 - **可选字段**：带默认值参数的重载版本
 - **辅助方法**：`has()`, `raw()`, `basePath()`
 
-### 6.2 自定义 Input 和 Result
+### 7.2 Task 配置接口
+
+**核心原则**：
+- Task 配置接口使用 JSON 字符串格式
+- 每个 Task 内部自行解析 JSON 配置
+- 支持动态更新配置（运行时修改）
+
+**配置接口**：
+
+```cpp
+class Task {
+public:
+    // 获取完整配置（JSON 字符串）
+    virtual std::string getConfig() const;
+
+    // 设置完整配置（JSON 字符串）
+    virtual Expected<void> setConfig(const std::string &config);
+};
+```
+
+**使用示例**：
+
+```cpp
+// 设置配置
+std::string config = R"({
+    "enabled": true,
+    "param1": 100,
+    "param2": "value"
+})";
+task->setConfig(config);
+
+// 获取配置
+std::string currentConfig = task->getConfig();
+```
+
+**注意事项**：
+- 配置格式必须是合法的 JSON
+- Task 内部使用 JSON 库解析配置（推荐 nlohmann_json）
+- 配置验证由 Task 内部负责
+- `setConfig()` 应该完全替换现有配置
+
+### 7.3 自定义 Input 和 Result
 
 **定义自定义输入**：
 
@@ -683,7 +706,7 @@ LangCore::Expected<LangCore::NO<LangCore::TaskResult>> start(
 }
 ```
 
-### 6.3 SessionTask 开发规范
+### 7.4 SessionTask 开发规范
 
 **基本结构**：
 
@@ -739,7 +762,7 @@ private:
 
 ## 8. 错误处理规范
 
-### 7.1 基本原则
+### 8.1 基本原则
 
 **简洁可靠**：
 - 遇到错误时直接返回 `Expected<T>` 错误
@@ -748,7 +771,7 @@ private:
 - 错误信息应该清晰、具体
 - 使用 Logger 记录关键操作和错误信息
 
-### 7.2 错误返回
+### 8.2 错误返回
 
 **使用 Expected 返回错误**：
 
@@ -771,15 +794,23 @@ LangCore::Expected<LangCore::NO<LangCore::TaskResult>> start(
 }
 ```
 
-### 7.3 常见错误类型
+### 8.3 错误类型
 
-- `Error::InvalidArgument` - 无效参数
-- `Error::InvalidFormat` - 无效格式
-- `Error::FileNotFound` - 文件未找到
-- `Error::RuntimeError` - 运行时错误
-- `Error::InitError` - 初始化错误
+**统一错误类型**：
 
-### 7.4 日志记录
+```cpp
+enum Type {
+    Success = 0,
+    ConfigError,         // 配置错误（JSON格式错误、参数错误等）
+    FileSystemError,     // 文件系统错误（文件未找到、无法打开等）
+    DependencyError,     // 依赖错误（循环依赖、依赖未找到等）
+    RuntimeError,        // 运行时错误（会话错误、任务错误等）
+    NotImplementedError, // 未实现错误（功能不支持等）
+    InitializationError  // 初始化错误（未初始化、初始化失败等）
+};
+```
+
+### 8.4 日志记录
 
 使用 Logger 记录关键操作和错误信息：
 
@@ -798,367 +829,101 @@ Logger::error("Failed to process item: %s", error.c_str());
 
 ---
 
-## 9. 构建配置
+## 9. 核心数据结构
 
-### 9.1 构建环境
+### 9.1 G2pRes 结构
 
-**操作系统**：
-- Windows 10/11 (MSVC 2019/2022)
-- Linux (GCC 9+)
-- macOS (Clang 11+)
+**实际实现**：
 
-**必需工具**：
-- CMake 3.19+
-- vcpkg (依赖管理)
-- Qt 6.7.3
-- qmsetup (Qt 构建工具)
+```cpp
+struct G2pRes {
+    std::string lyric;
+    std::string g2pId;
+    std::string pronunciation = lyric;
+    std::vector<std::string> candidates = {pronunciation};
+    std::string mode = "copy";
 
-**C++ 标准**：
-- C++17 或更高
-
-### 9.2 构建目录说明
-
-项目使用多个构建目录，各有不同用途：
-
-| 目录 | 用途 | 说明 |
-|------|------|------|
-| `build/` | AI 自动编译测试 | 专用于 AI 修改代码时的自动编译测试和修复编译错误，不影响其他构建目录 |
-| `cmake-build-debug/` | CLion Debug 构建 | CLion IDE 的 Debug 模式构建目录 |
-| `cmake-build-release/` | CLion Release 构建 | CLion IDE 的 Release 模式构建目录 |
-| `install/` | 安装目录 | CMake 安装目标输出目录 |
-
-**注意**：`build/` 目录专用于 AI 修改代码时的自动编译测试和修复编译错误，不会影响其他构建目录（如 `cmake-build-debug/` 和 `cmake-build-release/`）。
-
-### 9.3 Visual Studio 2026 构建配置
-
-**工具链**：
-- 编译器：Visual Studio 2026 (MSVC 19.50.35727.0)
-- 路径：`D:\Programs\vs2026`
-
-**CMake 配置命令**：
-
-```bash
-# 设置 Visual Studio 环境并运行 CMake 配置
-cmd /c '"D:\Programs\vs2026\VC\Auxiliary\Build\vcvarsall.bat" x64 && cmake -S . -B build -G "NMake Makefiles" -DCMAKE_TOOLCHAIN_FILE="D:\projects\ds-editor-lite\vcpkg\scripts\buildsystems\vcpkg.cmake" -DCMAKE_PREFIX_PATH="D:\Programs\qt5\6.10.2\msvc2022_64" -DCMAKE_INSTALL_PREFIX="install" -DLANGMGR_BUILD_PLUGINS=ON -DLANGMGR_BUILD_TESTS=ON -DLANGPLUGINS_ENABLE_DIRECTML=ON'
+    explicit G2pRes(std::string lyric, std::string g2pId, std::string pronunciation = "",
+                    std::vector<std::string> candidates = {}, std::string mode = "copy") :
+        lyric(std::move(lyric)), g2pId(std::move(g2pId)), pronunciation(std::move(pronunciation)),
+        candidates(std::move(candidates)), mode(std::move(mode)) {}
+};
 ```
 
-**CMake 参数说明**：
+**设计说明**：
+- 已移除 `error` 和 `errorType` 字段（简化设计）
+- 转换成功：`pronunciation` 为转换后的发音
+- 转换失败：`pronunciation` 使用默认值（原词）
+- 错误信息通过 API 返回的 `Expected<T>` 处理
 
-| 参数 | 值 | 说明 |
-|------|-----|------|
-| `-G` | `NMake Makefiles` | 使用 NMake 生成器 |
-| `-DCMAKE_TOOLCHAIN_FILE` | `D:\projects\ds-editor-lite\vcpkg\scripts\buildsystems\vcpkg.cmake` | vcpkg 工具链文件 |
-| `-DCMAKE_PREFIX_PATH` | `D:\Programs\qt5\6.10.2\msvc2022_64` | Qt 前缀路径 |
-| `-DCMAKE_INSTALL_PREFIX` | `install` | 安装目录 |
-| `-DLANGMGR_BUILD_PLUGINS` | `ON` | 构建插件 |
-| `-DLANGMGR_BUILD_TESTS` | `ON` | 构建测试 |
-| `-DLANGPLUGINS_ENABLE_DIRECTML` | `ON` | 启用 DirectML 支持 |
+### 9.2 TaggerRes 结构
 
-**构建命令**：
+```cpp
+struct TaggerRes {
+    std::string lyric;
+    std::string language = "unknown";
+    std::string tag = "unknown";
+    bool discard = false;
 
-```bash
-# 使用 NMake 构建（Debug 模式）
-cmd /c '"D:\Programs\vs2026\VC\Auxiliary\Build\vcvarsall.bat" x64 && cmake --build build --config Debug'
-
-# 使用 NMake 构建（Release 模式）
-cmd /c '"D:\Programs\vs2026\VC\Auxiliary\Build\vcvarsall.bat" x64 && cmake --build build --config Release'
+    explicit TaggerRes(std::string lyric) : lyric(std::move(lyric)) {}
+    explicit TaggerRes(std::string lyric, std::string language, std::string tag) :
+        lyric(std::move(lyric)), language(std::move(language)), tag(std::move(tag)) {}
+};
 ```
 
-### 9.4 依赖管理
+### 9.3 G2pInput 结构
 
-**核心依赖**（通过 vcpkg 安装）：
-- stdcorelib：提供智能指针、文件系统等基础设施
-- nlohmann_json：JSON 处理库
-
-**运行时依赖**：
-- Qt 6.7.3：通过 qmsetup 集成
-- ONNX Runtime：AI 模型推理框架
-- cpp-pinyin：普通话拼音转换
-- cpp-kana：日语假名转换
-
-**依赖安装命令**：
-
-```bash
-# 使用 vcpkg 安装必需的依赖
-vcpkg install stdcorelib
-vcpkg install nlohmann-json
+```cpp
+struct G2pInput {
+    std::string lyric;
+    std::string g2pId;
+    G2pInput(std::string lyric, std::string g2pId) : lyric(std::move(lyric)), g2pId(std::move(g2pId)) {}
+};
 ```
-
-### 9.5 构建输出
-
-**构建输出目录**：`build/out-amd64-Debug/`
-
-**核心库**：
-- `bin/LangCored.dll` - 核心库动态链接库
-- `lib/LangCored.lib` - 核心库导入库
-
-**测试程序**：
-- `bin/tst_langCore.exe` - 核心库测试可执行文件
-
-**插件**：
-1. **Drivers/OnnxDriver** - ONNX Runtime 驱动插件
-2. **Splitters/RegexTagger** - 正则表达式文本分割器
-3. **Taggers/TemplateTagger** - 模板语言标记器
-4. **G2ps** - G2p 处理器插件组：
-   - CantoneseG2p - 粤语 G2p
-   - LstmG2p - LSTM G2p
-   - MandarinG2p - 普通话 G2p
-   - TemplateG2p - 模板 G2p
-
-**工具库**：
-- `lib/InferUtild.lib` - 推理工具库
-- `lib/OnnxUtild.lib` - ONNX 工具库
-
-### 9.6 CLion 配置
-
-**CMake 选项**（CLion 设置）：
-
-```cmake
--DCMAKE_TOOLCHAIN_FILE=D:\projects\ds-editor-lite/vcpkg/scripts/buildsystems/vcpkg.cmake
--DCMAKE_PREFIX_PATH=D:\Programs\qt5\6.10.2\msvc2022_64
--DCMAKE_INSTALL_PREFIX=install
--DLANGMGR_BUILD_PLUGINS=ON
--DLANGMGR_BUILD_TESTS=ON
--DLANGPLUGINS_ENABLE_DIRECTML=ON
-```
-
-**工具链**：`D:\Programs\vs2026`
-
-**构建类型**：
-- Debug：`cmake-build-debug/`
-- Release：`cmake-build-release/`
 
 ---
 
-## 10. 设计简化建议
+## 10. 最佳实践
 
-### 10.1 Task 配置接口设计
+### 10.1 错误处理
 
-**核心原则**：
-- Task 配置接口使用 JSON 字符串格式
-- 每个 Task 内部自行解析 JSON 配置
-- 支持动态更新配置（运行时修改）
+1. **遇到错误时直接返回 `Expected<T>` 错误**
+2. **不设计重试机制**
+3. **不设计回滚机制**
+4. **错误信息应该清晰、具体**
+5. **使用 Logger 记录关键操作和错误信息**
 
-**配置接口**：
+### 10.2 配置管理
 
-```cpp
-class Task {
-public:
-    // 获取完整配置（JSON 字符串）
-    virtual std::string getConfig() const;
+1. **使用 JSON 格式定义配置**
+2. **推荐使用 ConfigAccessor**：`auto cfg = LangCore::config(spec())`
+3. **必需字段使用 `Expected<T>` 返回类型的方法**（如 `getString()`）
+4. **可选字段使用带默认值的方法**（如 `getString(key, defaultValue)`）
+5. **支持配置热更新（通过 `setConfig`）**
+6. **配置验证由 Task 内部负责**
 
-    // 设置完整配置（JSON 字符串）
-    virtual Expected<void> setConfig(const std::string &config);
+### 10.3 插件开发
 
-    // 更新配置（JSON 字符串，合并到现有配置）
-    virtual Expected<void> updateConfig(const std::string &config) = 0;
-};
-```
+1. **插件加载后常驻内存，无需复杂生命周期管理**
+2. **避免不必要的抽象层**
+3. **优先保证代码简洁性**
+4. **正确实现 `apiLevel()` 方法**
+5. **使用兼容性检查器验证插件兼容性**
 
-**使用示例**：
+### 10.4 日志记录
 
-```cpp
-// 设置配置
-std::string config = R"({
-    "enabled": true,
-    "param1": 100,
-    "param2": "value"
-})";
-task->setConfig(config);
-
-// 更新配置（合并）
-std::string update = R"({
-    "param1": 200
-})";
-task->updateConfig(update);
-
-// 获取配置
-std::string currentConfig = task->getConfig();
-```
-
-**实现示例**：
-
-```cpp
-Expected<void> MyTask::updateConfig(const std::string &config) {
-    try {
-        auto newConfig = nlohmann::json::parse(config);
-        m_config.merge_patch(newConfig);
-        return {};
-    } catch (const std::exception &e) {
-        return Error(Error::InvalidFormat, std::string("Failed to parse config: ") + e.what());
-    }
-}
-```
-
-**注意事项**：
-- 配置格式必须是合法的 JSON
-- Task 内部使用 JSON 库解析配置（推荐 nlohmann_json）
-- `updateConfig()` 应该合并配置而不是完全替换
-- 配置验证由 Task 内部负责
-
-### 10.2 简化 ManagerConfig
-
-**问题**：
-- 提供了过多的策略选项（CompatibilityPolicy、ErrorHandlingPolicy）
-- 增加了配置复杂度
-
-**建议**：
-- 移除 `CompatibilityPolicy` 和 `ErrorHandlingPolicy`
-- 默认使用 `Strict` 模式和 `LogAndSkip` 模式
-
-**示例**：
-
-```cpp
-// 当前设计（过度复杂）
-struct ManagerConfig {
-    int currentLevel = 1;
-    int minimumLevel = 1;
-    int maximumLevel = 0;
-    std::string currentVersion;
-
-    enum class CompatibilityPolicy { Strict, Lenient, Adaptive };
-    enum class ErrorHandlingPolicy { FailFast, ContinueOnError, LogAndSkip };
-
-    CompatibilityPolicy compatibilityPolicy = CompatibilityPolicy::Strict;
-    ErrorHandlingPolicy errorHandlingPolicy = ErrorHandlingPolicy::LogAndSkip;
-};
-
-// 简化后（移除策略选项）
-struct ManagerConfig {
-    int currentLevel = 1;
-    int minimumLevel = 1;
-    int maximumLevel = 0;
-    std::string currentVersion;
-    // 默认使用 Strict 模式和 LogAndSkip 模式
-};
-```
-
-**收益**：
-- 简化配置
-- 减少配置错误的可能性
-- 提高代码可维护性
-
-### 10.3 统一错误类型
-
-**问题**：
-- 错误类型过多（13 种）
-- 部分错误类型重复或过于细分
-
-**建议**：
-- 统一错误类型，减少错误类型的数量
-- 提供更详细的错误信息（包含上下文信息）
-
-**示例**：
-
-```cpp
-// 当前设计（错误类型过多）
-enum Type {
-    NoError = 0,
-    InvalidFormat,
-    FileNotFound,
-    FileNotOpen,
-    FileDuplicated,
-    RecursiveDependency,
-    FeatureNotSupported,
-    InvalidArgument,
-    NotImplemented,
-    SessionError,
-    TaskError,
-    InterpreterNotFound,
-    RuntimeError,
-    NotInitialized
-};
-
-// 简化后（统一错误类型）
-enum Type {
-    Success = 0,
-    ConfigError,         // 配置错误（InvalidFormat, InvalidArgument）
-    FileSystemError,     // 文件系统错误（FileNotFound, FileNotOpen, FileDuplicated）
-    DependencyError,     // 依赖错误（RecursiveDependency, InterpreterNotFound）
-    RuntimeError,        // 运行时错误（SessionError, TaskError, RuntimeError）
-    NotImplementedError, // 未实现错误（FeatureNotSupported, NotImplemented）
-    InitializationError  // 初始化错误（NotInitialized）
-};
-```
-
-**收益**：
-- 简化错误处理逻辑
-- 提高错误处理的一致性
-- 减少错误类型的数量
+1. **使用现有的日志系统**
+2. **记录关键操作和错误信息**
+3. **日志级别**：Trace、Debug、Info、Success、Warning、Critical、Fatal
 
 ---
 
-## 11. 简洁设计原则
+## 11. 相关文档
 
-### 11.1 核心原则
-
-**简洁可靠**：
-- 遇到错误时直接返回 `Expected<T>` 错误
-- 不设计重试机制
-- 不设计回滚机制
-- 错误信息应该清晰、具体
-- 使用 Logger 记录关键操作和错误信息
-
-**插件分类**：
-- 核心插件（使用 Core 结构体）
-- 工具插件（独立功能）
-
-**统一规则**：
-- Level 作为 API 兼容性的唯一标准
-- 配置使用 JSON 字符串格式
-- Task 内部自行解析配置
-
-### 11.2 最佳实践
-
-1. **错误处理**：
-   - 遇到错误时直接返回 `Expected<T>` 错误
-   - 不设计重试机制
-   - 不设计回滚机制
-   - 使用 Logger 记录关键操作和错误信息
-
-2. **配置管理**：
-   - 使用 JSON 格式定义配置
-   - **推荐使用 ConfigAccessor**：`auto cfg = LangCore::config(spec())`
-   - 必需字段使用 `Expected<T>` 返回类型的方法（如 `getString()`）
-   - 可选字段使用带默认值的方法（如 `getString(key, defaultValue)`）
-   - 支持配置热更新（通过 `setConfig`）
-   - 配置验证由 Task 内部负责
-
-3. **插件开发**：
-   - 插件加载后常驻内存，无需复杂生命周期管理
-   - 避免不必要的抽象层
-   - 优先保证代码简洁性
-
-4. **日志记录**：
-   - 使用现有的日志系统
-   - 记录关键操作和错误信息
-   - 日志级别：Trace、Debug、Info、Success、Warning、Critical、Fatal
-
----
-
-## 12. 设计演进路线图
-
-### 12.1 短期目标（简化阶段）
-
-**优先级 P0（必须完成）**：
-- 简化 ManagerConfig（移除策略选项）
-- 统一错误类型（减少错误类型的数量）
-- 明确 Task 配置接口设计（JSON 字符串格式）
-
-**优先级 P1（建议完成）**：
-- 更新 Task 配置 API 文档
-- 添加配置解析示例
-
-### 12.2 长期目标（稳定阶段）
-
-**稳定性和可靠性**：
-- 完善单元测试
-- 添加集成测试
-
-**文档完善**：
-- 更新 API 文档
-- 添加最佳实践文档
-- 添加故障排查指南
+- **构建指南**：`docs/Build-Guide.md` - 详细的构建配置和步骤
+- **API 使用指南**：`docs/API-Usage-Guide.md` - Level 兼容性管理
+- **任务配置 API**：`docs/Task-Config-API.md` - Task 配置接口文档
+- **数据格式规范**：`docs/LangMgr-Spec-1.0.md` - 数据格式与推理接口规范
 
 ---
 

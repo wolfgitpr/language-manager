@@ -1,8 +1,8 @@
 #include "LstmG2pTask.h"
 
+#include <fstream>
 #include <mutex>
 #include <shared_mutex>
-#include <fstream>
 
 #include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
@@ -20,15 +20,15 @@
 namespace LangPlugins::LstmG2p::V1
 {
     // Helper function to load phoneme mapping from JSON file
-    static LangCore::Expected<std::map<std::string, int>>
-        loadPhonemeMapping(const std::filesystem::path &path, const std::string &fieldName) {
+    static LangCore::Expected<std::map<std::string, int>> loadPhonemeMapping(const std::filesystem::path &path,
+                                                                             const std::string &fieldName) {
         std::map<std::string, int> out;
 
         std::ifstream file(path);
         if (!file.is_open()) {
-            return LangCore::Error(LangCore::Error::FileSystemError,
-                                   stdc::formatN(R"(error loading "%1": %2 file not found)", fieldName,
-                                                 stdc::path::to_utf8(path)));
+            return LangCore::Error(
+                LangCore::Error::FileSystemError,
+                stdc::formatN(R"(error loading "%1": %2 file not found)", fieldName, stdc::path::to_utf8(path)));
         }
 
         file.seekg(0, std::ios::end);
@@ -51,9 +51,9 @@ namespace LangPlugins::LstmG2p::V1
         const auto &obj = j.toObject();
         for (const auto &[key, value] : obj) {
             if (!value.isInt()) {
-                return LangCore::Error(LangCore::Error::ConfigError,
-                                       stdc::formatN(R"(error loading "%1": value of key "%2" is not int)", fieldName,
-                                                     key));
+                return LangCore::Error(
+                    LangCore::Error::ConfigError,
+                    stdc::formatN(R"(error loading "%1": value of key "%2" is not int)", fieldName, key));
             }
             out[key] = static_cast<int>(value.toInt());
         }
@@ -223,7 +223,7 @@ namespace LangPlugins::LstmG2p::V1
         std::string pronStr;
         for (auto &phone : phonemes_)
             pronStr += phone + " ";
-        g2pResult->g2pResult = {LangCore::G2pRes(lyric, "eng", pronStr, {}, "copy", true)};
+        g2pResult->g2pResult = {LangCore::G2pRes(lyric, "eng", pronStr, {}, "copy")};
 
         return g2pResult;
     }

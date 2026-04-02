@@ -193,7 +193,7 @@ namespace LangCore
             if (g2ps.find(targetG2pId) == g2ps.end()) {
                 MgrLog.langCoreCritical("Error: fail to find g2p: '%1'", g2pId);
                 for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", true, G2pNotFound));
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
                 continue;
             }
 
@@ -202,8 +202,7 @@ namespace LangCore
                 MgrLog.langCoreCritical("inference failed for g2p '%1': %2", 
                                         g2pId, resultExp.error().message());
                 for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", true, 
-                                              TaskError));
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
                 continue;
             }
 
@@ -217,8 +216,7 @@ namespace LangCore
             } else {
                 MgrLog.langCoreCritical("unexpected result type for g2p '%1'", g2pId);
                 for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", true, 
-                                              InvalidG2pId));
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
             }
         }
 

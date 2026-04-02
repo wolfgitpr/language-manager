@@ -136,7 +136,7 @@ int main() {
         // ========================================
         // 测试 G2p 转换
         // ========================================
-        std::cout << "\n=== Testing G2p Chain Task ===" << std::endl;
+        std::cout << "\n=== Testing G2p Task ===" << std::endl;
 
         // 测试文本
         const auto text =
@@ -160,8 +160,7 @@ int main() {
 
         for (const auto &g2pRes : g2pResult) {
             std::cout << "  lyric: '" << g2pRes.lyric << "' g2pId: '" << g2pRes.g2pId << "' pronunciation: '"
-                      << g2pRes.pronunciation << "' mode: '" << g2pRes.mode << "' error: " << g2pRes.error
-                      << "' errorType: " << g2pRes.errorType << "'" << std::endl;
+                      << g2pRes.pronunciation << "' mode: '" << g2pRes.mode << "'" << std::endl;
         }
 
         // 清理

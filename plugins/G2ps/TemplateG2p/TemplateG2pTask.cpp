@@ -185,7 +185,7 @@ namespace LangPlugins::TemplateG2p::V1
         res.reserve(verifyRes.size());
         for (const auto &[lyric, mode, error] : verifyRes)
             res.emplace_back(LangCore::G2pRes{
-                lyric, spec()->name().text(), "", {}, mode, error, error ? LangCore::InvalidLyric : LangCore::NoError});
+                lyric, spec()->name().text(), "", {}, mode});
 
         for (auto &it : res) {
             if (it.mode == "copy") {
@@ -202,18 +202,14 @@ namespace LangPlugins::TemplateG2p::V1
                     lstmInput->g2pInput.push_back({it.lyric});
 
                     if (!impl.enableOnnxG2p) {
-                        it.error = true;
                         it.pronunciation = it.lyric;
                         it.candidates = {it.pronunciation};
-                        it.errorType = LangCore::G2pDepNotEnabled;
                         continue;
                     }
 
                     if (!impl.g2pInference) {
-                        it.error = true;
                         it.pronunciation = it.lyric;
                         it.candidates = {it.pronunciation};
-                        it.errorType = LangCore::G2pDepInitError;
                         continue;
                     }
 
@@ -232,10 +228,8 @@ namespace LangPlugins::TemplateG2p::V1
                                                    stdc::formatN(R"(Task "%1" - Fail: "%2")",
                                                                  this->spec()->name().text(), g2pResult->errorMessage));
                         }
-                        it.error = true;
                         it.pronunciation = it.lyric;
                         it.candidates = {it.pronunciation};
-                        it.errorType = LangCore::G2pDepRuntimeError;
                     }
                 }
             } else
