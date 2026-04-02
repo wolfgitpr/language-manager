@@ -2,10 +2,8 @@
 
 #include "LstmG2pTask.h"
 
-namespace LangPlugins::LstmG2p::V1
+namespace LangPlugins::LstmG2p
 {
-    class LstmG2pTask;
-
     class LstmG2pEnginePlugin final : public LangCore::TaskPlugin {
     public:
         LstmG2pEnginePlugin() = default;
@@ -19,6 +17,6 @@ namespace LangPlugins::LstmG2p::V1
         }
     };
 
-} // namespace LangPlugins::LstmG2p::V1
+} // namespace LangPlugins::LstmG2p
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::LstmG2p::V1::LstmG2pEnginePlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::LstmG2p::LstmG2pEnginePlugin)

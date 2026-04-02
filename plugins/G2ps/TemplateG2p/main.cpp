@@ -2,7 +2,7 @@
 
 #include "TemplateG2pTask.h"
 
-namespace LangPlugins::TemplateG2p::V1
+namespace LangPlugins::TemplateG2p
 {
 
     class TemplateG2pEnginePlugin final : public LangCore::TaskPlugin {
@@ -18,6 +18,6 @@ namespace LangPlugins::TemplateG2p::V1
         }
     };
 
-} // namespace LangPlugins::TemplateG2p::V1
+} // namespace LangPlugins::TemplateG2p
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::TemplateG2p::V1::TemplateG2pEnginePlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::TemplateG2p::TemplateG2pEnginePlugin)

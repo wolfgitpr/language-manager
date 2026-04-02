@@ -2,12 +2,12 @@
 
 #include "RegexSplitterTask.h"
 
-namespace LangPlugins::RegexSplitter::V1
+namespace LangPlugins::RegexSplitter
 {
 
-    class RegexSplitterInterpreterPlugin final : public LangCore::TaskPlugin {
+    class RegexSplitterPlugin final : public LangCore::TaskPlugin {
     public:
-        RegexSplitterInterpreterPlugin() = default;
+        RegexSplitterPlugin() = default;
 
         int apiLevel() const override { return 1; }
 
@@ -18,6 +18,6 @@ namespace LangPlugins::RegexSplitter::V1
         }
     };
 
-} // namespace LangPlugins::RegexSplitter::V1
+} // namespace LangPlugins::RegexSplitter
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::RegexSplitter::V1::RegexSplitterInterpreterPlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::RegexSplitter::RegexSplitterPlugin)

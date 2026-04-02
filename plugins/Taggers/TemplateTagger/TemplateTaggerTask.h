@@ -2,8 +2,11 @@
 #define LANGPLUGINS_TEMPLATETAGGERTASK_H
 
 #include <LangCore/Task/Task.h>
+#include <LangCore/Task/VersionedTaskManager.h>
+#include <LangCore/Module/Module.h>
+#include <memory>
 
-namespace LangPlugins::TemplateTagger::V1
+namespace LangPlugins::TemplateTagger
 {
     class TemplateTaggerTask : public LangCore::Task {
     public:
@@ -17,11 +20,14 @@ namespace LangPlugins::TemplateTagger::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
-    protected:
-        class Impl;
-        std::unique_ptr<Impl> _impl;
+        std::string getConfig() const override;
+
+        LangCore::Expected<void> setConfig(const std::string &config) override;
+
+    private:
+        LangCore::VersionedTaskManager<TemplateTaggerTask> _manager;
     };
 
-} // namespace LangPlugins::TemplateTagger::V1
+} // namespace LangPlugins::TemplateTagger
 
 #endif // LANGPLUGINS_TEMPLATETAGGERTASK_H

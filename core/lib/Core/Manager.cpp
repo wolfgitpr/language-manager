@@ -115,42 +115,65 @@ namespace LangCore
     }
 
     Expected<NO<Task>> Manager::task(const std::string &category, const std::string &id) const {
+        if (category.empty())
+            return Error(Error::RuntimeError, "category cannot be empty",
+                         "Please provide a valid category name (e.g., 'g2p', 'splitter', 'tagger')");
+
+        if (id.empty())
+            return Error(Error::RuntimeError, "id cannot be empty",
+                         "Please provide a valid task id (e.g., 'g2p-cmn', 'splitter-regex')");
+
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
-            return Error(Error::RuntimeError, "could not find category: " + category);
+            return Error(Error::RuntimeError, "could not find category: " + category,
+                         "Available categories: g2p, splitter, tagger, driver");
 
         const auto inferenceObject = inferenceCate->getFirstObject(id);
         if (!inferenceObject)
-            return Error(Error::RuntimeError, "could not find id: " + id);
+            return Error(Error::RuntimeError, "could not find id: " + id,
+                         "Please check the available tasks using tasks() method");
 
         return inferenceObject.as<Task>();
     }
 
     Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category) const {
+        if (category.empty())
+            return Error(Error::RuntimeError, "category cannot be empty",
+                         "Please provide a valid category name (e.g., 'g2p', 'splitter', 'tagger')");
+
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
-            return Error(Error::RuntimeError, "could not find category: " + category);
+            return Error(Error::RuntimeError, "could not find category: " + category,
+                         "Available categories: g2p, splitter, tagger, driver");
 
         const auto inferenceObject = inferenceCate->allObjects();
         if (inferenceObject.empty())
-            return Error(Error::RuntimeError, "category: " + category + " is empty.");
+            return Error(Error::RuntimeError, "category: " + category + " is empty.",
+                         "No tasks available in this category");
 
         std::vector<NO<Task>> tasks;
         tasks.reserve(inferenceObject.size());
         std::transform(inferenceObject.begin(), inferenceObject.end(), std::back_inserter(tasks),
                        [](const auto &obj) { return obj.template as<Task>(); });
         if (tasks.empty())
-            return Error(Error::RuntimeError, "category: " + category + " is empty.");
+            return Error(Error::RuntimeError, "category: " + category + " is empty.",
+                         "No tasks available in this category");
         return tasks;
     }
 
     std::vector<std::string> Manager::split(const std::string &input) {
+        if (input.empty())
+            return {};
+
         std::vector<std::string> _input;
         _input.push_back(input);
         return this->split(_input);
     }
 
     std::vector<std::string> Manager::split(const std::vector<std::string> &input) {
+        if (input.empty())
+            return {};
+
         __stdc_impl_t;
         const auto &splitters = impl.tasks["splitter"];
         const auto _input = NO<SplitterInputV1>::create();
@@ -181,6 +204,15 @@ namespace LangCore
     }
 
     std::vector<G2pRes> Manager::convert(const std::vector<G2pInput *> &input) {
+        if (input.empty())
+            return {};
+
+        // 验证输入指针
+        for (const auto *item : input) {
+            if (!item)
+                MgrLog.langCoreWarning("convert() received null pointer in input, skipping");
+        }
+
         __stdc_impl_t;
         auto &g2ps = impl.tasks["g2p"];
         const auto _lyrics = groupLyrics(input);
@@ -225,6 +257,9 @@ namespace LangCore
 
     std::vector<TaggerRes> Manager::tag(const std::vector<std::string> &input, const bool split, bool discard,
                                         const std::vector<std::string> &priorityLanguages) {
+        if (input.empty())
+            return {};
+
         __stdc_impl_t;
         std::vector<TaggerRes> inputNote;
         inputNote.reserve(input.size());

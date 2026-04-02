@@ -31,6 +31,14 @@ namespace LangCore
 
         Error(const int type, const char *msg) : _type(type), _msg(std::make_shared<std::string>(msg)) {}
 
+        Error(const int type, std::string msg, std::string suggestion)
+            : _type(type), _msg(std::make_shared<std::string>(std::move(msg))),
+              _suggestion(std::make_shared<std::string>(std::move(suggestion))) {}
+
+        Error(const int type, const char *msg, const char *suggestion)
+            : _type(type), _msg(std::make_shared<std::string>(msg)),
+              _suggestion(std::make_shared<std::string>(suggestion)) {}
+
         int type() const { return _type; }
 
         bool ok() const { return _type == Success; }
@@ -39,11 +47,19 @@ namespace LangCore
 
         const char *what() const { return _msg->c_str(); }
 
+        const std::string &suggestion() const {
+            static const std::string emptySuggestion;
+            return _suggestion ? *_suggestion : emptySuggestion;
+        }
+
+        bool hasSuggestion() const { return _suggestion != nullptr; }
+
         static Error success() { return Error(Success); }
 
     protected:
         int _type;
         std::shared_ptr<std::string> _msg;
+        std::shared_ptr<std::string> _suggestion;
 
         LANGCORE_EXPORT static std::shared_ptr<std::string> defaultMessage(int type);
     };

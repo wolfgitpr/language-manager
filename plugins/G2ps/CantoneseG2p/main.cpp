@@ -2,7 +2,7 @@
 
 #include "CantoneseG2pTask.h"
 
-namespace LangPlugins::CantoneseG2p::V1
+namespace LangPlugins::CantoneseG2p
 {
     class CantoneseG2pEnginePlugin final : public LangCore::TaskPlugin {
     public:
@@ -17,6 +17,6 @@ namespace LangPlugins::CantoneseG2p::V1
         }
     };
 
-} // namespace LangPlugins::CantoneseG2p::V1
+} // namespace LangPlugins::CantoneseG2p
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::CantoneseG2p::V1::CantoneseG2pEnginePlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::CantoneseG2p::CantoneseG2pEnginePlugin)

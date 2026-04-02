@@ -2,8 +2,10 @@
 #define LANGPLUGINS_REGEXSPLITTERTASK_H
 
 #include <LangCore/Task/Task.h>
+#include <LangCore/Task/VersionedTaskManager.h>
+#include <memory>
 
-namespace LangPlugins::RegexSplitter::V1
+namespace LangPlugins::RegexSplitter
 {
     class RegexSplitterTask : public LangCore::Task {
     public:
@@ -17,11 +19,13 @@ namespace LangPlugins::RegexSplitter::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
-    protected:
-        class Impl;
-        std::unique_ptr<Impl> _impl;
+        std::string getConfig() const override;
+        LangCore::Expected<void> setConfig(const std::string &config) override;
+
+    private:
+        LangCore::VersionedTaskManager<RegexSplitterTask> _manager;
     };
 
-} // namespace LangPlugins::RegexSplitter::V1
+} // namespace LangPlugins::RegexSplitter
 
 #endif // LANGPLUGINS_REGEXSPLITTERTASK_H

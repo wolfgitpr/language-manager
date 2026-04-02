@@ -2,7 +2,7 @@
 
 #include "MandarinG2pTask.h"
 
-namespace LangPlugins::MandarinG2p::V1
+namespace LangPlugins::MandarinG2p
 {
     class MandarinG2pEnginePlugin final : public LangCore::TaskPlugin {
     public:
@@ -17,6 +17,6 @@ namespace LangPlugins::MandarinG2p::V1
         }
     };
 
-} // namespace LangPlugins::MandarinG2p::V1
+} // namespace LangPlugins::MandarinG2p
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::MandarinG2p::V1::MandarinG2pEnginePlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::MandarinG2p::MandarinG2pEnginePlugin)

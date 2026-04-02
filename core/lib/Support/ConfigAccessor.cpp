@@ -20,11 +20,13 @@ namespace LangCore
     Expected<std::string> ConfigAccessor::getString(const std::string &key) const {
         auto it = m_config.find(key);
         if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key);
+            return Error(Error::ConfigError, "Missing required field: " + key,
+                         "Add the '" + key + "' field to the configuration");
         }
         const auto &value = it->second;
         if (!value.isString()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be a string");
+            return Error(Error::ConfigError, "Field '" + key + "' must be a string",
+                         "Change the value of '" + key + "' to a string type");
         }
         return value.toString();
     }
@@ -32,11 +34,13 @@ namespace LangCore
     Expected<int> ConfigAccessor::getInt(const std::string &key) const {
         auto it = m_config.find(key);
         if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key);
+            return Error(Error::ConfigError, "Missing required field: " + key,
+                         "Add the '" + key + "' field to the configuration");
         }
         const auto &value = it->second;
         if (!value.isNumber()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be an integer");
+            return Error(Error::ConfigError, "Field '" + key + "' must be an integer",
+                         "Change the value of '" + key + "' to an integer type");
         }
         return static_cast<int>(value.toInt());
     }
@@ -44,11 +48,13 @@ namespace LangCore
     Expected<double> ConfigAccessor::getDouble(const std::string &key) const {
         auto it = m_config.find(key);
         if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key);
+            return Error(Error::ConfigError, "Missing required field: " + key,
+                         "Add the '" + key + "' field to the configuration");
         }
         const auto &value = it->second;
         if (!value.isNumber()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be a number");
+            return Error(Error::ConfigError, "Field '" + key + "' must be a number",
+                         "Change the value of '" + key + "' to a number type");
         }
         return value.toDouble();
     }
@@ -56,11 +62,13 @@ namespace LangCore
     Expected<bool> ConfigAccessor::getBool(const std::string &key) const {
         auto it = m_config.find(key);
         if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key);
+            return Error(Error::ConfigError, "Missing required field: " + key,
+                         "Add the '" + key + "' field to the configuration");
         }
         const auto &value = it->second;
         if (!value.isBool()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be a boolean");
+            return Error(Error::ConfigError, "Field '" + key + "' must be a boolean",
+                         "Change the value of '" + key + "' to a boolean (true/false)");
         }
         return value.toBool();
     }
@@ -77,11 +85,13 @@ namespace LangCore
     Expected<std::vector<std::string>> ConfigAccessor::getStringArray(const std::string &key) const {
         auto it = m_config.find(key);
         if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key);
+            return Error(Error::ConfigError, "Missing required field: " + key,
+                         "Add the '" + key + "' field to the configuration");
         }
         const auto &value = it->second;
         if (!value.isArray()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be an array");
+            return Error(Error::ConfigError, "Field '" + key + "' must be an array",
+                         "Change the value of '" + key + "' to an array type");
         }
 
         std::vector<std::string> result;
@@ -91,7 +101,8 @@ namespace LangCore
         for (size_t i = 0; i < arr.size(); ++i) {
             if (!arr[i].isString()) {
                 return Error(Error::ConfigError,
-                             "Array element #" + std::to_string(i) + " of '" + key + "' must be string");
+                             "Array element #" + std::to_string(i) + " of '" + key + "' must be string",
+                             "Ensure all elements in the '" + key + "' array are strings");
             }
             result.push_back(arr[i].toString());
         }

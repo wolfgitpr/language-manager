@@ -2,7 +2,7 @@
 
 #include "TemplateTaggerTask.h"
 
-namespace LangPlugins::TemplateTagger::V1
+namespace LangPlugins::TemplateTagger
 {
 
     class RegexTaggerInterpreterPlugin final : public LangCore::TaskPlugin {
@@ -18,6 +18,6 @@ namespace LangPlugins::TemplateTagger::V1
         }
     };
 
-} // namespace LangPlugins::TemplateTagger::V1
+} // namespace LangPlugins::TemplateTagger
 
-LANGCORE_EXPORT_PLUGIN(LangPlugins::TemplateTagger::V1::RegexTaggerInterpreterPlugin)
+LANGCORE_EXPORT_PLUGIN(LangPlugins::TemplateTagger::RegexTaggerInterpreterPlugin)

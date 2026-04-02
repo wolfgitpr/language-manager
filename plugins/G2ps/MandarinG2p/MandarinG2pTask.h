@@ -2,8 +2,11 @@
 #define LANGPLUGINS_MANDARING2PTASK_H
 
 #include <LangCore/Task/Task.h>
+#include <LangCore/Task/VersionedTaskManager.h>
+#include <LangCore/Module/Module.h>
+#include <memory>
 
-namespace LangPlugins::MandarinG2p::V1
+namespace LangPlugins::MandarinG2p
 {
     class MandarinG2pTask : public LangCore::Task {
     public:
@@ -17,11 +20,14 @@ namespace LangPlugins::MandarinG2p::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
-    protected:
-        class Impl;
-        std::unique_ptr<Impl> _impl;
+        std::string getConfig() const override;
+
+        LangCore::Expected<void> setConfig(const std::string &config) override;
+
+    private:
+        LangCore::VersionedTaskManager<MandarinG2pTask> _manager;
     };
 
-} // namespace LangPlugins::MandarinG2p::V1
+} // namespace LangPlugins::MandarinG2p
 
 #endif // LANGPLUGINS_MANDARING2PTASK_H

@@ -1,12 +1,13 @@
 #ifndef LANGPLUGINS_CANTONESEG2PTASK_H
 #define LANGPLUGINS_CANTONESEG2PTASK_H
 
-#include <LangCore/Support/Tensor.h>
 #include <LangCore/Task/Task.h>
+#include <LangCore/Task/VersionedTaskManager.h>
+#include <LangCore/Module/Module.h>
+#include <memory>
 
-namespace LangPlugins::CantoneseG2p::V1
+namespace LangPlugins::CantoneseG2p
 {
-
     class CantoneseG2pTask : public LangCore::Task {
     public:
         explicit CantoneseG2pTask(const LangCore::ModuleSpec *spec);
@@ -19,11 +20,14 @@ namespace LangPlugins::CantoneseG2p::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
-    protected:
-        class Impl;
-        std::unique_ptr<Impl> _impl;
+        std::string getConfig() const override;
+
+        LangCore::Expected<void> setConfig(const std::string &config) override;
+
+    private:
+        LangCore::VersionedTaskManager<CantoneseG2pTask> _manager;
     };
 
-} // namespace LangPlugins::CantoneseG2p::V1
+} // namespace LangPlugins::CantoneseG2p
 
 #endif // LANGPLUGINS_CANTONESEG2PTASK_H

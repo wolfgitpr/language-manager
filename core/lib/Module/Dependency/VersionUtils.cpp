@@ -94,8 +94,11 @@ namespace LangCore
         for (const auto &[opStr, opType] : operators) {
             if (rangeStr.find(opStr) == 0) {
                 std::string version = rangeStr.substr(opStr.length());
-                if (version.empty())
-                    throw std::invalid_argument("Missing version number after operator '" + opStr + "'");
+                if (version.empty()) {
+                    // 不抛出异常，使用默认值
+                    constraints_.push_back({Op::ANY, ""});
+                    return;
+                }
                 constraints_.push_back({opType, version});
                 parsed = true;
                 break;
@@ -107,18 +110,14 @@ namespace LangCore
             std::string constraintStr;
             while (iss >> constraintStr) {
                 if (!constraintStr.empty()) {
-                    try {
-                        constraints_.push_back(parseConstraint(constraintStr));
-                    }
-                    catch (const std::exception &e) {
-                        throw std::invalid_argument("Failed to parse version constraint '" + constraintStr +
-                                                    "': " + e.what());
-                    }
+                    auto constraint = parseConstraint(constraintStr);
+                    constraints_.push_back(constraint);
                 }
             }
 
             if (constraints_.empty()) {
-                throw std::invalid_argument("Invalid version range format: '" + rangeStr + "'");
+                // 不抛出异常，使用默认值
+                constraints_.push_back({Op::ANY, ""});
             }
         }
     }
@@ -242,13 +241,15 @@ namespace LangCore
             if (constraintStr.find(opStr) == 0) {
                 const std::string version = constraintStr.substr(opStr.length());
                 if (version.empty()) {
-                    throw std::invalid_argument("Missing version number after operator '" + opStr + "'");
+                    // 不抛出异常，返回 ANY 作为默认值
+                    return {Op::ANY, ""};
                 }
                 return {opType, version};
             }
         }
 
-        throw std::invalid_argument("Invalid version constraint format: '" + constraintStr + "'");
+        // 不抛出异常，返回 ANY 作为默认值
+        return {Op::ANY, ""};
     }
 
     int VersionRange::compareVersions(const std::string &v1, const std::string &v2) {
