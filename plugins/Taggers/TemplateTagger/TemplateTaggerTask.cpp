@@ -10,9 +10,8 @@
 
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/TaggerTask.h>
+#include <LangCore/Support/ConfigAccessor.h>
 
-#include "InferUtil/ErrorCollector.h"
-#include "InferUtil/Parser.h"
 #include "TaggerUtil.h"
 
 
@@ -137,13 +136,16 @@ namespace LangPlugins::TemplateTagger::V1
 
         std::unique_lock lock(impl.mutex);
 
-        InferUtil::ErrorCollector ec;
-        InferUtil::ConfigurationParser parser(spec(), &ec);
+        auto cfg = LangCore::config(spec());
 
-        std::string language;
+        // Required fields
+        auto languageExp = cfg.getString("language");
+        if (!languageExp) {
+            return languageExp.takeError();
+        }
+        auto language = languageExp.take();
+
         std::vector<TaggerUtilEntry> entries;
-
-        parser.parse_string_required(language, "language");
         parse_tagger_required(entries, "tagger", spec());
 
         auto expVerifier = TaggerUtil::Create(entries, language);
@@ -169,9 +171,5 @@ namespace LangPlugins::TemplateTagger::V1
         taggerResult->taggerResult = res;
 
         return taggerResult;
-    }
-
-    LangCore::Expected<void> TemplateTaggerTask::updateConfig(const std::string &config) {
-        return setConfig(config);
     }
 } // namespace LangPlugins::TemplateTagger::V1

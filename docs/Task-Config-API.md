@@ -4,6 +4,13 @@
 
 本文档描述了Task的配置API设计，允许动态获取和设置Task的配置，以JSON格式传参，这样可以忽略实现细节，便于多版本使用同一个接口。
 
+**重要说明**：
+- 当前 Task 配置 API 仅包含两个方法：`getConfig()` 和 `setConfig()`
+- `getConfig()` 返回类型为 `std::string`，不使用 `Expected<T>`
+- `setConfig()` 返回类型为 `Expected<void>`，用于错误处理
+- 配置更新由插件自行实现，Task 基类只提供基础的 get/set 接口
+- 文档中提到的 `updateConfig()`、`getConfigValue()` 和 `setConfigValue()` 方法在实际代码中不存在
+
 ## 2. 设计目标
 
 1. **统一接口**：所有Task都支持相同的配置API
@@ -14,24 +21,48 @@
 
 ## 3. API定义
 
+### 实际可用的配置 API
+
+当前 Task 配置 API 仅包含以下两个方法：
+
+1. **`getConfig()`** - 获取完整配置（JSON 字符串）
+   - 返回类型：`std::string`
+   - 不使用 `Expected<T>` 返回类型
+   - 失败时返回空字符串
+
+2. **`setConfig()`** - 设置完整配置（JSON 字符串）
+   - 返回类型：`Expected<void>`
+   - 使用 `Expected<T>` 返回类型进行错误处理
+   - 需要传入完整的配置 JSON
+
+**重要提示**：
+- 不支持部分配置更新
+- 不支持单个配置项的获取和设置
+- 配置更新由插件自行实现，Task 基类只提供基础的 get/set 接口
+
 ### 3.1 getConfig()
 
 **功能**：获取当前配置（JSON格式）
 
 **签名**：
 ```cpp
-virtual Expected<std::string> getConfig() const;
+virtual std::string getConfig() const;
 ```
 
 **返回值**：
 - 成功：返回JSON格式的配置字符串
-- 失败：返回Error
+- 失败：返回空字符串
+
+**说明**：
+- 此方法不使用 `Expected<T>` 返回类型，直接返回 `std::string`
+- 配置格式为 JSON 字符串
+- 如果配置获取失败，返回空字符串
 
 **示例**：
 ```cpp
-auto config = task->getConfig();
-if (config) {
-    std::cout << config.value() << std::endl;
+std::string config = task->getConfig();
+if (!config.empty()) {
+    std::cout << config << std::endl;
     // 输出：{"enabled":true,"param1":"value1","param2":100}
 }
 ```
@@ -68,6 +99,8 @@ if (!result) {
 
 ### 3.3 updateConfig()
 
+⚠️ **警告**：此方法在实际代码中不存在，以下内容仅供参考或未来实现。
+
 **功能**：更新部分配置（JSON格式）
 
 **签名**：
@@ -96,6 +129,8 @@ if (!result) {
 ```
 
 ### 3.4 getConfigValue()
+
+⚠️ **警告**：此方法在实际代码中不存在，以下内容仅供参考或未来实现。
 
 **功能**：获取配置值
 
@@ -127,6 +162,8 @@ if (param2) {
 ```
 
 ### 3.5 setConfigValue()
+
+⚠️ **警告**：此方法在实际代码中不存在，以下内容仅供参考或未来实现。
 
 **功能**：设置配置值
 
@@ -188,6 +225,8 @@ if (!result) {
 ```
 
 ## 5. 实现示例
+
+⚠️ **警告**：以下实现示例中使用的方法（如 `updateConfig()`、`getConfigValue()`、`setConfigValue()`）在实际代码中不存在。这些示例仅供参考或用于未来实现规划。
 
 ### 5.1 基本实现
 
@@ -343,6 +382,8 @@ Expected<void> MyTask::setConfigValue(nlohmann::json &config, const std::string 
 ```
 
 ## 6. 使用场景
+
+⚠️ **警告**：以下使用场景示例中使用的方法（如 `setConfigValue()`）在实际代码中不存在。这些示例仅供参考或用于未来实现规划。
 
 ### 6.1 动态调整参数
 
@@ -606,6 +647,8 @@ private:
 
 ## 10. 测试
 
+⚠️ **警告**：以下测试用例中使用的方法（如 `updateConfig()`、`getConfigValue()`）在实际代码中不存在。这些示例仅供参考或用于未来实现规划。
+
 ### 10.1 单元测试
 
 ```cpp
@@ -616,9 +659,9 @@ TEST(TaskConfigTest, SetAndGetConfig) {
     auto result = task->setConfig(config);
     EXPECT_TRUE(result.ok());
 
-    auto getConfig = task->getConfig();
-    EXPECT_TRUE(getConfig.ok());
-    EXPECT_EQ(getConfig.value(), config);
+    std::string getConfig = task->getConfig();
+    EXPECT_FALSE(getConfig.empty());
+    EXPECT_EQ(getConfig, config);
 }
 
 TEST(TaskConfigTest, UpdateConfig) {
@@ -661,7 +704,74 @@ TEST(TaskConfigTest, InvalidConfig) {
 }
 ```
 
-## 11. 总结
+## 11. API 局限性与未来改进
+
+### 11.1 当前限制
+
+当前 Task 配置 API 存在以下限制：
+
+1. **API 方法有限**：
+   - 仅提供 `getConfig()` 和 `setConfig()` 两个方法
+   - 不支持部分配置更新（如 `updateConfig()`）
+   - 不支持单个配置项的获取和设置（如 `getConfigValue()`、`setConfigValue()`）
+
+2. **错误处理不一致**：
+   - `getConfig()` 返回 `std::string`，无法返回详细的错误信息
+   - `setConfig()` 返回 `Expected<void>`，可以返回详细的错误信息
+   - 这种不一致可能导致开发者困惑
+
+3. **配置验证依赖插件**：
+   - 配置验证完全由插件实现
+   - Task 基类不提供配置验证框架
+   - 不同插件的配置验证行为可能不一致
+
+### 11.2 未来改进方向
+
+为了改进配置 API 的易用性和功能性，可以考虑以下改进：
+
+1. **扩展 API 方法**：
+   ```cpp
+   // 未来可能添加的方法
+   virtual Expected<void> updateConfig(const std::string &config);
+   virtual Expected<std::string> getConfigValue(const std::string &key) const;
+   virtual Expected<void> setConfigValue(const std::string &key, const std::string &value);
+   ```
+
+2. **统一错误处理**：
+   ```cpp
+   // 改进 getConfig() 方法，使其也返回 Expected<T>
+   virtual Expected<std::string> getConfig() const;
+   ```
+
+3. **添加配置验证框架**：
+   - 在 Task 基类中提供配置验证接口
+   - 定义标准的配置验证规则
+   - 提供配置验证错误的标准格式
+
+4. **配置变更通知**：
+   - 添加配置变更回调机制
+   - 允许插件监听配置变更事件
+   - 支持配置变更前的验证和确认
+
+### 11.3 迁移指南
+
+如果未来 API 发生变化，需要考虑向后兼容性：
+
+1. **保留现有 API**：
+   - 保持 `getConfig()` 和 `setConfig()` 方法的签名不变
+   - 通过继承或扩展来添加新功能
+
+2. **提供迁移工具**：
+   - 提供配置格式转换工具
+   - 自动检测和迁移旧配置格式
+   - 提供迁移文档和示例
+
+3. **版本标记**：
+   - 在配置 JSON 中添加版本字段
+   - 根据版本号使用不同的配置处理逻辑
+   - 提供版本升级和降级支持
+
+## 12. 总结
 
 Task配置API提供了统一、灵活、类型安全的配置管理机制：
 
@@ -676,4 +786,10 @@ Task配置API提供了统一、灵活、类型安全的配置管理机制：
 - 启用/禁用功能
 - 热更新配置
 - 配置持久化
+
+**注意事项**：
+- 当前 API 仅包含 `getConfig()` 和 `setConfig()` 两个方法
+- 文档中提到的其他方法（如 `updateConfig()`、`getConfigValue()`、`setConfigValue()`）在实际代码中不存在
+- 使用 `setConfig()` 时需要传入完整的配置 JSON，不支持部分更新
+- `getConfig()` 失败时返回空字符串，需要根据业务逻辑判断是否有效
 - 统一的配置管理

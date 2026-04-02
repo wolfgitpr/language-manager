@@ -2,11 +2,13 @@
 
 #include <mutex>
 #include <shared_mutex>
+#include <fstream>
 
 #include <stdcorelib/path.h>
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
+#include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Tensor.h>
 #include <LangCore/Task/Task.h>
 #include <LangCore/Task/TaskPlugin.h>
@@ -15,11 +17,50 @@
 
 #include <LangCore/Task/G2pTask.h>
 
-#include <InferUtil/ErrorCollector.h>
-#include <InferUtil/Parser.h>
-
 namespace LangPlugins::LstmG2p::V1
 {
+    // Helper function to load phoneme mapping from JSON file
+    static LangCore::Expected<std::map<std::string, int>>
+        loadPhonemeMapping(const std::filesystem::path &path, const std::string &fieldName) {
+        std::map<std::string, int> out;
+
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            return LangCore::Error(LangCore::Error::FileSystemError,
+                                   stdc::formatN(R"(error loading "%1": %2 file not found)", fieldName,
+                                                 stdc::path::to_utf8(path)));
+        }
+
+        file.seekg(0, std::ios::end);
+        const auto size = file.tellg();
+        std::string buffer(size, '\0');
+        file.seekg(0);
+        file.read(buffer.data(), size);
+
+        std::string errString;
+        const auto j = LangCore::JsonValue::fromJson(buffer, true, &errString);
+        if (!errString.empty()) {
+            return LangCore::Error(LangCore::Error::ConfigError, errString);
+        }
+
+        if (!j.isObject()) {
+            return LangCore::Error(LangCore::Error::ConfigError,
+                                   stdc::formatN(R"(error loading "%1": outer JSON is not an object)", fieldName));
+        }
+
+        const auto &obj = j.toObject();
+        for (const auto &[key, value] : obj) {
+            if (!value.isInt()) {
+                return LangCore::Error(LangCore::Error::ConfigError,
+                                       stdc::formatN(R"(error loading "%1": value of key "%2" is not int)", fieldName,
+                                                     key));
+            }
+            out[key] = static_cast<int>(value.toInt());
+        }
+
+        return out;
+    }
+
     class LstmG2pTask::Impl {
     public:
         LangCore::NO<LangCore::SessionFactory> driver;
@@ -52,15 +93,42 @@ namespace LangPlugins::LstmG2p::V1
             return res.takeError();
         }
 
-        InferUtil::ErrorCollector ec;
-        InferUtil::ConfigurationParser parser(spec(), &ec);
+        auto cfg = LangCore::config(spec());
 
-        std::filesystem::path encoder, decoder;
+        // Required fields
+        auto encoderExp = cfg.getPath("encoder");
+        if (!encoderExp) {
+            return encoderExp.takeError();
+        }
+        auto encoder = encoderExp.take();
 
-        parser.parse_path_required(encoder, "encoder");
-        parser.parse_path_required(decoder, "decoder");
-        parser.parse_phonemes(impl.charVocab, "charVocab");
-        parser.parse_phonemes(impl.phonemeVocab, "phonemeVocab");
+        auto decoderExp = cfg.getPath("decoder");
+        if (!decoderExp) {
+            return decoderExp.takeError();
+        }
+        auto decoder = decoderExp.take();
+
+        // Load charVocab
+        auto charVocabPathExp = cfg.getPath("charVocab");
+        if (!charVocabPathExp) {
+            return charVocabPathExp.takeError();
+        }
+        auto charVocabMapping = loadPhonemeMapping(charVocabPathExp.take(), "charVocab");
+        if (!charVocabMapping) {
+            return charVocabMapping.takeError();
+        }
+        impl.charVocab = charVocabMapping.take();
+
+        // Load phonemeVocab
+        auto phonemeVocabPathExp = cfg.getPath("phonemeVocab");
+        if (!phonemeVocabPathExp) {
+            return phonemeVocabPathExp.takeError();
+        }
+        auto phonemeVocabMapping = loadPhonemeMapping(phonemeVocabPathExp.take(), "phonemeVocab");
+        if (!phonemeVocabMapping) {
+            return phonemeVocabMapping.takeError();
+        }
+        impl.phonemeVocab = phonemeVocabMapping.take();
 
         for (const auto &[phoneme, index] : impl.phonemeVocab)
             impl.idx_to_phoneme[index] = phoneme;
@@ -315,11 +383,5 @@ namespace LangPlugins::LstmG2p::V1
         }
 
         return phonemes;
-    }
-
-    LangCore::Expected<void> LstmG2pTask::updateConfig(const std::string &config) {
-        // 简单实现：将配置存储到 Task 基类中
-        // 具体的配置解析和更新逻辑可以在需要时由插件自行实现
-        return setConfig(config);
     }
 } // namespace LangPlugins::LstmG2p::V1

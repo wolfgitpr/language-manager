@@ -9,11 +9,9 @@
 
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
-
+#include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/PhonemeDict.h>
 
-#include <InferUtil/ErrorCollector.h>
-#include <InferUtil/Parser.h>
 #include <InferUtil/Verifier.h>
 
 namespace LangPlugins::TemplateG2p::V1
@@ -34,23 +32,100 @@ namespace LangPlugins::TemplateG2p::V1
 
     int TemplateG2pTask::apiLevel() const { return 1; }
 
+    // Helper function to parse verify entries from JSON
+    static LangCore::Expected<std::vector<InferUtil::VerifyEntry>>
+        parseVerifyEntries(const LangCore::JsonObject &config, const std::filesystem::path &basePath) {
+        std::vector<InferUtil::VerifyEntry> entries;
+
+        const auto it = config.find("verify");
+        if (it == config.end()) {
+            return LangCore::Error(LangCore::Error::ConfigError, "verify field is missing");
+        }
+
+        if (!it->second.isArray()) {
+            return LangCore::Error(LangCore::Error::ConfigError, "verify field must be an array");
+        }
+
+        const auto &arr = it->second.toArray();
+        entries.reserve(arr.size());
+
+        for (size_t i = 0; i < arr.size(); ++i) {
+            const auto &item = arr[i];
+            if (!item.isObject()) {
+                return LangCore::Error(LangCore::Error::ConfigError,
+                                       stdc::formatN("verify entry #%1 must be an object", i));
+            }
+
+            const auto &obj = item.toObject();
+            InferUtil::VerifyEntry entry;
+
+            if (const auto typeIt = obj.find("type"); typeIt != obj.end() && typeIt->second.isString()) {
+                entry.type = typeIt->second.toString();
+            } else {
+                return LangCore::Error(LangCore::Error::ConfigError,
+                                       stdc::formatN("verify entry #%1 missing or invalid 'type' field", i));
+            }
+
+            if (const auto valueIt = obj.find("value"); valueIt != obj.end() && valueIt->second.isArray()) {
+                const auto &valueArr = valueIt->second.toArray();
+                for (size_t j = 0; j < valueArr.size(); ++j) {
+                    if (valueArr[j].isString()) {
+                        if (entry.type == "dict") {
+                            const auto path = basePath / stdc::path::from_utf8(valueArr[j].toString());
+                            entry.value.push_back(path.string());
+                        } else {
+                            entry.value.push_back(valueArr[j].toString());
+                        }
+                    }
+                }
+            } else {
+                return LangCore::Error(LangCore::Error::ConfigError,
+                                       stdc::formatN("verify entry #%1 missing or invalid 'value' field", i));
+            }
+
+            if (const auto modeIt = obj.find("mode"); modeIt != obj.end() && modeIt->second.isString()) {
+                entry.mode = modeIt->second.toString();
+            } else {
+                return LangCore::Error(LangCore::Error::ConfigError,
+                                       stdc::formatN("verify entry #%1 missing or invalid 'mode' field", i));
+            }
+
+            entries.push_back(std::move(entry));
+        }
+
+        return entries;
+    }
+
     LangCore::Expected<void> TemplateG2pTask::initialize() {
         __stdc_impl_t;
 
         std::unique_lock lock(impl.mutex);
 
-        InferUtil::ErrorCollector ec;
-        InferUtil::ConfigurationParser parser(spec(), &ec);
+        auto cfg = LangCore::config(spec());
 
-        std::string onnxG2pId;
-        std::filesystem::path dictPath;
-        std::vector<InferUtil::VerifyEntry> verifyEntry;
+        // Parse verify entries
+        auto verifyEntryExp = parseVerifyEntries(cfg.raw(), spec()->path());
+        if (!verifyEntryExp) {
+            return verifyEntryExp.takeError();
+        }
+        auto verifyEntry = verifyEntryExp.take();
 
-        parser.parse_verify_required(verifyEntry, "verify");
-        parser.parse_bool_optional(impl.enableDict, "enableDict");
-        parser.parse_path_required(dictPath, "dictPath");
-        parser.parse_bool_optional(impl.enableOnnxG2p, "enableOnnxG2p");
-        parser.parse_string_required(onnxG2pId, "onnxG2pId");
+        // Optional fields with defaults
+        impl.enableDict = cfg.getBool("enableDict", false);
+        impl.enableOnnxG2p = cfg.getBool("enableOnnxG2p", false);
+
+        // Required fields
+        auto dictPathExp = cfg.getPath("dictPath");
+        if (!dictPathExp) {
+            return dictPathExp.takeError();
+        }
+        auto dictPath = dictPathExp.take();
+
+        auto onnxG2pIdExp = cfg.getString("onnxG2pId");
+        if (!onnxG2pIdExp) {
+            return onnxG2pIdExp.takeError();
+        }
+        auto onnxG2pId = onnxG2pIdExp.take();
 
         if (!impl.enableOnnxG2p) {
             impl.g2pInference = nullptr;
@@ -174,11 +249,5 @@ namespace LangPlugins::TemplateG2p::V1
         g2pResult->g2pResult = res;
 
         return g2pResult;
-    }
-
-    LangCore::Expected<void> TemplateG2pTask::updateConfig(const std::string &config) {
-        // 简单实现：将配置存储到 Task 基类中
-        // 具体的配置解析和更新逻辑可以在需要时由插件自行实现
-        return setConfig(config);
     }
 } // namespace LangPlugins::TemplateG2p::V1

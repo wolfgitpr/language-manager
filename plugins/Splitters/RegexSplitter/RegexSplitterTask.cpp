@@ -12,9 +12,7 @@
 
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/SplitterTask.h>
-
-#include <InferUtil/ErrorCollector.h>
-#include <InferUtil/Parser.h>
+#include <LangCore/Support/ConfigAccessor.h>
 
 
 namespace LangPlugins::RegexSplitter::V1
@@ -97,16 +95,18 @@ namespace LangPlugins::RegexSplitter::V1
 
         std::unique_lock lock(impl.mutex);
 
-        InferUtil::ErrorCollector ec;
-        InferUtil::ConfigurationParser parser(spec(), &ec);
-
-        std::vector<std::string> regexes;
-        parser.parse_stringVec_required(regexes, "regexes");
+        // 使用 ConfigAccessor 获取配置
+        auto cfg = LangCore::config(spec());
+        
+        auto regexes = cfg.getStringArray("regexes");
+        if (!regexes) {
+            return regexes.takeError();
+        }
 
         impl.regexes.clear();
-        impl.regexes.reserve(regexes.size());
+        impl.regexes.reserve(regexes->size());
         
-        for (const auto &regex : regexes)
+        for (const auto &regex : *regexes)
             impl.regexes.push_back(std::make_unique<SplitterRegex>(regex));
 
         return {};
@@ -133,6 +133,4 @@ namespace LangPlugins::RegexSplitter::V1
 
         return taggerResult;
     }
-
-    LangCore::Expected<void> RegexSplitterTask::updateConfig(const std::string &config) { return setConfig(config); }
 } // namespace LangPlugins::RegexSplitter::V1

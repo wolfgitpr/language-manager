@@ -123,38 +123,18 @@ int main() {
 
         const auto langMgr = LangCore::Manager::instance();
 
-        // 测试配置 API
-        if (auto g2pTask = langMgr->task("g2p", "g2p-chain")) {
+        // 测试配置 API（使用普通 G2p 任务）
+        if (auto g2pTask = langMgr->task("g2p", "g2p-cmn")) {
             std::cout << "Testing getConfig()..." << std::endl;
             auto configJson = g2pTask.get()->getConfig();
             std::cout << "Config size: " << configJson.size() << " bytes" << std::endl;
 
             // 插件应该自己解析 JSON 配置
-            std::cout << "\nNote: Config parsing should be done by plugins using Support/JSON.h" << std::endl;
-
-            // 测试 setConfig 和 updateConfig
-            std::cout << "\nTesting setConfig()..." << std::endl;
-            std::string newConfig = R"({
-  "processors": [
-    {
-      "processorId": "verifier",
-      "processorType": "verifier",
-      "enabled": true,
-      "priority": 0,
-      "config": {},
-      "dependencies": []
-    }
-  ]
-})";
-            if (auto setResult = g2pTask.get()->setConfig(newConfig)) {
-                std::cout << "Successfully set new config" << std::endl;
-            }
-
-            // 注意：updateConfig() 已移除，配置更新由插件自行实现
+            std::cout << "\nNote: Config parsing should be done by plugins using ConfigAccessor" << std::endl;
         }
 
         // ========================================
-        // 测试 G2p 责任链
+        // 测试 G2p 转换
         // ========================================
         std::cout << "\n=== Testing G2p Chain Task ===" << std::endl;
 
@@ -174,7 +154,7 @@ int main() {
                       << std::endl;
         }
 
-        // 测试使用责任链 G2p
+        // 测试 G2p 转换
         std::cout << "\nTesting G2p Chain:" << std::endl;
         const auto g2pResult = langMgr->convert(g2pInput);
 

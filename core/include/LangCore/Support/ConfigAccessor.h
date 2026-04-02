@@ -1,0 +1,118 @@
+#ifndef LANGCORE_CONFIGACCESSOR_H
+#define LANGCORE_CONFIGACCESSOR_H
+
+#include <filesystem>
+#include <string>
+#include <vector>
+
+#include <LangCore/LangCoreGlobal.h>
+#include <LangCore/Support/Error.h>
+#include <LangCore/Support/Expected.h>
+#include <LangCore/Support/JSON.h>
+
+namespace LangCore
+{
+
+    class ModuleSpec;
+
+    /// ConfigAccessor - 提供简洁的配置访问接口
+    ///
+    /// 这个类简化了插件配置的获取方式，提供一行代码获取配置的能力，
+    /// 同时保持类型安全和错误处理。
+    ///
+    /// 使用示例：
+    /// \code
+    /// auto cfg = LangCore::config(spec());
+    ///
+    /// // 必需字段
+    /// auto regexes = cfg.getArray<std::string>("regexes");
+    /// if (!regexes) {
+    ///     return regexes.takeError();
+    /// }
+    ///
+    /// // 可选字段，带默认值
+    /// auto enable = cfg.getBool("enable", false);
+    /// \endcode
+    class LANGCORE_EXPORT ConfigAccessor {
+    public:
+        /// 从 ModuleSpec 创建配置访问器
+        explicit ConfigAccessor(const ModuleSpec *spec);
+
+        /// 从 JsonObject 创建配置访问器
+        explicit ConfigAccessor(const JsonObject &config, const std::filesystem::path &basePath = {});
+
+        // ==================== 必需字段 ====================
+
+        /// 获取必需的字符串
+        /// @param key 配置键名
+        /// @return 成功返回字符串，失败返回错误
+        Expected<std::string> getString(const std::string &key) const;
+
+        /// 获取必需的整数
+        /// @param key 配置键名
+        /// @return 成功返回整数，失败返回错误
+        Expected<int> getInt(const std::string &key) const;
+
+        /// 获取必需的双精度浮点数
+        /// @param key 配置键名
+        /// @return 成功返回双精度浮点数，失败返回错误
+        Expected<double> getDouble(const std::string &key) const;
+
+        /// 获取必需的布尔值
+        /// @param key 配置键名
+        /// @return 成功返回布尔值，失败返回错误
+        Expected<bool> getBool(const std::string &key) const;
+
+        /// 获取必需的路径（相对于模块路径解析）
+        /// @param key 配置键名
+        /// @return 成功返回路径，失败返回错误
+        Expected<std::filesystem::path> getPath(const std::string &key) const;
+
+        /// 获取必需的字符串数组
+        /// @param key 配置键名
+        /// @return 成功返回字符串数组，失败返回错误
+        Expected<std::vector<std::string>> getStringArray(const std::string &key) const;
+
+        // ==================== 可选字段 ====================
+
+        /// 获取可选的字符串，带默认值
+        std::string getString(const std::string &key, const std::string &defaultValue) const;
+
+        /// 获取可选的整数，带默认值
+        int getInt(const std::string &key, int defaultValue) const;
+
+        /// 获取可选的双精度浮点数，带默认值
+        double getDouble(const std::string &key, double defaultValue) const;
+
+        /// 获取可选的布尔值，带默认值
+        bool getBool(const std::string &key, bool defaultValue) const;
+
+        /// 获取可选的路径，带默认值
+        std::filesystem::path getPath(const std::string &key, const std::filesystem::path &defaultValue) const;
+
+        /// 获取可选的字符串数组，带默认值
+        std::vector<std::string> getStringArray(const std::string &key,
+                                                 const std::vector<std::string> &defaultValue) const;
+
+        // ==================== 辅助方法 ====================
+
+        /// 检查键是否存在
+        bool has(const std::string &key) const;
+
+        /// 获取原始 JSON 对象
+        const JsonObject &raw() const { return m_config; }
+
+        /// 获取基础路径
+        const std::filesystem::path &basePath() const { return m_basePath; }
+
+    private:
+        const JsonObject &m_config;
+        std::filesystem::path m_basePath;
+    };
+
+    /// 便捷函数：从 ModuleSpec 创建配置访问器
+    inline ConfigAccessor config(const ModuleSpec *spec) { return ConfigAccessor(spec); }
+
+} // namespace LangCore
+
+#endif // LANGCORE_CONFIGACCESSOR_H

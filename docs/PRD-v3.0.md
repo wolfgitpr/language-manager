@@ -150,11 +150,13 @@ core/include/LangCore/Support/
 ├── Logging.h             # 日志系统
 ├── DisplayText.h         # 文本显示支持
 ├── PhonemeDict.h         # 音素字典
-└── Tensor.h              # 张量处理
+├── Tensor.h              # 张量处理
+└── ConfigAccessor.h      # 配置访问器
 ```
 - **职责**：提供通用工具类和辅助功能
 - **特点**：只依赖 Base 层，为上层提供基础服务
 - **稳定性**：高，但允许在保证兼容性前提下扩展功能
+- **ConfigAccessor**：提供简洁的类型安全的配置访问接口，简化插件配置获取
 
 **Core - 核心管理层**
 ```
@@ -576,6 +578,7 @@ LANGCORE_EXPORT_PLUGIN(LangPlugins::MyDriver::MySessionFactoryPlugin)
 
 ```cpp
 #include <LangCore/Task/Task.h>
+#include <LangCore/Support/ConfigAccessor.h>
 
 class MyTask : public LangCore::Task {
 public:
@@ -586,6 +589,18 @@ public:
     }
 
     LangCore::Expected<void> initialize() override {
+        // 使用 ConfigAccessor 获取配置
+        auto cfg = LangCore::config(spec());
+        
+        // 获取必需字段
+        auto requiredField = cfg.getString("requiredField");
+        if (!requiredField) {
+            return requiredField.takeError();
+        }
+        
+        // 获取可选字段
+        auto optionalField = cfg.getBool("optionalField", false);
+        
         return {};
     }
 
@@ -595,12 +610,40 @@ public:
         auto result = LangCore::NO<LangCore::TaskResult>::create();
         return result;
     }
-
-    LangCore::Expected<void> updateConfig(const std::string &config) override {
-        return setConfig(config);
-    }
 };
 ```
+
+**使用 ConfigAccessor 进行配置管理**：
+
+ConfigAccessor 提供简洁的配置访问接口，推荐用于插件开发：
+
+```cpp
+LangCore::Expected<void> initialize() override {
+    auto cfg = LangCore::config(spec());
+
+    // 必需字段 - 使用 Expected<T> 返回
+    auto regexes = cfg.getStringArray("regexes");
+    if (!regexes) {
+        return regexes.takeError();
+    }
+
+    auto dictPath = cfg.getPath("dictPath");
+    if (!dictPath) {
+        return dictPath.takeError();
+    }
+
+    // 可选字段 - 带默认值
+    auto enable = cfg.getBool("enable", false);
+    auto threshold = cfg.getDouble("threshold", 0.5);
+    
+    return {};
+}
+```
+
+**ConfigAccessor 主要方法**：
+- **必需字段**：`getString()`, `getInt()`, `getDouble()`, `getBool()`, `getPath()`, `getStringArray()`
+- **可选字段**：带默认值参数的重载版本
+- **辅助方法**：`has()`, `raw()`, `basePath()`
 
 ### 6.2 自定义 Input 和 Result
 
@@ -1075,8 +1118,10 @@ enum Type {
 
 2. **配置管理**：
    - 使用 JSON 格式定义配置
-   - Task 内部自行解析配置
-   - 支持配置热更新（通过 `setConfig` / `updateConfig`）
+   - **推荐使用 ConfigAccessor**：`auto cfg = LangCore::config(spec())`
+   - 必需字段使用 `Expected<T>` 返回类型的方法（如 `getString()`）
+   - 可选字段使用带默认值的方法（如 `getString(key, defaultValue)`）
+   - 支持配置热更新（通过 `setConfig`）
    - 配置验证由 Task 内部负责
 
 3. **插件开发**：

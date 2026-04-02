@@ -17,8 +17,6 @@ namespace LangPlugins::TemplateTagger::V1
         LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
-        LangCore::Expected<void> updateConfig(const std::string &config);
-
     protected:
         class Impl;
         std::unique_ptr<Impl> _impl;
