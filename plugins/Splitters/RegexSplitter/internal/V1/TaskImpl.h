@@ -7,14 +7,9 @@
 #include <LangCore/Task/SplitterTask.h>
 #include <LangCore/Task/VersionedTaskImplBase.h>
 
-namespace LangPlugins::RegexSplitter::Internal
-{
-    class TaskImplBase;
-}
-
 namespace LangPlugins::RegexSplitter::Internal::V1
 {
-    class RegexSplitterTaskImpl : public LangCore::VersionedTaskImplBase {
+    class RegexSplitterTaskImpl final : public LangCore::VersionedTaskImplBase {
     public:
         explicit RegexSplitterTaskImpl(const LangCore::ModuleSpec *spec);
         ~RegexSplitterTaskImpl() override = default;

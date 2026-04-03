@@ -8,18 +8,18 @@
 #include <stdcorelib/str.h>
 
 #include <LangCore/Module/Module.h>
-#include <LangCore/Task/Task.h>
-#include <LangCore/Task/G2pTask.h>
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/PhonemeDict.h>
+#include <LangCore/Task/G2pTask.h>
+#include <LangCore/Task/Task.h>
 
 #include <InferUtil/Verifier.h>
 
-namespace LangPlugins::TemplateG2p::Internal::V1
+namespace LangPlugins::TemplateG2p::Internal::V2
 {
     // Helper function to parse verify entries from JSON
     static LangCore::Expected<std::vector<InferUtil::VerifyEntry>>
-        parseVerifyEntries(const LangCore::JsonObject &config, const std::filesystem::path &basePath) {
+    parseVerifyEntries(const LangCore::JsonObject &config, const std::filesystem::path &basePath) {
         std::vector<InferUtil::VerifyEntry> entries;
 
         const auto it = config.find("verify");
@@ -109,8 +109,7 @@ namespace LangPlugins::TemplateG2p::Internal::V1
         }
     };
 
-    TemplateG2pTaskImpl::TemplateG2pTaskImpl(const LangCore::ModuleSpec *spec)
-        : m_spec(spec) {}
+    TemplateG2pTaskImpl::TemplateG2pTaskImpl(const LangCore::ModuleSpec *spec) : m_spec(spec) {}
 
     LangCore::Expected<void> TemplateG2pTaskImpl::initialize() {
         std::unique_lock lock(m_mutex);
@@ -154,12 +153,12 @@ namespace LangPlugins::TemplateG2p::Internal::V1
             if (!g2pObj) {
                 return LangCore::Error(LangCore::Error::RuntimeError, "could not find id: " + onnxG2pId);
             }
-            
-            // 检查 LstmG2p 的 level，确保是 1（TemplateG2p V1 只支持 LstmG2p V1）
+
+            // 检查 LstmG2p 的 level，确保是 2（TemplateG2p V2 只支持 LstmG2p V2）
             auto g2pTask = g2pObj.as<LangCore::Task>();
-            if (g2pTask->apiLevel() != 1) {
-                return LangCore::Error(LangCore::Error::RuntimeError, 
-                                       stdc::formatN("TemplateG2p V1 only supports LstmG2p V1, but LstmG2p level is %1", 
+            if (g2pTask->apiLevel() != 2) {
+                return LangCore::Error(LangCore::Error::RuntimeError,
+                                       stdc::formatN("TemplateG2p V2 only supports LstmG2p V2, but LstmG2p level is %1",
                                                      g2pTask->apiLevel()));
             }
             m_g2pInference = g2pTask;
@@ -220,11 +219,16 @@ namespace LangPlugins::TemplateG2p::Internal::V1
             if (!verifyError.empty()) {
                 wordErrorType = LangCore::InvalidLyric;
             }
-            res.emplace_back(LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->name().text()), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
+            res.emplace_back(LangCore::G2pRes{std::string(lyric), std::string(m_spec->name().text()), std::string(),
+                                              std::vector<std::string>(), std::string(mode), wordErrorType});
         }
 
-        for (auto &it : res) {
+        // 第一遍处理：字典查找 + 收集需要批量转换的词
+        std::vector<size_t> needBatchIndices; // 需要批量转换的词的索引
+        std::vector<std::string> needBatchWords; // 需要批量转换的词
+
+        for (size_t i = 0; i < res.size(); ++i) {
+            auto &it = res[i];
             if (it.mode == "copy") {
                 it.pronunciation = it.lyric;
                 it.candidates = {it.pronunciation};
@@ -235,49 +239,85 @@ namespace LangPlugins::TemplateG2p::Internal::V1
                         pronStr += phone + " ";
                     it.pronunciation = pronStr;
                 } else {
-                    const auto lstmInput = LangCore::NO<LangCore::G2pInputV1>::create();
-                    lstmInput->g2pInput.push_back({it.lyric});
-
-                    if (!m_enableOnnxG2p) {
-                        it.pronunciation = it.lyric;
-                        it.candidates = {it.pronunciation};
-                        continue;
-                    }
-
-                    if (!m_g2pInference) {
-                        it.pronunciation = it.lyric;
-                        it.candidates = {it.pronunciation};
-                        continue;
-                    }
-
-                    auto resultExp = m_g2pInference->start(lstmInput);
-                    if (!resultExp)
-                        return LangCore::Error(LangCore::Error::RuntimeError,
-                                               stdc::formatN(R"(Task "%1" - LstmG2p inference failed: "%2")",
-                                                             m_spec->name().text(), resultExp.error().message()));
-
-                    auto result = resultExp.take();
-                    if (const auto g2pResult = result.as<LangCore::G2pResultV1>()) {
-                        it.pronunciation = g2pResult->g2pResult[0].pronunciation;
-                        // 如果 LSTM G2p 返回了错误类型，继承它
-                        if (g2pResult->g2pResult[0].errorType != LangCore::NoError) {
-                            it.errorType = g2pResult->g2pResult[0].errorType;
-                        }
-                    } else {
-                        if (!g2pResult->errorMessage.empty()) {
-                            return LangCore::Error(LangCore::Error::RuntimeError,
-                                                   stdc::formatN(R"(Task "%1" - Fail: "%2")",
-                                                                 m_spec->name().text(), g2pResult->errorMessage));
-                        }
-                        it.pronunciation = it.lyric;
-                        it.candidates = {it.pronunciation};
-                        it.errorType = LangCore::ModelInferenceFailed;
-                    }
+                    // 字典查不到，收集起来批量处理
+                    needBatchIndices.push_back(i);
+                    needBatchWords.push_back(it.lyric);
                 }
-            } else
+            } else {
                 return LangCore::Error(
                     LangCore::Error::ConfigError,
                     stdc::formatN(R"(Task "%1" - Fail: it.mode - "%2")", m_spec->name().text(), it.mode));
+            }
+        }
+
+        // 批量处理字典查不到的词（50）
+        constexpr int batchSize = 50;
+        for (size_t batchStart = 0; batchStart < needBatchWords.size(); batchStart += batchSize) {
+            size_t batchEnd = std::min(batchStart + batchSize, needBatchWords.size());
+            size_t currentBatchSize = batchEnd - batchStart;
+
+            // 创建批量输入
+            auto batchInput = LangCore::NO<LangCore::G2pInputV1>::create();
+            for (size_t i = batchStart; i < batchEnd; ++i) {
+                batchInput->g2pInput.push_back(needBatchWords[i]);
+            }
+
+            // 调用 LstmG2p V2 进行批量转换
+            if (!m_enableOnnxG2p || !m_g2pInference) {
+                // 如果没有启用或没有初始化，使用原词
+                for (size_t i = batchStart; i < batchEnd; ++i) {
+                    size_t originalIndex = needBatchIndices[i];
+                    res[originalIndex].pronunciation = res[originalIndex].lyric;
+                    res[originalIndex].candidates = {res[originalIndex].lyric};
+                }
+                continue;
+            }
+
+            auto resultExp = m_g2pInference->start(batchInput);
+            if (!resultExp) {
+                // 批量转换失败，使用原词
+                for (size_t i = batchStart; i < batchEnd; ++i) {
+                    size_t originalIndex = needBatchIndices[i];
+                    res[originalIndex].pronunciation = res[originalIndex].lyric;
+                    res[originalIndex].candidates = {res[originalIndex].lyric};
+                    res[originalIndex].errorType = LangCore::ModelInferenceFailed;
+                }
+                continue;
+            }
+
+            auto result = resultExp.take();
+            if (const auto g2pResult = result.as<LangCore::G2pResultV1>()) {
+                // 将批量结果映射回原始位置
+                for (size_t i = 0; i < currentBatchSize; ++i) {
+                    size_t originalIndex = needBatchIndices[batchStart + i];
+                    if (i < g2pResult->g2pResult.size()) {
+                        res[originalIndex].pronunciation = g2pResult->g2pResult[i].pronunciation;
+                        // 如果 LSTM G2p 返回了错误类型，继承它
+                        if (g2pResult->g2pResult[i].errorType != LangCore::NoError) {
+                            res[originalIndex].errorType = g2pResult->g2pResult[i].errorType;
+                        }
+                    } else {
+                        // 结果数量不匹配，使用原词
+                        res[originalIndex].pronunciation = res[originalIndex].lyric;
+                        res[originalIndex].candidates = {res[originalIndex].lyric};
+                        res[originalIndex].errorType = LangCore::ModelInferenceFailed;
+                    }
+                }
+            } else {
+                // 返回结果类型错误
+                if (!g2pResult->errorMessage.empty()) {
+                    return LangCore::Error(
+                        LangCore::Error::RuntimeError,
+                        stdc::formatN(R"(Task "%1" - Fail: "%2")", m_spec->name().text(), g2pResult->errorMessage));
+                }
+                // 使用原词
+                for (size_t i = batchStart; i < batchEnd; ++i) {
+                    size_t originalIndex = needBatchIndices[i];
+                    res[originalIndex].pronunciation = res[originalIndex].lyric;
+                    res[originalIndex].candidates = {res[originalIndex].lyric};
+                    res[originalIndex].errorType = LangCore::ModelInferenceFailed;
+                }
+            }
         }
 
         // Create result
@@ -287,13 +327,11 @@ namespace LangPlugins::TemplateG2p::Internal::V1
         return g2pResult;
     }
 
-    std::string TemplateG2pTaskImpl::getConfig() const {
-        return m_config;
-    }
+    std::string TemplateG2pTaskImpl::getConfig() const { return m_config; }
 
     LangCore::Expected<void> TemplateG2pTaskImpl::setConfig(const std::string &config) {
         m_config = config;
         return {};
     }
 
-} // namespace LangPlugins::TemplateG2p::Internal::V1
+} // namespace LangPlugins::TemplateG2p::Internal::V2

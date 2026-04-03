@@ -1,5 +1,5 @@
-#ifndef LANGPLUGINS_TEMPLATEG2P_INTERNAL_V1_TASKIMPL_H
-#define LANGPLUGINS_TEMPLATEG2P_INTERNAL_V1_TASKIMPL_H
+#ifndef LANGPLUGINS_TEMPLATEG2P_INTERNAL_V2_TASKIMPL_H
+#define LANGPLUGINS_TEMPLATEG2P_INTERNAL_V2_TASKIMPL_H
 
 #include <LangCore/Task/VersionedTaskImplBase.h>
 #include <memory>
@@ -9,10 +9,10 @@
 #include <LangCore/Support/PhonemeDict.h>
 #include <LangCore/Core/PackageManager.h>
 
-namespace LangPlugins::TemplateG2p::Internal::V1
+namespace LangPlugins::TemplateG2p::Internal::V2
 {
-    /// TemplateG2p 的 Level 1 实现
-    /// 支持字典查找和 ONNX 推理
+    /// TemplateG2p 的 Level 2 实现
+    /// 支持字典查找和 ONNX 推理（支持批量处理）
     class TemplateG2pTaskImpl final : public LangCore::VersionedTaskImplBase {
     public:
         explicit TemplateG2pTaskImpl(const LangCore::ModuleSpec *spec);
@@ -39,6 +39,6 @@ namespace LangPlugins::TemplateG2p::Internal::V1
         std::vector<std::string> lookup(const std::string &key) const;
     };
 
-} // namespace LangPlugins::TemplateG2p::Internal::V1
+} // namespace LangPlugins::TemplateG2p::Internal::V2
 
-#endif // LANGPLUGINS_TEMPLATEG2P_INTERNAL_V1_TASKIMPL_H
+#endif // LANGPLUGINS_TEMPLATEG2P_INTERNAL_V2_TASKIMPL_H

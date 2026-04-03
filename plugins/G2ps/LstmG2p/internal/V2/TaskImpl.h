@@ -1,5 +1,5 @@
-#ifndef LANGPLUGINS_LSTMG2P_INTERNAL_V1_TASKIMPL_H
-#define LANGPLUGINS_LSTMG2P_INTERNAL_V1_TASKIMPL_H
+#ifndef LANGPLUGINS_LSTMG2P_INTERNAL_V2_TASKIMPL_H
+#define LANGPLUGINS_LSTMG2P_INTERNAL_V2_TASKIMPL_H
 
 #include "../TaskImplBase.h"
 #include <memory>
@@ -12,10 +12,10 @@
 #include <LangCore/Support/Tensor.h>
 #include <LangCore/Core/PackageManager.h>
 
-namespace LangPlugins::LstmG2p::Internal::V1
+namespace LangPlugins::LstmG2p::Internal::V2
 {
-    /// LstmG2p 的 Level 1 实现
-    /// 使用 LSTM 模型进行文本到音素的转换（逐词处理）
+    /// LstmG2p 的 Level 2 实现
+    /// 使用 LSTM 模型进行文本到音素的转换（支持批量推理）
     class LstmG2pTaskImpl final : public Internal::LstmG2pTaskImplBase {
     public:
         using Internal::LstmG2pTaskImplBase::LstmG2pTaskImplBase;
@@ -24,6 +24,6 @@ namespace LangPlugins::LstmG2p::Internal::V1
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
     };
 
-} // namespace LangPlugins::LstmG2p::Internal::V1
+} // namespace LangPlugins::LstmG2p::Internal::V2
 
-#endif // LANGPLUGINS_LSTMG2P_INTERNAL_V1_TASKIMPL_H
+#endif // LANGPLUGINS_LSTMG2P_INTERNAL_V2_TASKIMPL_H

@@ -142,9 +142,6 @@ namespace LangPlugins::TemplateTagger::Internal::V1
             return expVerifier.takeError();
         m_taggerUtil = expVerifier.take();
 
-        // Save configuration
-        m_config = LangCore::JsonValue(cfg.raw()).toJson();
-
         return {};
     }
 

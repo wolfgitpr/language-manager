@@ -14,7 +14,7 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
 {
     /// CantoneseG2p 的 Level 1 实现
     /// 使用 cpp-pinyin 库进行中文转粤拼
-    class CantoneseG2pTaskImpl : public LangCore::VersionedTaskImplBase {
+    class CantoneseG2pTaskImpl final : public LangCore::VersionedTaskImplBase {
     public:
         explicit CantoneseG2pTaskImpl(const LangCore::ModuleSpec *spec);
         ~CantoneseG2pTaskImpl() override = default;

@@ -1,6 +1,5 @@
 #include "TaskImpl.h"
 
-#include <fstream>
 #include <mutex>
 #include <shared_mutex>
 
@@ -8,7 +7,6 @@
 #include <stdcorelib/pimpl.h>
 #include <stdcorelib/str.h>
 
-#include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Tensor.h>
 #include <LangCore/Task/Task.h>
 #include <LangCore/Task/TaskPlugin.h>
@@ -19,124 +17,6 @@
 
 namespace LangPlugins::LstmG2p::Internal::V1
 {
-    // Helper function to load phoneme mapping from JSON file
-    LangCore::Expected<std::map<std::string, int>>
-    LstmG2pTaskImpl::loadPhonemeMapping(const std::filesystem::path &path, const std::string &fieldName) {
-        std::map<std::string, int> out;
-
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            return LangCore::Error(
-                LangCore::Error::FileSystemError,
-                stdc::formatN(R"(error loading "%1": %2 file not found)", fieldName, stdc::path::to_utf8(path)));
-        }
-
-        file.seekg(0, std::ios::end);
-        const auto size = file.tellg();
-        std::string buffer(size, '\0');
-        file.seekg(0);
-        file.read(buffer.data(), size);
-
-        std::string errString;
-        const auto j = LangCore::JsonValue::fromJson(buffer, true, &errString);
-        if (!errString.empty()) {
-            return LangCore::Error(LangCore::Error::ConfigError, errString);
-        }
-
-        if (!j.isObject()) {
-            return LangCore::Error(LangCore::Error::ConfigError,
-                                   stdc::formatN(R"(error loading "%1": outer JSON is not an object)", fieldName));
-        }
-
-        const auto &obj = j.toObject();
-        for (const auto &[key, value] : obj) {
-            if (!value.isInt()) {
-                return LangCore::Error(
-                    LangCore::Error::ConfigError,
-                    stdc::formatN(R"(error loading "%1": value of key "%2" is not int)", fieldName, key));
-            }
-            out[key] = static_cast<int>(value.toInt());
-        }
-
-        return out;
-    }
-
-    LstmG2pTaskImpl::LstmG2pTaskImpl(const LangCore::ModuleSpec *spec)
-        : m_spec(spec) {}
-
-    LangCore::Expected<void> LstmG2pTaskImpl::initialize() {
-        std::unique_lock lock(m_mutex);
-
-        // Get driver from package manager
-        auto driverCate = m_spec->Mgr()->category("driver");
-        if (!driverCate) {
-            return LangCore::Error(LangCore::Error::RuntimeError, "could not find category: driver");
-        }
-
-        auto driverObj = driverCate->getFirstObject("g2pOnnxDriver");
-        if (!driverObj) {
-            return LangCore::Error(LangCore::Error::RuntimeError, "could not find id: g2pOnnxDriver");
-        }
-        m_driver = driverObj.as<LangCore::SessionFactory>();
-
-        auto cfg = LangCore::config(m_spec);
-
-        // Required fields
-        auto encoderExp = cfg.getPath("encoder");
-        if (!encoderExp) {
-            return encoderExp.takeError();
-        }
-        auto encoder = encoderExp.take();
-
-        auto decoderExp = cfg.getPath("decoder");
-        if (!decoderExp) {
-            return decoderExp.takeError();
-        }
-        auto decoder = decoderExp.take();
-
-        // Load charVocab
-        auto charVocabPathExp = cfg.getPath("charVocab");
-        if (!charVocabPathExp) {
-            return charVocabPathExp.takeError();
-        }
-        auto charVocabMapping = loadPhonemeMapping(charVocabPathExp.take(), "charVocab");
-        if (!charVocabMapping) {
-            return charVocabMapping.takeError();
-        }
-        m_charVocab = charVocabMapping.take();
-
-        // Load phonemeVocab
-        auto phonemeVocabPathExp = cfg.getPath("phonemeVocab");
-        if (!phonemeVocabPathExp) {
-            return phonemeVocabPathExp.takeError();
-        }
-        auto phonemeVocabMapping = loadPhonemeMapping(phonemeVocabPathExp.take(), "phonemeVocab");
-        if (!phonemeVocabMapping) {
-            return phonemeVocabMapping.takeError();
-        }
-        m_phonemeVocab = phonemeVocabMapping.take();
-
-        for (const auto &[phoneme, index] : m_phonemeVocab)
-            m_idxToPhoneme[index] = phoneme;
-
-        m_encoderSession = m_driver->createSession();
-        const auto encoderOpenArgs = LangCore::NO<LangCore::SessionOpenArgs>::create();
-        encoderOpenArgs->useCpu = false;
-        if (auto res = m_encoderSession->open(encoder, encoderOpenArgs); !res)
-            return res;
-
-        m_decodeSession = m_driver->createSession();
-        const auto predictorOpenArgs = LangCore::NO<LangCore::SessionOpenArgs>::create();
-        predictorOpenArgs->useCpu = false;
-        if (auto res = m_decodeSession->open(decoder, predictorOpenArgs); !res)
-            return res;
-
-        // Save configuration
-        m_config = LangCore::JsonValue(cfg.raw()).toJson();
-
-        return {};
-    }
-
     // Helper class for inference
     namespace InferenceHelper {
         static LangCore::Expected<LangCore::NO<LangCore::ITensor>>
@@ -313,8 +193,14 @@ namespace LangPlugins::LstmG2p::Internal::V1
         // For now, process only the first word
         const auto &lyric = g2pInput->g2pInput[0];
         auto preprocessedInput = InferenceHelper::preprocessWord(lyric, m_charVocab, m_bosIdx, m_eosIdx, m_unkIdx);
-        if (!preprocessedInput)
-            return preprocessedInput.takeError();
+        if (!preprocessedInput) {
+            // 预处理失败，返回带错误类型的结果
+            auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+            g2pResult->g2pResult = {LangCore::G2pRes{
+                std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                LangCore::UnsupportedCharacter}};
+            return g2pResult;
+        }
 
         // Run encoder
         auto encoderInput = LangCore::NO<LangCore::SessionStartInput>::create();
@@ -330,11 +216,20 @@ namespace LangPlugins::LstmG2p::Internal::V1
 
         LangCore::NO<LangCore::SessionResult> encoderResult;
         if (auto encoderExp = m_encoderSession->start(encoderInput); !encoderExp) {
-            return encoderExp.takeError();
+            // 编码器推理失败，返回带错误类型的结果
+            auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+            g2pResult->g2pResult = {LangCore::G2pRes{
+                std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                LangCore::SessionError}};
+            return g2pResult;
         } else {
             auto sessionTaskResult = encoderExp.take();
             if (!sessionTaskResult) {
-                return LangCore::Error(LangCore::Error::RuntimeError, "invalid encoder result");
+                auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+                g2pResult->g2pResult = {LangCore::G2pRes{
+                    std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                    LangCore::SessionError}};
+                return g2pResult;
             }
             encoderResult = sessionTaskResult.as<LangCore::SessionResult>();
         }
@@ -344,20 +239,35 @@ namespace LangPlugins::LstmG2p::Internal::V1
         auto hidden = InferenceHelper::getTensorFromResult(encoderResult, "hidden");
         auto cell = InferenceHelper::getTensorFromResult(encoderResult, "cell");
 
-        if (!encoderOutputs || !hidden || !cell)
-            return LangCore::Error(LangCore::Error::RuntimeError, "failed to get encoder outputs");
+        if (!encoderOutputs || !hidden || !cell) {
+            auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+            g2pResult->g2pResult = {LangCore::G2pRes{
+                std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                LangCore::TensorError}};
+            return g2pResult;
+        }
 
         // Run decoder with autoregressive generation
         auto phonemeIds = InferenceHelper::runDecoder(m_decodeSession, encoderOutputs.take(), hidden.take(),
                                                       cell.take(), m_maxLen, m_bosIdx, m_eosIdx);
-        if (!phonemeIds)
-            return phonemeIds.takeError();
+        if (!phonemeIds) {
+            auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+            g2pResult->g2pResult = {LangCore::G2pRes{
+                std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                LangCore::SessionError}};
+            return g2pResult;
+        }
 
         // Decode phonemes
         auto phonemes = InferenceHelper::decodePhonemes(phonemeIds.take(), m_idxToPhoneme, m_bosIdx,
                                                          m_eosIdx, m_padIdx, m_unkIdx);
-        if (phonemes->empty())
-            return phonemes.takeError();
+        if (phonemes->empty()) {
+            auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+            g2pResult->g2pResult = {LangCore::G2pRes{
+                std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                LangCore::PhonemeGenerationFailed}};
+            return g2pResult;
+        }
 
         auto phonemes_ = phonemes.take();
 
@@ -366,18 +276,10 @@ namespace LangPlugins::LstmG2p::Internal::V1
         std::string pronStr;
         for (auto &phone : phonemes_)
             pronStr += phone + " ";
-        g2pResult->g2pResult = {LangCore::G2pRes(lyric, "eng", pronStr, {}, "copy")};
+        g2pResult->g2pResult = {LangCore::G2pRes{
+            std::string(lyric), std::string("eng"), std::string(pronStr), std::vector<std::string>(), std::string("copy")}};
 
         return g2pResult;
-    }
-
-    std::string LstmG2pTaskImpl::getConfig() const {
-        return m_config;
-    }
-
-    LangCore::Expected<void> LstmG2pTaskImpl::setConfig(const std::string &config) {
-        m_config = config;
-        return {};
     }
 
 } // namespace LangPlugins::LstmG2p::Internal::V1

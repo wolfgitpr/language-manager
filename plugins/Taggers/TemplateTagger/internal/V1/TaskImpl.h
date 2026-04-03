@@ -8,18 +8,13 @@
 
 #include <LangCore/Module/Module.h>
 
-namespace LangPlugins::TemplateTagger
-{
-    namespace V1 {
-        class TaggerUtil;
-    }
-}
+#include "../../TaggerUtil.h"
 
 namespace LangPlugins::TemplateTagger::Internal::V1
 {
     /// TemplateTagger 的 Level 1 实现
     /// 使用模板匹配进行语言标记
-    class TemplateTaggerTaskImpl : public LangCore::VersionedTaskImplBase {
+    class TemplateTaggerTaskImpl final : public LangCore::VersionedTaskImplBase {
     public:
         explicit TemplateTaggerTaskImpl(const LangCore::ModuleSpec *spec);
         ~TemplateTaggerTaskImpl() override = default;

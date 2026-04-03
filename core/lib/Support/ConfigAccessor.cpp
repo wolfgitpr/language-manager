@@ -15,62 +15,83 @@ namespace LangCore
         m_config(config), m_basePath(basePath) {
     }
 
+    // ==================== 辅助模板函数 ====================
+
+    namespace {
+        // 模板函数：检查必需字段是否存在
+        template<typename T>
+        Expected<JsonObject::const_iterator> checkRequiredField(const JsonObject &config, const std::string &key) {
+            auto it = config.find(key);
+            if (it == config.end()) {
+                return Error(Error::ConfigError, "Missing required field: " + key,
+                             "Add the '" + key + "' field to the configuration");
+            }
+            return it;
+        }
+
+        // 模板函数：检查字段类型是否匹配
+        template<typename CheckFunc>
+        Expected<void> checkFieldType(const std::string &key, const JsonValue &value, CheckFunc typeCheck, const char *typeName) {
+            if (!typeCheck(value)) {
+                return Error(Error::ConfigError, "Field '" + key + "' must be a " + typeName,
+                             "Change the value of '" + key + "' to a " + typeName + " type");
+            }
+            return {};
+        }
+    }
+
     // ==================== 必需字段 ====================
 
     Expected<std::string> ConfigAccessor::getString(const std::string &key) const {
-        auto it = m_config.find(key);
-        if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key,
-                         "Add the '" + key + "' field to the configuration");
+        auto itExp = checkRequiredField<std::string>(m_config, key);
+        if (!itExp) {
+            return itExp.takeError();
         }
-        const auto &value = it->second;
-        if (!value.isString()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be a string",
-                         "Change the value of '" + key + "' to a string type");
+        auto it = itExp.take();
+        auto typeCheckExp = checkFieldType(key, it->second, [](const JsonValue& v) { return v.isString(); }, "string");
+        if (!typeCheckExp) {
+            return typeCheckExp.takeError();
         }
-        return value.toString();
+        return it->second.toString();
     }
 
     Expected<int> ConfigAccessor::getInt(const std::string &key) const {
-        auto it = m_config.find(key);
-        if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key,
-                         "Add the '" + key + "' field to the configuration");
+        auto itExp = checkRequiredField<int>(m_config, key);
+        if (!itExp) {
+            return itExp.takeError();
         }
-        const auto &value = it->second;
-        if (!value.isNumber()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be an integer",
-                         "Change the value of '" + key + "' to an integer type");
+        auto it = itExp.take();
+        auto typeCheckExp = checkFieldType(key, it->second, [](const JsonValue& v) { return v.isNumber(); }, "integer");
+        if (!typeCheckExp) {
+            return typeCheckExp.takeError();
         }
-        return static_cast<int>(value.toInt());
+        return static_cast<int>(it->second.toInt());
     }
 
     Expected<double> ConfigAccessor::getDouble(const std::string &key) const {
-        auto it = m_config.find(key);
-        if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key,
-                         "Add the '" + key + "' field to the configuration");
+        auto itExp = checkRequiredField<double>(m_config, key);
+        if (!itExp) {
+            return itExp.takeError();
         }
-        const auto &value = it->second;
-        if (!value.isNumber()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be a number",
-                         "Change the value of '" + key + "' to a number type");
+        auto it = itExp.take();
+        auto typeCheckExp = checkFieldType(key, it->second, [](const JsonValue& v) { return v.isNumber(); }, "number");
+        if (!typeCheckExp) {
+            return typeCheckExp.takeError();
         }
-        return value.toDouble();
+        return it->second.toDouble();
     }
 
     Expected<bool> ConfigAccessor::getBool(const std::string &key) const {
-        auto it = m_config.find(key);
-        if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key,
-                         "Add the '" + key + "' field to the configuration");
+        auto itExp = checkRequiredField<bool>(m_config, key);
+        if (!itExp) {
+            return itExp.takeError();
         }
-        const auto &value = it->second;
-        if (!value.isBool()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be a boolean",
-                         "Change the value of '" + key + "' to a boolean (true/false)");
+        auto it = itExp.take();
+        auto typeCheckExp = checkFieldType(key, it->second, [](const JsonValue& v) { return v.isBool(); }, "boolean");
+        if (!typeCheckExp) {
+            return typeCheckExp.takeError();
         }
-        return value.toBool();
+        return it->second.toBool();
     }
 
     Expected<std::filesystem::path> ConfigAccessor::getPath(const std::string &key) const {
@@ -83,19 +104,18 @@ namespace LangCore
     }
 
     Expected<std::vector<std::string>> ConfigAccessor::getStringArray(const std::string &key) const {
-        auto it = m_config.find(key);
-        if (it == m_config.end()) {
-            return Error(Error::ConfigError, "Missing required field: " + key,
-                         "Add the '" + key + "' field to the configuration");
+        auto itExp = checkRequiredField<std::vector<std::string>>(m_config, key);
+        if (!itExp) {
+            return itExp.takeError();
         }
-        const auto &value = it->second;
-        if (!value.isArray()) {
-            return Error(Error::ConfigError, "Field '" + key + "' must be an array",
-                         "Change the value of '" + key + "' to an array type");
+        auto it = itExp.take();
+        auto typeCheckExp = checkFieldType(key, it->second, [](const JsonValue& v) { return v.isArray(); }, "array");
+        if (!typeCheckExp) {
+            return typeCheckExp.takeError();
         }
 
         std::vector<std::string> result;
-        const auto &arr = value.toArray();
+        const auto &arr = it->second.toArray();
         result.reserve(arr.size());
 
         for (size_t i = 0; i < arr.size(); ++i) {

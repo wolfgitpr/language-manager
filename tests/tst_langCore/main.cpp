@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <cstdlib>
 
 #include <stdcorelib/str.h>
 #include <stdcorelib/system.h>
@@ -10,6 +12,7 @@
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/SessionTask.h>
 #include <LangCore/Task/TaskPlugin.h>
+#include <LangCore/Task/G2pTask.h>
 
 std::filesystem::path getPluginRootDirectory() {
 #if defined(Q_OS_MAC)
@@ -170,6 +173,150 @@ int main() {
 
         std::cout << "\n========================================" << std::endl;
         std::cout << "All tests completed successfully!" << std::endl;
+        std::cout << "========================================" << std::endl;
+
+        // ========================================
+        // 边界条件测试
+        // ========================================
+        std::cout << "\n=== Testing Edge Cases ===" << std::endl;
+
+        // 边界测试 1：空字符串
+        std::cout << "Edge Case 1: Empty string..." << std::endl;
+        const auto emptySplit = langMgr->split("");
+        std::cout << "  Empty split result size: " << emptySplit.size() << std::endl;
+
+        // 边界测试 2：特殊字符
+        std::cout << "Edge Case 2: Special characters..." << std::endl;
+        const auto specialText = "!@#$%^&*()_+-=[]{}|;:',.<>?/~`";
+        const auto specialSplit = langMgr->split(specialText);
+        const auto specialTags = langMgr->tag(specialSplit, false, false, {});
+        std::cout << "  Special split result size: " << specialSplit.size() << std::endl;
+
+        // 边界测试 3：混合语言边界
+        std::cout << "Edge Case 3: Mixed language boundaries..." << std::endl;
+        const auto mixedText = "a中b日c英d中e";
+        const auto mixedSplit = langMgr->split(mixedText);
+        const auto mixedTags = langMgr->tag(mixedSplit, false, false, {});
+        std::cout << "  Mixed split result size: " << mixedSplit.size() << std::endl;
+
+        // 边界测试 4：单个字符
+        std::cout << "Edge Case 4: Single character..." << std::endl;
+        const auto singleCharText = "中";
+        const auto singleCharSplit = langMgr->split(singleCharText);
+        const auto singleCharTags = langMgr->tag(singleCharSplit, false, false, {});
+        std::cout << "  Single char split result size: " << singleCharSplit.size() << std::endl;
+
+        // 边界测试 5：包含数字和符号
+        std::cout << "Edge Case 5: Mixed text with numbers and symbols..." << std::endl;
+        const auto mixedSymbolText = "测试123Test@#456测试";
+        const auto mixedSymbolSplit = langMgr->split(mixedSymbolText);
+        const auto mixedSymbolTags = langMgr->tag(mixedSymbolSplit, false, false, {});
+        std::cout << "  Mixed symbol split result size: " << mixedSymbolSplit.size() << std::endl;
+
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "Edge cases tests completed!" << std::endl;
+        std::cout << "========================================" << std::endl;
+
+        // ========================================
+        // TemplateG2p 性能测试（V1 vs V2）
+        // ========================================
+        std::cout << "\n=== Testing TemplateG2p Performance (V1 vs V2) ===" << std::endl;
+
+        // 生成100个随机的小写字母字符串（长度5-10）
+        std::vector<std::string> testWords;
+        testWords.reserve(100);
+        const char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
+        
+        for (int i = 0; i < 100; ++i) {
+            int length = 5 + (i % 6); // 长度5-10
+            std::string word;
+            for (int j = 0; j < length; ++j) {
+                word += alphabet[rand() % 26];
+            }
+            testWords.push_back(word);
+        }
+
+        std::cout << "Generated " << testWords.size() << " random lowercase words for testing" << std::endl;
+
+        // 测试 V1 (g2p-eng)
+        std::cout << "\nTesting TemplateG2p V1 (g2p-eng)..." << std::endl;
+        auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng");
+        if (!g2pEngTaskExp) {
+            std::cerr << "Failed to load g2p-eng task: " << g2pEngTaskExp.error().message() << std::endl;
+        } else {
+            auto g2pEngTask = g2pEngTaskExp.take();
+            auto startTimeV1 = std::chrono::high_resolution_clock::now();
+            
+            // V1 需要逐个词转换
+            std::vector<LangCore::G2pRes> v1Results;
+            v1Results.reserve(testWords.size());
+            
+            for (const auto &word : testWords) {
+                auto input = LangCore::NO<LangCore::G2pInputV1>::create();
+                input->g2pInput.push_back(word);
+                
+                auto resultExp = g2pEngTask->start(input);
+                if (resultExp) {
+                    auto result = resultExp.take();
+                    if (const auto g2pResult = result.as<LangCore::G2pResultV1>()) {
+                        if (!g2pResult->g2pResult.empty()) {
+                            v1Results.push_back(g2pResult->g2pResult[0]);
+                        }
+                    }
+                }
+            }
+            
+            auto endTimeV1 = std::chrono::high_resolution_clock::now();
+            auto durationV1 = std::chrono::duration_cast<std::chrono::milliseconds>(endTimeV1 - startTimeV1);
+            
+            std::cout << "  V1 Total time: " << durationV1.count() << " ms" << std::endl;
+            std::cout << "  V1 Words converted: " << v1Results.size() << std::endl;
+            std::cout << "  V1 Average time per word: " << (durationV1.count() / (double)testWords.size()) << " ms" << std::endl;
+        }
+
+        // 测试 V2 (g2p-eng-batch)
+        std::cout << "\nTesting TemplateG2p V2 (g2p-eng-batch)..." << std::endl;
+        auto g2pEngBatchTaskExp = langMgr->task("g2p", "g2p-eng-batch");
+        if (!g2pEngBatchTaskExp) {
+            std::cerr << "Failed to load g2p-eng-batch task: " << g2pEngBatchTaskExp.error().message() << std::endl;
+        } else {
+            auto g2pEngBatchTask = g2pEngBatchTaskExp.take();
+            auto startTimeV2 = std::chrono::high_resolution_clock::now();
+            
+            // V2 支持批量转换
+            auto input = LangCore::NO<LangCore::G2pInputV1>::create();
+            input->g2pInput = testWords;
+            
+            auto resultExp = g2pEngBatchTask->start(input);
+            std::vector<LangCore::G2pRes> v2Results;
+            
+            if (resultExp) {
+                auto result = resultExp.take();
+                if (const auto g2pResult = result.as<LangCore::G2pResultV1>()) {
+                    v2Results = g2pResult->g2pResult;
+                }
+            }
+            
+            auto endTimeV2 = std::chrono::high_resolution_clock::now();
+            auto durationV2 = std::chrono::duration_cast<std::chrono::milliseconds>(endTimeV2 - startTimeV2);
+            
+            std::cout << "  V2 Total time: " << durationV2.count() << " ms" << std::endl;
+            std::cout << "  V2 Words converted: " << v2Results.size() << std::endl;
+            std::cout << "  V2 Average time per word: " << (durationV2.count() / (double)testWords.size()) << " ms" << std::endl;
+            
+            // 显示部分结果示例
+            std::cout << "\n  Sample results (first 5 words):" << std::endl;
+            for (size_t i = 0; i < std::min(size_t(5), v2Results.size()); ++i) {
+                std::cout << "    '" << v2Results[i].lyric << "' -> '" << v2Results[i].pronunciation << "'";
+                if (v2Results[i].errorType != LangCore::NoError) {
+                    std::cout << " [Error: " << static_cast<int>(v2Results[i].errorType) << "]";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "Performance tests completed!" << std::endl;
         std::cout << "========================================" << std::endl;
     }
     catch (const std::exception &e) {

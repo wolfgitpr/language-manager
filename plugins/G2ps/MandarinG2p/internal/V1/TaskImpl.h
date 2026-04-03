@@ -14,7 +14,7 @@ namespace LangPlugins::MandarinG2p::Internal::V1
 {
     /// MandarinG2p 的 Level 1 实现
     /// 使用 cpp-pinyin 库进行中文转拼音
-    class MandarinG2pTaskImpl : public LangCore::VersionedTaskImplBase {
+    class MandarinG2pTaskImpl final : public LangCore::VersionedTaskImplBase {
     public:
         explicit MandarinG2pTaskImpl(const LangCore::ModuleSpec *spec);
         ~MandarinG2pTaskImpl() override = default;

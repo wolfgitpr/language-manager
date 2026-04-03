@@ -140,9 +140,6 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
         if (!m_cantonese->initialized())
             return {};
 
-        // Save configuration
-        m_config = LangCore::JsonValue(cfg.raw()).toJson();
-
         return {};
     }
 
@@ -185,9 +182,14 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
 
         const auto verifyRes = verifierHolder.verify(g2pInput->g2pInput);
         res.reserve(verifyRes.size());
-        for (const auto &[lyric, mode, error] : verifyRes)
+        for (const auto &[lyric, mode, verifyError] : verifyRes) {
+            LangCore::G2pErrorType wordErrorType = LangCore::NoError;
+            if (!verifyError.empty()) {
+                wordErrorType = LangCore::InvalidLyric;
+            }
             res.emplace_back(LangCore::G2pRes{
-                lyric, m_spec->name().text(), "", {}, mode});
+                std::string(lyric), std::string(m_spec->name().text()), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
+        }
 
         const auto groupLyric = groupLyrics(res);
 
@@ -202,9 +204,19 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
 
             auto pinyinRes = m_cantonese->hanziToPinyin(_input, Pinyin::CanTone::NORMAL, Pinyin::Default, true);
 
-            for (auto &[hanzi, pinyin, candidates, error] : pinyinRes) {
-                g2pResult->g2pResult.emplace_back(hanzi, m_spec->id(), mode == "convert" ? pinyin : hanzi, candidates,
-                                                  mode);
+            for (auto &[hanzi, pinyin, candidates, conversionError] : pinyinRes) {
+                LangCore::G2pErrorType wordErrorType = LangCore::NoError;
+                if (conversionError) {
+                    wordErrorType = LangCore::PinyinConversionFailed;
+                }
+                LangCore::G2pRes newRes;
+                newRes.lyric = std::string(hanzi);
+                newRes.g2pId = std::string(m_spec->id());
+                newRes.pronunciation = std::string(mode == "convert" ? pinyin : hanzi);
+                newRes.candidates = std::vector<std::string>();
+                newRes.mode = std::string(mode);
+                newRes.errorType = wordErrorType;
+                g2pResult->g2pResult.emplace_back(newRes);
             }
         }
 

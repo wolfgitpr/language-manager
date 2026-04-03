@@ -82,8 +82,8 @@ namespace LangCore
         bool dependencyResolutionSuccessful = true;
         std::vector<std::string> dependencyErrors;
 
-        int currentLevel = 1;
-        int maximumLevel = 1;
+        int currentLevel = 2;
+        int maximumLevel = 2;
         int minimumLevel = 1;
 
         mutable std::shared_mutex su_mtx;

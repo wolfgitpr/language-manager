@@ -13,7 +13,9 @@ namespace LangCore
         explicit Impl(Task *task) : NamedObject::Impl(task) {}
 
         const ModuleSpec *spec_;
+        int cachedApiLevel_ = 1;  // 缓存 apiLevel() 结果
         std::string config;
+        mutable bool userConfigExists_ = false;  // 标记是否使用了用户配置
         mutable std::shared_mutex mutex;
     };
 } // namespace LangCore
