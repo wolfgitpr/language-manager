@@ -4,6 +4,13 @@
   "vendor": "小狼Korou",
   "copyright": "Copyright (C) 小狼Korou",
   "modules": {
+    "cleaner": [
+      {
+        "moduleId": "cleaner-eng",
+        "class": "cleaner.template.TemplateCleanerTask",
+        "configuration": "modules/Cleaner-Eng/config.json"
+      }
+    ],
     "splitter": [
       {
         "moduleId": "splitter-eng",
@@ -34,6 +41,12 @@
             "packageId": "eng-official",
             "moduleId": "g2p-lstm-eng",
             "level": 2,
+            "version": "*"
+          },
+          {
+            "packageId": "eng-official",
+            "moduleId": "cleaner-eng",
+            "level": 1,
             "version": "*"
           }
         ]

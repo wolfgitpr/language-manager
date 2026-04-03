@@ -112,8 +112,10 @@ namespace LangPlugins::ChainG2p
     void TagAndValidateStep::handle(G2pContext &context)
     {
         for (auto &word : context.words()) {
+            // 优先使用 cleanedLyric，如果为空则使用 lyric
+            std::string wordToCheck = word.cleanedLyric.empty() ? word.lyric : word.cleanedLyric;
             std::string mode;
-            if (verifyWord(word.lyric, mode)) {
+            if (verifyWord(wordToCheck, mode)) {
                 word.mode = mode;
             } else {
                 word.mode = "copy";  // 默认模式

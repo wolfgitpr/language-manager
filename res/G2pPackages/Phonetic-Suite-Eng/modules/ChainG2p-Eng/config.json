@@ -6,6 +6,13 @@
   "configuration": {
     "steps": [
       {
+        "step": "clean",
+        "params": {
+          "mode": "task",
+          "cleanerId": "cleaner-eng"
+        }
+      },
+      {
         "step": "tagAndValidate",
         "params": {
           "tagger": [

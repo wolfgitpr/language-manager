@@ -152,5 +152,78 @@ namespace LangCore
         static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangPlugins::ModuleCategory");
         return static_cast<const T *>(this);
     }
+
 } // namespace LangCore
+
+// ============================================================================
+// 简化的模块类别注册宏
+// ============================================================================
+
+/// LANGCORE_DECLARE_MODULE_CATEGORY - 在头文件中声明模块类别
+/// 使用示例（在 .h 文件中）：
+///   namespace LangCore {
+///       class MyTask;
+///       LANGCORE_DECLARE_MODULE_CATEGORY(My, "my-category")
+///   }
+#define LANGCORE_DECLARE_MODULE_CATEGORY(ClassName, CategoryKey) \
+    class ClassName##Spec : public ModuleSpec { \
+    public: \
+        ~ClassName##Spec() override; \
+    protected: \
+        class Impl; \
+        ClassName##Spec(); \
+        friend class ClassName##Category; \
+    }; \
+    class ClassName##Category : public ModuleCategory { \
+    public: \
+        ~ClassName##Category() override; \
+    protected: \
+        std::string key() const override; \
+        std::string category() const override; \
+        class Impl; \
+        explicit ClassName##Category(PackageManager *env); \
+        friend class PackageManager; \
+        friend class ModuleCategoryRegistrar<ClassName##Category>; \
+    };
+
+/// LANGCORE_DEFINE_MODULE_CATEGORY - 在实现文件中定义模块类别
+/// 使用示例（在 .cpp 文件中）：
+///   LANGCORE_DEFINE_MODULE_CATEGORY(My, "my-category")
+#define LANGCORE_DEFINE_MODULE_CATEGORY(ClassName, CategoryKey) \
+    namespace LangCore { \
+        class ClassName##Spec::Impl : public ModuleSpec::Impl { \
+        public: \
+            Impl(const std::string &category) : ModuleSpec::Impl(category) {} \
+        }; \
+        ClassName##Spec::ClassName##Spec() : ModuleSpec(*new Impl(CategoryKey)) {} \
+        ClassName##Spec::~ClassName##Spec() = default; \
+        class ClassName##Category::Impl : public ModuleCategory::Impl { \
+        public: \
+            Impl(ClassName##Category *decl, const std::string &category, PackageManager *mgr) : \
+                ModuleCategory::Impl(decl, category, mgr) {} \
+            ~Impl() override = default; \
+        }; \
+        ClassName##Category::ClassName##Category(PackageManager *env) : \
+            ModuleCategory(CategoryKey, env) {} \
+        ClassName##Category::~ClassName##Category() = default; \
+        std::string ClassName##Category::key() const { return CategoryKey; } \
+        std::string ClassName##Category::category() const { return CategoryKey; } \
+        static ModuleCategoryRegistrar<ClassName##Category> g_##ClassName##Registrar; \
+    }
+
+// 注意：使用 LANGCORE_DEFINE_MODULE_CATEGORY 宏的 .cpp 文件需要包含：
+// #include "Module_p.h"
+// #include "PackageManager_p.h"
+
+/// LANGCORE_REGISTER_MODULE_CATEGORY - 便捷宏，同时在头文件和实现文件中使用
+/// 使用示例（在 .h 文件中）：
+///   LANGCORE_REGISTER_MODULE_CATEGORY_DECLARE(My, "my-category")
+/// 使用示例（在 .cpp 文件中）：
+///   LANGCORE_REGISTER_MODULE_CATEGORY_DEFINE(My, "my-category")
+#define LANGCORE_REGISTER_MODULE_CATEGORY_DECLARE(ClassName, CategoryKey) \
+    LANGCORE_DECLARE_MODULE_CATEGORY(ClassName, CategoryKey)
+
+#define LANGCORE_REGISTER_MODULE_CATEGORY_DEFINE(ClassName, CategoryKey) \
+    LANGCORE_DEFINE_MODULE_CATEGORY(ClassName, CategoryKey)
+
 #endif // LANGCORE_MODULE_H

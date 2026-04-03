@@ -13,6 +13,7 @@
 #include <LangCore/Task/SessionTask.h>
 #include <LangCore/Task/TaskPlugin.h>
 #include <LangCore/Task/G2pTask.h>
+#include <LangCore/Task/CleanerTask.h>
 
 std::filesystem::path getPluginRootDirectory() {
 #if defined(Q_OS_MAC)
@@ -85,6 +86,7 @@ bool initializeManager() {
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("G2ps"));
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Taggers"));
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Splitters"));
+    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Cleaners"));
 
     // 添加包路径
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
@@ -134,6 +136,41 @@ int main() {
 
             // 插件应该自己解析 JSON 配置
             std::cout << "\nNote: Config parsing should be done by plugins using ConfigAccessor" << std::endl;
+        }
+
+        // ========================================
+        // 测试 Cleaner 任务
+        // ========================================
+        std::cout << "\n=== Testing Cleaner Task ===" << std::endl;
+
+        auto cleanerTaskExp = langMgr->task("cleaner", "cleaner-eng");
+        if (!cleanerTaskExp) {
+            std::cerr << "Failed to load cleaner-eng task: " << cleanerTaskExp.error().message() << std::endl;
+        } else {
+            auto cleanerTask = cleanerTaskExp.take();
+
+            // 创建 cleaner 输入
+            auto cleanerInput = std::make_shared<LangCore::CleanerInputV1>();
+            cleanerInput->cleanerInput = {"Glass", "HELLO", "World!", "123", "Test"};
+
+            // 调用 cleaner
+            auto cleanerResultExp = cleanerTask->start(cleanerInput);
+            if (!cleanerResultExp) {
+                std::cerr << "Failed to run cleaner task: " << cleanerResultExp.error().message() << std::endl;
+            } else {
+                auto cleanerResult = cleanerResultExp.take();
+                if (cleanerResult->error.ok()) {
+                    auto *cleanerResultV1 = dynamic_cast<LangCore::CleanerResultV1*>(cleanerResult.get());
+                    if (cleanerResultV1) {
+                        std::cout << "Cleaner result:" << std::endl;
+                        for (size_t i = 0; i < cleanerInput->cleanerInput.size() && i < cleanerResultV1->cleanerResult.size(); ++i) {
+                            std::cout << "  '" << cleanerInput->cleanerInput[i] << "' -> '" << cleanerResultV1->cleanerResult[i] << "'" << std::endl;
+                        }
+                    }
+                } else {
+                    std::cerr << "Cleaner task error: " << cleanerResult->error.message() << std::endl;
+                }
+            }
         }
 
         // ========================================
