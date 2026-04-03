@@ -142,116 +142,12 @@ endif ()
 # ----------------------------------
 
 #[[
-    Add executable target.
-
-    <name>_add_executable(<target>
-        [SYNC_INCLUDE_PREFIX  <prefix>]
-        [SYNC_INCLUDE_OPTIONS <options...>]
-        [NO_SYNC_INCLUDE]
-        [RC_NAME <name>]
-        [RC_DESCRIPTION <description>]
-        [RC_COPYRIGHT <copyright>]
-        [NO_WIN_RC]
-        [NO_EXPORT]
-        [NO_INSTALL]
-        [QT_AUTOGEN]
-        <configure_options...>
-    )
-]]
-#
-macro(${_CUR_MACRO_PREFIX}_add_executable _target)
-    set(options SYNC_INCLUDE NO_SYNC_INCLUDE NO_WIN_RC NO_EXPORT NO_INSTALL QT_AUTOGEN)
-    set(oneValueArgs SYNC_INCLUDE_PREFIX RC_NAME RC_DESCRIPTION RC_COPYRIGHT)
-    set(multiValueArgs SYNC_INCLUDE_OPTIONS)
-    cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    add_executable(${_target})
-
-    if (FUNC_QT_AUTOGEN)
-        set_target_properties(${_target} PROPERTIES
-                AUTOMOC ON
-                AUTOUIC ON
-                AUTORCC ON
-        )
-    endif ()
-
-    qm_set_value(_rc_name FUNC_RC_NAME ${_CUR_INSTALL_NAME})
-    qm_set_value(_rc_description FUNC_RC_DESCRIPTION ${_CUR_DESCRIPTION})
-    qm_set_value(_rc_copyright FUNC_RC_COPYRIGHT ${_CUR_COPYRIGHT})
-
-    if (WIN32 AND NOT FUNC_NO_WIN_RC)
-        qm_add_win_rc(${_target}
-                NAME ${_rc_name}
-                DESCRIPTION ${_rc_description}
-                COPYRIGHT ${_rc_copyright}
-        )
-    endif ()
-
-    # Configure target
-    qm_configure_target(${_target} ${FUNC_UNPARSED_ARGUMENTS})
-
-    # Add include directories
-    if (_CUR_INCLUDE_DIR)
-        target_include_directories(${_target} PRIVATE ${_CUR_SOURCE_DIR}/${_CUR_INCLUDE_DIR})
-    endif ()
-
-    target_include_directories(${_target} PRIVATE ${_CUR_BUILD_INCLUDE_DIR})
-    target_include_directories(${_target} PRIVATE .)
-
-    # Library name
-    if (_target MATCHES "^${_CUR_NAME}(.+)")
-        set(_name ${CMAKE_MATCH_1})
-        set_target_properties(${_target} PROPERTIES EXPORT_NAME ${_name})
-    else ()
-        set(_name ${_target})
-    endif ()
-
-    add_executable(${_CUR_INSTALL_NAME}::${_name} ALIAS ${_target})
-
-    if (FUNC_SYNC_INCLUDE_PREFIX)
-        set(_inc_name ${FUNC_SYNC_INCLUDE_PREFIX})
-    else ()
-        set(_inc_name ${_target})
-    endif ()
-
-    if (_CUR_INSTALL AND NOT FUNC_NO_INSTALL)
-        if (FUNC_NO_EXPORT)
-            set(_export)
-        else ()
-            set(_export EXPORT ${_CUR_INSTALL_NAME}Targets)
-        endif ()
-
-        install(TARGETS ${_target}
-                ${_export}
-                RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL
-        )
-    endif ()
-
-    if (FUNC_SYNC_INCLUDE OR (_CUR_SYNC_INCLUDE AND NOT FUNC_NO_SYNC_INCLUDE))
-        # Generate a standard include directory in build directory
-        qm_sync_include(. "${_CUR_GENERATED_INCLUDE_DIR}/${_inc_name}" ${_install_options}
-                ${FUNC_SYNC_INCLUDE_OPTIONS} FORCE
-        )
-        target_include_directories(${_target} PUBLIC ${_CUR_GENERATED_INCLUDE_DIR}>)
-    endif ()
-endmacro()
-
-#[[
     Add library target.
 
     <name>_add_library(<target>
         [SHARED | STATIC | INTERFACE]
-        [PREFIX <prefix>]
-        [SYNC_INCLUDE_PREFIX  <prefix>]
-        [SYNC_INCLUDE_OPTIONS <options...>]
-        [NO_SYNC_INCLUDE]
-        [RC_NAME <name>]
-        [RC_DESCRIPTION <description>]
-        [RC_COPYRIGHT <copyright>]
-        [NO_WIN_RC]
         [NO_EXPORT]
         [NO_INSTALL]
-        [QT_AUTOGEN]
         <configure_options...>
     )
 ]]
@@ -283,17 +179,8 @@ endmacro()
     Add plugin target with optional description file generation.
 
     <name>_add_plugin(<target> <category>
-        [PREFIX <prefix>]
-        [SYNC_INCLUDE_PREFIX  <prefix>]
-        [SYNC_INCLUDE_OPTIONS <options...>]
-        [RC_NAME <name>]
-        [RC_DESCRIPTION <description>]
-        [RC_COPYRIGHT <copyright>]
-        [NO_SYNC_INCLUDE]
-        [NO_WIN_RC]
         [NO_EXPORT]
         [NO_INSTALL]
-        [QT_AUTOGEN]
         [GEN_DESC]                    # Generate description file
         [VERSION <version>]           # Plugin version (default: ${_CUR_VERSION})
         [TEMPLATE_NAME <template_name>] # Template file name (default: "plugin_desc.json.in")
@@ -364,29 +251,21 @@ endfunction()
 # Private
 # ----------------------------------
 macro(_cur_add_library_internal _target _type)
-    set(options SYNC_INCLUDE NO_SYNC_INCLUDE NO_WIN_RC NO_EXPORT NO_INSTALL QT_AUTOGEN)
-    set(oneValueArgs SYNC_INCLUDE_PREFIX PREFIX RC_NAME RC_DESCRIPTION RC_COPYRIGHT
+    set(options NO_EXPORT NO_INSTALL)
+    set(oneValueArgs
             BUILD_RUNTIME_DIR BUILD_LIBRARY_DIR BUILD_ARCHIVE_DIR
             INSTALL_RUNTIME_DIR INSTALL_LIBRARY_DIR INSTALL_ARCHIVE_DIR
     )
-    set(multiValueArgs SYNC_INCLUDE_OPTIONS)
+    set(multiValueArgs)
     cmake_parse_arguments(FUNC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     add_library(${_target} ${_type})
-
-    if (FUNC_QT_AUTOGEN)
-        set_target_properties(${_target} PROPERTIES
-                AUTOMOC ON
-                AUTOUIC ON
-                AUTORCC ON
-        )
-    endif ()
 
     qm_set_value(_rc_name FUNC_RC_NAME ${_CUR_INSTALL_NAME})
     qm_set_value(_rc_description FUNC_RC_DESCRIPTION ${_CUR_DESCRIPTION})
     qm_set_value(_rc_copyright FUNC_RC_COPYRIGHT ${_CUR_COPYRIGHT})
 
-    if (WIN32 AND NOT FUNC_NO_WIN_RC)
+    if (WIN32)
         qm_add_win_rc(${_target}
                 NAME ${_rc_name}
                 DESCRIPTION ${_rc_description}
@@ -394,14 +273,8 @@ macro(_cur_add_library_internal _target _type)
         )
     endif ()
 
-    if (FUNC_PREFIX)
-        set(_prefix_option PREFIX ${FUNC_PREFIX})
-    else ()
-        set(_prefix_option)
-    endif ()
-
     # Set global definitions
-    qm_export_defines(${_target} ${_prefix_option})
+    qm_export_defines(${_target})
 
     # Configure target
     qm_configure_target(${_target} ${FUNC_UNPARSED_ARGUMENTS})

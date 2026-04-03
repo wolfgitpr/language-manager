@@ -12,7 +12,7 @@
 namespace LangPlugins::TemplateG2p::Internal::V1
 {
     /// TemplateG2p 的 Level 1 实现
-    /// 支持字典查找和 ONNX 推理
+    /// 支持字典查找和 ONNX 推理（支持批量处理）
     class TemplateG2pTaskImpl final : public LangCore::VersionedTaskImplBase {
     public:
         explicit TemplateG2pTaskImpl(const LangCore::ModuleSpec *spec);

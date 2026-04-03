@@ -1,6 +1,6 @@
 {
-  "$version": "0.9.6",
-  "level": 1,
+  "$version": "1.0",
+  "level": 2,
   "schema": {},
   "configuration": {
     "encoder": "encoder.onnx",

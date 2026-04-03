@@ -94,6 +94,50 @@ namespace LangCore
         std::unique_ptr<VersionedImpl> _impl;
     };
 
+    // Macro to simplify plugin task implementation
+    // Usage: TASK_IMPLEMENT(TaskClass, ManagerClass, ImplNamespace, ImplClass)
+    //
+    // This macro implements the standard task methods that delegate to a VersionedTaskManager.
+    // It reduces boilerplate code in plugin task implementations.
+    //
+    // Example:
+    //   namespace MyPlugin {
+    //       class MyTask : public LangCore::Task {
+    //       public:
+    //           TASK_IMPLEMENT(MyTask, VersionedTaskManager<MyTask>, Internal::V1, MyTaskImpl)
+    //       };
+    //   }
+    #define TASK_IMPLEMENT(TaskClass, ManagerClass, ImplNamespace, ImplClass) \
+        TaskClass::TaskClass(const LangCore::ModuleSpec *spec) \
+            : LangCore::Task(spec), _manager(spec) { \
+            int level = spec->apiLevel(); \
+            _manager.setCurrentLevel(level); \
+            _manager.setImpl(std::make_unique<ImplNamespace::ImplClass>(spec)); \
+        } \
+        \
+        TaskClass::~TaskClass() = default; \
+        \
+        int TaskClass::apiLevel() const { \
+            return _manager.currentLevel(); \
+        } \
+        \
+        LangCore::Expected<void> TaskClass::initialize() { \
+            return _manager.initialize(); \
+        } \
+        \
+        LangCore::Expected<LangCore::NO<LangCore::TaskResult>> \
+        TaskClass::start(const LangCore::NO<LangCore::TaskInput> &input) { \
+            return _manager.start(input); \
+        } \
+        \
+        std::string TaskClass::getConfig() const { \
+            return _manager.getConfig(); \
+        } \
+        \
+        LangCore::Expected<void> TaskClass::setConfig(const std::string &config) { \
+            return _manager.setConfig(config); \
+        }
+
 } // namespace LangCore
 
 #endif // LANGCORE_VERSIONEDTASKMANAGER_H

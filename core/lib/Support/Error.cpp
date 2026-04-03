@@ -1,50 +1,36 @@
 #include "Error.h"
 
+#include <array>
+
 namespace LangCore
 {
 
     std::shared_ptr<std::string> Error::defaultMessage(const int type) {
-        switch (type) {
-        case Success:
-            {
-                static auto message = std::make_shared<std::string>();
-                return message;
+        static const char* const messages[] = {
+            "",  // Success
+            "config error",  // ConfigError
+            "file system error",  // FileSystemError
+            "dependency error",  // DependencyError
+            "runtime error",  // RuntimeError
+            "not implemented error",  // NotImplementedError
+            "initialization error"  // InitializationError
+        };
+        
+        static const size_t messageCount = sizeof(messages) / sizeof(messages[0]);
+        static std::array<std::shared_ptr<std::string>, messageCount + 1> cached;
+        
+        if (type >= 0 && type < static_cast<int>(messageCount)) {
+            if (!cached[type]) {
+                cached[type] = std::make_shared<std::string>(messages[type]);
             }
-        case ConfigError:
-            {
-                static auto message = std::make_shared<std::string>("config error");
-                return message;
-            }
-        case FileSystemError:
-            {
-                static auto message = std::make_shared<std::string>("file system error");
-                return message;
-            }
-        case DependencyError:
-            {
-                static auto message = std::make_shared<std::string>("dependency error");
-                return message;
-            }
-        case RuntimeError:
-            {
-                static auto message = std::make_shared<std::string>("runtime error");
-                return message;
-            }
-        case NotImplementedError:
-            {
-                static auto message = std::make_shared<std::string>("not implemented error");
-                return message;
-            }
-        case InitializationError:
-            {
-                static auto message = std::make_shared<std::string>("initialization error");
-                return message;
-            }
-        default:
-            break;
+            return cached[type];
         }
-        static auto message = std::make_shared<std::string>("unknown error");
-        return message;
+        
+        // Unknown error type
+        if (!cached[messageCount]) {
+            cached[messageCount] = std::make_shared<std::string>("unknown error");
+        }
+        return cached[messageCount];
     }
 
 } // namespace LangCore

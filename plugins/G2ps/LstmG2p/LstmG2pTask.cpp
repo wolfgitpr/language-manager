@@ -10,11 +10,15 @@ namespace LangPlugins::LstmG2p
         _manager.setCurrentLevel(level);
 
         // 选择实现（只执行一次，构造函数中）
-        if (level == 2) {
-            _manager.setImpl(std::make_unique<Internal::V2::LstmG2pTaskImpl>(spec));
-        } else {
-            // Level 1 作为默认（向下兼容）
-            _manager.setImpl(std::make_unique<Internal::V1::LstmG2pTaskImpl>(spec));
+        switch (level) {
+            case 2:
+                _manager.setImpl(std::make_unique<Internal::V2::LstmG2pTaskImpl>(spec));
+                break;
+            case 1:
+            default:
+                // Level 1 作为默认（向下兼容）
+                _manager.setImpl(std::make_unique<Internal::V1::LstmG2pTaskImpl>(spec));
+                break;
         }
     }
 
