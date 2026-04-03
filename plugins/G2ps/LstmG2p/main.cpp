@@ -1,22 +1,12 @@
 #include <LangCore/Task/TaskPlugin.h>
-
 #include "LstmG2pTask.h"
 
-namespace LangPlugins::LstmG2p
-{
-    class LstmG2pEnginePlugin final : public LangCore::TaskPlugin {
-    public:
-        LstmG2pEnginePlugin() = default;
+using namespace LangCore;
+using namespace LangPlugins::LstmG2p;
 
-        int apiLevel() const override { return 1; }
-
-        const char *key() const override { return "g2p.model.LstmG2pInference"; }
-
-        LangCore::Expected<LangCore::NO<LangCore::Task>> createTask(const LangCore::ModuleSpec *spec) override {
-            return LangCore::NO<LstmG2pTask>::create(spec);
-        }
-    };
-
-} // namespace LangPlugins::LstmG2p
-
-LANGCORE_EXPORT_PLUGIN(LangPlugins::LstmG2p::LstmG2pEnginePlugin)
+LANGCORE_DEFINE_TASK_PLUGIN(
+    LstmG2pEnginePlugin,
+    LstmG2pTask,
+    "g2p.model.LstmG2pInference",
+    1
+)

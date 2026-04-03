@@ -1,23 +1,12 @@
 #include <LangCore/Task/TaskPlugin.h>
-
 #include "TemplateTaggerTask.h"
 
-namespace LangPlugins::TemplateTagger
-{
+using namespace LangCore;
+using namespace LangPlugins::TemplateTagger;
 
-    class RegexTaggerInterpreterPlugin final : public LangCore::TaskPlugin {
-    public:
-        RegexTaggerInterpreterPlugin() = default;
-
-        int apiLevel() const override { return 1; }
-
-        const char *key() const override { return "tagger.template.TemplateTaggerInference"; }
-
-        LangCore::Expected<LangCore::NO<LangCore::Task>> createTask(const LangCore::ModuleSpec *spec) override {
-            return LangCore::NO<TemplateTaggerTask>::create(spec);
-        }
-    };
-
-} // namespace LangPlugins::TemplateTagger
-
-LANGCORE_EXPORT_PLUGIN(LangPlugins::TemplateTagger::RegexTaggerInterpreterPlugin)
+LANGCORE_DEFINE_TASK_PLUGIN(
+    RegexTaggerInterpreterPlugin,
+    TemplateTaggerTask,
+    "tagger.template.TemplateTaggerInference",
+    1
+)
