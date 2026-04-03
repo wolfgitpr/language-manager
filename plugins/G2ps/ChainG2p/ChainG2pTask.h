@@ -1,17 +1,17 @@
-#ifndef LANGPLUGINS_TEMPLATEG2PTASK_H
-#define LANGPLUGINS_TEMPLATEG2PTASK_H
+#ifndef LANGPLUGINS_CHAING2PTASK_H
+#define LANGPLUGINS_CHAING2PTASK_H
 
 #include <LangCore/Task/Task.h>
 #include <LangCore/Task/VersionedTaskManager.h>
 #include <LangCore/Module/Module.h>
 #include <memory>
 
-namespace LangPlugins::TemplateG2p
+namespace LangPlugins::ChainG2p
 {
-    class TemplateG2pTask : public LangCore::Task {
+    class ChainG2pTask : public LangCore::Task {
     public:
-        explicit TemplateG2pTask(const LangCore::ModuleSpec *spec);
-        ~TemplateG2pTask() override;
+        explicit ChainG2pTask(const LangCore::ModuleSpec *spec);
+        ~ChainG2pTask() override;
 
         int apiLevel() const override;
 
@@ -25,9 +25,9 @@ namespace LangPlugins::TemplateG2p
         LangCore::Expected<void> setConfig(const std::string &config) override;
 
     private:
-        LangCore::VersionedTaskManager<TemplateG2pTask> _manager;
+        LangCore::VersionedTaskManager<ChainG2pTask> _manager;
     };
 
-} // namespace LangPlugins::TemplateG2p
+} // namespace LangPlugins::ChainG2p
 
-#endif // LANGPLUGINS_TEMPLATEG2PTASK_H
+#endif // LANGPLUGINS_CHAING2PTASK_H

@@ -1,4 +1,4 @@
-project(TemplateG2p
+project(ChainG2p
         VERSION ${LANGPLUGINS_VERSION}
         LANGUAGES C CXX
 )
