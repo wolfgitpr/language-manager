@@ -22,8 +22,6 @@ namespace LangPlugins::MandarinG2p
 
         std::string getConfig() const override;
 
-        LangCore::Expected<void> setConfig(const std::string &config) override;
-
     private:
         LangCore::VersionedTaskManager<MandarinG2pTask> _manager;
     };

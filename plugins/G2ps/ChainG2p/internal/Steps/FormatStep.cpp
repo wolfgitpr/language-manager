@@ -1,5 +1,4 @@
 #include "FormatStep.h"
-#include <LangCore/Support/ConfigAccessor.h>
 #include <cctype>
 
 namespace LangPlugins::ChainG2p
@@ -7,16 +6,14 @@ namespace LangPlugins::ChainG2p
     LangCore::Expected<void> FormatStep::configure(const LangCore::ModuleSpec *spec,
                                                     const LangCore::JsonObject &config)
     {
-        auto cfg = LangCore::config(spec);
+        auto stripIt = config.find("stripTrailingSpace");
+        m_stripTrailingSpace = (stripIt != config.end() && stripIt->second.isBool()) ? stripIt->second.toBool() : false;
 
-        auto stripIt = cfg.raw().find("stripTrailingSpace");
-        m_stripTrailingSpace = (stripIt != cfg.raw().end() && stripIt->second.isBool()) ? stripIt->second.toBool() : false;
+        auto tonesIt = config.find("normalizeTones");
+        m_normalizeTones = (tonesIt != config.end() && tonesIt->second.isBool()) ? tonesIt->second.toBool() : false;
 
-        auto tonesIt = cfg.raw().find("normalizeTones");
-        m_normalizeTones = (tonesIt != cfg.raw().end() && tonesIt->second.isBool()) ? tonesIt->second.toBool() : false;
-
-        auto spaceIt = cfg.raw().find("addSpaceBetweenPhones");
-        m_addSpaceBetweenPhones = (spaceIt != cfg.raw().end() && spaceIt->second.isBool()) ? spaceIt->second.toBool() : false;
+        auto spaceIt = config.find("addSpaceBetweenPhones");
+        m_addSpaceBetweenPhones = (spaceIt != config.end() && spaceIt->second.isBool()) ? spaceIt->second.toBool() : false;
 
         return {};
     }

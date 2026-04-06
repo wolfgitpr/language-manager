@@ -1,4 +1,4 @@
-project(RegexTagger
+project(RegexSplitter
         VERSION ${LANGPLUGINS_VERSION}
         LANGUAGES C CXX
 )

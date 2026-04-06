@@ -135,6 +135,14 @@ namespace LangPlugins::LstmG2p::Internal::V2
 
         const size_t batchSize = g2pInput->g2pInput.size();
 
+        // 安全性检查：限制批量大小，避免内存问题
+        const size_t maxBatchSize = 256;  // 最大批量大小限制
+        if (batchSize > maxBatchSize) {
+            return LangCore::Error(LangCore::Error::ConfigError,
+                                 stdc::formatN("Batch size too large: %1 (maximum allowed: %2)", batchSize, maxBatchSize),
+                                 "Split your input into smaller batches");
+        }
+
         // 检查 session 是否已初始化
         {
             std::shared_lock lock(m_mutex);

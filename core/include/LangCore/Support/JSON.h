@@ -132,7 +132,7 @@ namespace LangCore
                 void *padding;
             } data;
             void *p;
-            char buf[1];
+            char buf[64];  // Increased from 1 to 64 bytes to safely store nlohmann::json object
         } storage;
 #else
         std::shared_ptr<JsonValueContainer> c;

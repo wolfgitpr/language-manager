@@ -2,6 +2,8 @@
 #define LANGCORE_CONFIGACCESSOR_H
 
 #include <filesystem>
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -33,6 +35,67 @@ namespace LangCore
     /// // 可选字段，带默认值
     /// auto enable = cfg.getBool("enable", false);
     /// \endcode
+    class LANGCORE_EXPORT ConfigAccessor;
+
+    /// ValidationChain - 验证链
+    ///
+    /// 支持链式调用多个验证规则，返回第一个失败的错误
+    class LANGCORE_EXPORT ValidationChain {
+    public:
+        ValidationChain() = default;
+
+        /// 添加整数值范围验证
+        /// @param value 要验证的值
+        /// @param min 最小值（包含）
+        /// @param max 最大值（包含）
+        /// @param key 配置键名（用于错误消息）
+        /// @return 返回自身，支持链式调用
+        ValidationChain &validateIntRange(int value, int min, int max, const std::string &key = "");
+
+        /// 添加双精度浮点数值范围验证
+        /// @param value 要验证的值
+        /// @param min 最小值（包含）
+        /// @param max 最大值（包含）
+        /// @param key 配置键名（用于错误消息）
+        /// @return 返回自身，支持链式调用
+        ValidationChain &validateDoubleRange(double value, double min, double max, const std::string &key = "");
+
+        /// 添加字符串值验证
+        /// @param value 要验证的值
+        /// @param allowedValues 允许的值集合
+        /// @param key 配置键名（用于错误消息）
+        /// @return 返回自身，支持链式调用
+        ValidationChain &validateStringAllowed(const std::string &value,
+                                               const std::vector<std::string> &allowedValues,
+                                               const std::string &key = "");
+
+        /// 添加字符串数组非空验证
+        /// @param value 要验证的值
+        /// @param key 配置键名（用于错误消息）
+        /// @return 返回自身，支持链式调用
+        ValidationChain &validateArrayNotEmpty(const std::vector<std::string> &value, const std::string &key = "");
+
+        /// 添加自定义验证
+        /// @param validator 验证函数，返回 Expected<bool>
+        /// @return 返回自身，支持链式调用
+        ValidationChain &validate(std::function<Expected<bool>()> validator);
+
+        /// 执行验证
+        /// @return 成功返回 true，失败返回第一个错误
+        Expected<bool> execute() const;
+
+        /// 检查是否有错误
+        /// @return 如果有错误返回 true
+        bool hasError() const { return _error.has_value(); }
+
+        /// 获取错误
+        /// @return 错误对象，如果没有错误则返回默认值
+        Error error() const { return _error.value_or(Error::success()); }
+
+    private:
+        std::optional<Error> _error;
+    };
+
     class LANGCORE_EXPORT ConfigAccessor {
     public:
         /// 从 ModuleSpec 创建配置访问器
@@ -104,6 +167,39 @@ namespace LangCore
 
         /// 获取基础路径
         const std::filesystem::path &basePath() const { return m_basePath; }
+
+        // ==================== 范围验证 ====================
+
+        /// 验证整数值在指定范围内
+        /// @param value 要验证的值
+        /// @param min 最小值（包含）
+        /// @param max 最大值（包含）
+        /// @param key 配置键名（用于错误消息）
+        /// @return 成功返回 true，失败返回错误
+        static Expected<bool> validateIntRange(int value, int min, int max, const std::string &key = "");
+
+        /// 验证双精度浮点数值在指定范围内
+        /// @param value 要验证的值
+        /// @param min 最小值（包含）
+        /// @param max 最大值（包含）
+        /// @param key 配置键名（用于错误消息）
+        /// @return 成功返回 true，失败返回错误
+        static Expected<bool> validateDoubleRange(double value, double min, double max, const std::string &key = "");
+
+        /// 验证字符串值在允许的集合中
+        /// @param value 要验证的值
+        /// @param allowedValues 允许的值集合
+        /// @param key 配置键名（用于错误消息）
+        /// @return 成功返回 true，失败返回错误
+        static Expected<bool> validateStringAllowed(const std::string &value,
+                                                    const std::vector<std::string> &allowedValues,
+                                                    const std::string &key = "");
+
+        /// 验证字符串数组不为空
+        /// @param value 要验证的值
+        /// @param key 配置键名（用于错误消息）
+        /// @return 成功返回 true，失败返回错误
+        static Expected<bool> validateArrayNotEmpty(const std::vector<std::string> &value, const std::string &key = "");
 
     private:
         const JsonObject &m_config;

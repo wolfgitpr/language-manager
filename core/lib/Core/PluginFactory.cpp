@@ -82,6 +82,12 @@ namespace LangCore
                 if (!fs::exists(descPath))
                     continue;
 
+                // 检查是否已经扫描过这个插件目录
+                std::string pluginDirStr = pluginDir.string();
+                if (scannedPluginDirs.count(pluginDirStr) > 0) {
+                    continue;  // 跳过已扫描的插件目录
+                }
+
                 // Parse desc.json
                 auto [target, valid] = parsePluginDesc(descPath);
                 if (!valid) {
@@ -121,6 +127,9 @@ namespace LangCore
                 } else {
                     MgrLog.langCoreInfo("Successfully loaded plugin: %1 (target: %2 iid: %3; key: %4)", pluginDir,
                                         target, iid, plugin->key());
+
+                    // 插件加载成功，标记目录为已扫描
+                    scannedPluginDirs.insert(pluginDirStr);
                 }
                 libraryInstances[dllPath] = new stdc::SharedLibrary(std::move(so));
             }

@@ -394,6 +394,18 @@ macro(_cur_add_library_internal _target _type)
                     $<TARGET_FILE_DIR:${_target}>
                     COMMENT "Copying dependent shared libraries to plugin directory")
         endif ()
+
+        # Copy assets directory if it exists
+        set(_assets_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+        if (EXISTS "${_assets_src_dir}")
+            set(_assets_dst_dir "$<TARGET_FILE_DIR:${_target}>/assets")
+            add_custom_command(TARGET ${_target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${_assets_src_dir}"
+                    "${_assets_dst_dir}"
+                    COMMENT "Copying assets directory to plugin directory")
+            message(STATUS "Assets directory will be copied for ${_target}")
+        endif ()
     endif ()
 
     set(_install_options)
@@ -418,6 +430,15 @@ macro(_cur_add_library_internal _target _type)
                 RUNTIME DESTINATION "${_install_runtime_dir}" OPTIONAL
                 LIBRARY DESTINATION "${_install_library_dir}" OPTIONAL
         )
+
+        # Install assets directory if it exists
+        set(_assets_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+        if (EXISTS "${_assets_src_dir}")
+            install(DIRECTORY ${_assets_src_dir}/
+                    DESTINATION "${_install_library_dir}/assets"
+                    FILES_MATCHING PATTERN "*")
+            message(STATUS "Assets directory will be installed for ${_target}")
+        endif ()
 
         target_include_directories(${_target} INTERFACE
                 "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"

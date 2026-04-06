@@ -83,13 +83,6 @@ namespace LangCore
             return _impl->impl->getConfig();
         }
 
-        /// 设置配置
-        /// @param config JSON 格式的配置字符串
-        /// @return 成功返回 Expected<void>::success()，失败返回错误信息
-        Expected<void> setConfig(const std::string &config) {
-            return _impl->impl->setConfig(config);
-        }
-
     protected:
         std::unique_ptr<VersionedImpl> _impl;
     };
@@ -132,10 +125,6 @@ namespace LangCore
         \
         std::string TaskClass::getConfig() const { \
             return _manager.getConfig(); \
-        } \
-        \
-        LangCore::Expected<void> TaskClass::setConfig(const std::string &config) { \
-            return _manager.setConfig(config); \
         }
 
 } // namespace LangCore

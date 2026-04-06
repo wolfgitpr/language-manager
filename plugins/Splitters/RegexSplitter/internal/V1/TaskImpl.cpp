@@ -1,6 +1,7 @@
 #include "TaskImpl.h"
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Error.h>
+#include <LangCore/Support/Logging.h>
 #include "../Common/SplitUtils.h"
 
 namespace LangPlugins::RegexSplitter::Internal::V1
@@ -76,56 +77,4 @@ namespace LangPlugins::RegexSplitter::Internal::V1
     }
 
     std::string RegexSplitterTaskImpl::getConfig() const { return m_config; }
-
-    LangCore::Expected<void> RegexSplitterTaskImpl::setConfig(const std::string &config) {
-        // Level 1 的配置更新逻辑
-
-        // 验证配置格式
-        std::string parseError;
-        auto json = LangCore::JsonValue::fromJson(config, false, &parseError);
-        if (!json.isObject()) {
-            return LangCore::Error(LangCore::Error::ConfigError, "Invalid configuration format: " + parseError);
-        }
-
-        const auto &configObj = json.toObject();
-
-        // 配置验证：确保不包含 Level 2+ 的配置项
-        if (configObj.find("patterns") != configObj.end() || configObj.find("caseSensitive") != configObj.end()) {
-            return LangCore::Error(LangCore::Error::ConfigError,
-                                   "Configuration error: 'patterns' and 'caseSensitive' are not supported in Level 1",
-                                   "Remove these fields or upgrade to Level 2+");
-        }
-
-        // 提取 pattern
-        std::string newPattern;
-
-        if (configObj.find("pattern") != configObj.end()) {
-            const auto &patternValue = configObj.at("pattern");
-            if (patternValue.isString()) {
-                newPattern = patternValue.toString();
-            }
-        } else if (configObj.find("regexes") != configObj.end()) {
-            const auto &regexesValue = configObj.at("regexes");
-            if (regexesValue.isArray()) {
-                const auto &regexes = regexesValue.toArray();
-                if (!regexes.empty() && regexes[0].isString()) {
-                    newPattern = regexes[0].toString();
-                }
-            }
-        }
-
-        // 验证正则表达式
-        if (!newPattern.empty()) {
-            auto validation = Common::SplitUtils::validateRegex(newPattern);
-            if (!validation) {
-                return validation.takeError();
-            }
-            m_pattern = newPattern;
-        }
-
-        // 保存配置
-        m_config = config;
-
-        return {};
-    }
 } // namespace LangPlugins::RegexSplitter::Internal::V1

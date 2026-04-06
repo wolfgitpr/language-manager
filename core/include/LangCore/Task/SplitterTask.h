@@ -1,7 +1,7 @@
 #ifndef LANGCORE_SPLITTERTASK_H
 #define LANGCORE_SPLITTERTASK_H
 
-#include <filesystem>
+#include <vector>
 
 #include <LangCore/Task/Task.h>
 

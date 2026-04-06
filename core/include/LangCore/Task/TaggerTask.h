@@ -1,7 +1,7 @@
 #ifndef LANGCORE_TAGGERTASK_H
 #define LANGCORE_TAGGERTASK_H
 
-#include <filesystem>
+#include <vector>
 
 #include <LangCore/Base/LangCommon.h>
 #include <LangCore/Task/Task.h>

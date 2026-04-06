@@ -1,6 +1,5 @@
 #include "G2pStep.h"
 #include "Steps/TagAndValidateStep.h"
-#include "Steps/CleanStep.h"
 #include "Steps/DictStep.h"
 #include "Steps/ModelStep.h"
 #include "Steps/FormatStep.h"
@@ -17,8 +16,6 @@ namespace LangPlugins::ChainG2p
 
         if (stepType == "tagAndValidate") {
             step = std::make_shared<TagAndValidateStep>();
-        } else if (stepType == "clean") {
-            step = std::make_shared<CleanStep>();
         } else if (stepType == "dict") {
             step = std::make_shared<DictStep>();
         } else if (stepType == "model") {
@@ -38,7 +35,12 @@ namespace LangPlugins::ChainG2p
 
     std::vector<std::string> G2pStepFactory::supportedTypes()
     {
-        return {"tagAndValidate", "clean", "dict", "model", "format", "fallback"};
+        return {"tagAndValidate", "dict", "model", "format", "fallback"};
+    }
+
+    std::string G2pStepFactory::supportedTypesAsString()
+    {
+        return joinStrings(supportedTypes(), ", ");
     }
 
     std::string G2pStepFactory::joinStrings(const std::vector<std::string> &strings, const std::string &delimiter)

@@ -24,6 +24,7 @@ namespace LangCore
 
         std::map<std::string, llvm::SmallVector<std::filesystem::path>, std::less<>> pluginDirs;
         std::unordered_set<Plugin *> runtimePlugins;
+        mutable std::unordered_set<std::string> scannedPluginDirs;  // 已扫描的插件目录缓存
         mutable std::map<std::filesystem::path::string_type, stdc::SharedLibrary *, std::less<>> libraryInstances;
         mutable std::unordered_set<std::string> pluginsDirty;
         mutable std::map<std::string, std::map<std::string, Plugin *>, std::less<>> allPlugins;

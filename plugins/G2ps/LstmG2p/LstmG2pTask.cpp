@@ -1,6 +1,7 @@
 #include "LstmG2pTask.h"
 #include "internal/V1/TaskImpl.h"
 #include "internal/V2/TaskImpl.h"
+#include <LangCore/Support/Logging.h>
 
 namespace LangPlugins::LstmG2p
 {
@@ -39,9 +40,5 @@ namespace LangPlugins::LstmG2p
 
     std::string LstmG2pTask::getConfig() const {
         return _manager.getConfig();
-    }
-
-    LangCore::Expected<void> LstmG2pTask::setConfig(const std::string &config) {
-        return _manager.setConfig(config);
     }
 } // namespace LangPlugins::LstmG2p

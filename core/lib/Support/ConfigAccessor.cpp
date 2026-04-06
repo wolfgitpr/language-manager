@@ -1,6 +1,7 @@
 #include <LangCore/Support/ConfigAccessor.h>
 
 #include <stdcorelib/path.h>
+#include <stdcorelib/str.h>
 
 #include <LangCore/Module/Module.h>
 
@@ -194,5 +195,120 @@ namespace LangCore
     // ==================== 辅助方法 ====================
 
     bool ConfigAccessor::has(const std::string &key) const { return m_config.find(key) != m_config.end(); }
+
+    // ==================== 范围验证 ====================
+
+    Expected<bool> ConfigAccessor::validateIntRange(int value, int min, int max, const std::string &key) {
+        if (value < min || value > max) {
+            std::string keyMsg = key.empty() ? "" : "'" + key + "' ";
+            return Error(Error::ValidationError,
+                         stdc::formatN("Value %1%2is out of range [%3, %4]", keyMsg, value, min, max),
+                         "Adjust the value to be within the valid range");
+        }
+        return true;
+    }
+
+    Expected<bool> ConfigAccessor::validateDoubleRange(double value, double min, double max, const std::string &key) {
+        if (value < min || value > max) {
+            std::string keyMsg = key.empty() ? "" : "'" + key + "' ";
+            return Error(Error::ValidationError,
+                         stdc::formatN("Value %1%2is out of range [%3, %4]", keyMsg, value, min, max),
+                         "Adjust the value to be within the valid range");
+        }
+        return true;
+    }
+
+    Expected<bool> ConfigAccessor::validateStringAllowed(const std::string &value,
+                                                          const std::vector<std::string> &allowedValues,
+                                                          const std::string &key) {
+        for (const auto &allowed : allowedValues) {
+            if (value == allowed) {
+                return true;
+            }
+        }
+
+        std::string keyMsg = key.empty() ? "" : "'" + key + "' ";
+        std::string allowedList;
+        for (size_t i = 0; i < allowedValues.size(); ++i) {
+            if (i > 0) {
+                allowedList += ", ";
+            }
+            allowedList += "'" + allowedValues[i] + "'";
+        }
+        return Error(Error::ValidationError,
+                     stdc::formatN("Value %1%2is not allowed. Allowed values: %3", keyMsg, value, allowedList),
+                     "Use one of the allowed values");
+    }
+
+    Expected<bool> ConfigAccessor::validateArrayNotEmpty(const std::vector<std::string> &value, const std::string &key) {
+        if (value.empty()) {
+            std::string keyMsg = key.empty() ? "" : "'" + key + "' ";
+            return Error(Error::ValidationError,
+                         stdc::formatN("Array %1must not be empty", keyMsg),
+                         "Add at least one element to the array");
+        }
+        return true;
+    }
+
+    // ==================== ValidationChain 实现 ====================
+
+    ValidationChain &ValidationChain::validateIntRange(int value, int min, int max, const std::string &key) {
+        if (!_error) {
+            auto result = ConfigAccessor::validateIntRange(value, min, max, key);
+            if (!result) {
+                _error = result.takeError();
+            }
+        }
+        return *this;
+    }
+
+    ValidationChain &ValidationChain::validateDoubleRange(double value, double min, double max, const std::string &key) {
+        if (!_error) {
+            auto result = ConfigAccessor::validateDoubleRange(value, min, max, key);
+            if (!result) {
+                _error = result.takeError();
+            }
+        }
+        return *this;
+    }
+
+    ValidationChain &ValidationChain::validateStringAllowed(const std::string &value,
+                                                            const std::vector<std::string> &allowedValues,
+                                                            const std::string &key) {
+        if (!_error) {
+            auto result = ConfigAccessor::validateStringAllowed(value, allowedValues, key);
+            if (!result) {
+                _error = result.takeError();
+            }
+        }
+        return *this;
+    }
+
+    ValidationChain &ValidationChain::validateArrayNotEmpty(const std::vector<std::string> &value, const std::string &key) {
+        if (!_error) {
+            auto result = ConfigAccessor::validateArrayNotEmpty(value, key);
+            if (!result) {
+                _error = result.takeError();
+            }
+        }
+        return *this;
+    }
+
+    ValidationChain &ValidationChain::validate(std::function<Expected<bool>()> validator) {
+        if (!_error) {
+            auto result = validator();
+            if (!result) {
+                _error = result.takeError();
+            }
+        }
+        return *this;
+    }
+
+    Expected<bool> ValidationChain::execute() const {
+        if (_error) {
+            return *_error;
+        }
+        return true;
+    }
 
 } // namespace LangCore

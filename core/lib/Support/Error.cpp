@@ -13,19 +13,23 @@ namespace LangCore
             "dependency error",  // DependencyError
             "runtime error",  // RuntimeError
             "not implemented error",  // NotImplementedError
-            "initialization error"  // InitializationError
+            "initialization error",  // InitializationError
+            "validation error",  // ValidationError
+            "null pointer error",  // NullPointerError
+            "index error",  // IndexError
+            "timeout error"  // TimeoutError
         };
-        
+
         static const size_t messageCount = sizeof(messages) / sizeof(messages[0]);
         static std::array<std::shared_ptr<std::string>, messageCount + 1> cached;
-        
+
         if (type >= 0 && type < static_cast<int>(messageCount)) {
             if (!cached[type]) {
                 cached[type] = std::make_shared<std::string>(messages[type]);
             }
             return cached[type];
         }
-        
+
         // Unknown error type
         if (!cached[messageCount]) {
             cached[messageCount] = std::make_shared<std::string>("unknown error");

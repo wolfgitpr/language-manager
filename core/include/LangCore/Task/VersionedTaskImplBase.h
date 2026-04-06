@@ -32,11 +32,6 @@ namespace LangCore
         /// 获取当前配置
         /// @return JSON 格式的配置字符串
         virtual std::string getConfig() const = 0;
-
-        /// 设置配置
-        /// @param config JSON 格式的配置字符串
-        /// @return 成功返回 Expected<void>::success()，失败返回错误信息
-        virtual Expected<void> setConfig(const std::string &config) = 0;
     };
 
 } // namespace LangCore

@@ -25,8 +25,6 @@ namespace LangPlugins::ChainG2p::Internal::V1
 
         std::string getConfig() const override;
 
-        LangCore::Expected<void> setConfig(const std::string &config) override;
-
     private:
         const LangCore::ModuleSpec* m_spec;
         std::unique_ptr<G2pPipeline> m_pipeline;

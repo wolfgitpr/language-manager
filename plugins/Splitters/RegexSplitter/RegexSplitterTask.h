@@ -20,7 +20,6 @@ namespace LangPlugins::RegexSplitter
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
         std::string getConfig() const override;
-        LangCore::Expected<void> setConfig(const std::string &config) override;
 
     private:
         LangCore::VersionedTaskManager<RegexSplitterTask> _manager;

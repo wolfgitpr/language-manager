@@ -1,5 +1,6 @@
 #include "RegexSplitterTask.h"
 #include "internal/V1/TaskImpl.h"
+#include <LangCore/Support/Logging.h>
 
 namespace LangPlugins::RegexSplitter
 {
@@ -30,9 +31,5 @@ namespace LangPlugins::RegexSplitter
 
     std::string RegexSplitterTask::getConfig() const {
         return _manager.getConfig();
-    }
-
-    LangCore::Expected<void> RegexSplitterTask::setConfig(const std::string &config) {
-        return _manager.setConfig(config);
     }
 } // namespace LangPlugins::RegexSplitter

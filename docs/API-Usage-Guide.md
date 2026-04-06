@@ -147,28 +147,6 @@ std::string report = LevelCompatibilityChecker::generateReport(results);
 std::cout << report;
 ```
 
-### 3. Level管理器
-
-```cpp
-#include <LangCore/Support/LevelCompatibility.h>
-
-using namespace LangCore;
-
-// 获取当前Manager Level
-int managerLevel = LevelManager::getCurrentManagerLevel();
-
-// 检查Level是否有效
-bool isValid = LevelManager::isValidLevel(2);  // true
-
-// 获取支持的Plugin Level范围
-auto [minLevel, maxLevel] = LevelManager::getSupportedPluginLevelRange();
-// 对于Manager Level=2: minLevel=1, maxLevel=2
-
-// 检查插件类别是否需要Level检查
-bool needsCheck = LevelManager::requiresLevelCheck(PluginCategory::CorePlugin);
-// true for CorePlugin, false for DependencyPlugin
-```
-
 ## 插件开发指南
 
 ### 1. 创建基础插件
@@ -308,11 +286,6 @@ public:
     };
 
     /// 检查核心插件的 Level 兼容性
-    /// @param pluginLevel 插件 Level
-    /// @param currentLevel 系统 Level
-    /// @param maximumLevel 系统最大支持 Level（0 表示无限制，使用 currentLevel）
-    /// @param minimumLevel 系统最小支持 Level
-    /// @return 兼容性检查结果
     static LevelCompatibilityResult checkCorePlugin(
         int pluginLevel,
         int currentLevel,
@@ -321,11 +294,6 @@ public:
     );
 
     /// 检查依赖插件的 Level 兼容性
-    /// @param pluginLevel 依赖插件 Level
-    /// @param currentLevel 系统 Level
-    /// @param maximumLevel 系统最大支持 Level（0 表示无限制，使用 currentLevel）
-    /// @param minimumLevel 系统最小支持 Level
-    /// @return 兼容性检查结果
     static LevelCompatibilityResult checkDependencyPlugin(
         int pluginLevel,
         int currentLevel,
@@ -334,12 +302,6 @@ public:
     );
 
     /// 批量检查所有插件和依赖
-    /// @param pluginLevels 插件 Level 列表
-    /// @param dependencyLevels 依赖 Level 列表
-    /// @param currentLevel 系统 Level
-    /// @param maximumLevel 系统最大支持 Level（0 表示无限制，使用 currentLevel）
-    /// @param minimumLevel 系统最小支持 Level
-    /// @return 所有检查结果
     static std::vector<LevelCompatibilityResult> checkAll(
         const std::vector<std::pair<std::string, int>> &pluginLevels,
         const std::vector<std::pair<std::string, int>> &dependencyLevels,
@@ -349,63 +311,9 @@ public:
     );
 
     /// 生成兼容性检查报告
-    /// @param results 检查结果列表
-    /// @return 格式化的报告字符串
     static std::string generateReport(
         const std::vector<LevelCompatibilityResult> &results
     );
-};
-    int getRecommendedPluginLevel() const;
-
-    // 检查Plugin是否需要适配器
-    bool needsAdapter(int pluginLevel) const;
-
-    // 生成兼容性报告
-    std::string generateCompatibilityReport(
-        const std::vector<LevelCompatibilityResult>& results
-    ) const;
-};
-```
-
-### LevelCompatibilityResult
-
-```cpp
-struct LevelCompatibilityResult {
-    bool isCompatible;                          // 是否兼容
-    int managerLevel;                           // Manager的Level
-    int pluginLevel;                            // 插件的Level
-    PluginCategory category;                     // 插件类别
-    LevelCompatibilityError errorCode;           // 错误代码
-    std::string pluginId;                       // 插件ID
-    std::string moduleId;                       // 模块ID
-    std::string message;                        // 详细消息
-    std::string suggestion;                     // 建议操作
-    std::vector<std::string> affectedModules;   // 受影响的模块
-
-    // 获取格式化的错误报告
-    std::string getFormattedReport() const;
-};
-```
-
-### LevelManager
-
-```cpp
-class LevelManager {
-public:
-    // 获取当前系统的Manager Level
-    static int getCurrentManagerLevel();
-
-    // 检查Level是否有效
-    static bool isValidLevel(int level);
-
-    // 获取支持的Plugin Level范围
-    static std::pair<int, int> getSupportedPluginLevelRange();
-
-    // 检查插件类别是否需要Level检查
-    static bool requiresLevelCheck(PluginCategory category);
-
-    // 获取插件类别的名称
-    static std::string getCategoryName(PluginCategory category);
 };
 ```
 
@@ -581,44 +489,6 @@ auto results = LevelCompatibilityChecker::checkAll(
 std::cout << LevelCompatibilityChecker::generateReport(results);
 ```
 
-## 示例项目
-
-### 完整的插件开发示例
-
-1. **项目结构**:
-```
-my-plugin/
-├── CMakeLists.txt
-├── plugin.json
-├── config.json
-├── include/
-│   └── MyPlugin.h
-├── src/
-│   └── MyPlugin.cpp
-└── assets/
-    └── dict/
-```
-
-2. **CMakeLists.txt**:
-```cmake
-cmake_minimum_required(VERSION 3.19)
-project(MyPlugin)
-
-find_package(LangCore REQUIRED)
-
-add_library(MyPlugin SHARED src/MyPlugin.cpp)
-target_link_libraries(MyPlugin LangCore::LangCore)
-```
-
-3. **编译和部署**:
-```bash
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
-
-将生成的库文件和配置文件复制到LangCore的插件目录。
-
 ## 总结
 
 Language Manager提供了基于Level的兼容性管理系统。通过本指南，您应该能够：
@@ -635,3 +505,12 @@ Language Manager提供了基于Level的兼容性管理系统。通过本指南�
 - 依赖插件不限制Level
 
 如有更多问题，请参考技术架构分析文档或联系开发团队。
+
+---
+
+**文档版本**: 2.0
+**最后更新**: 2026-04-04
+**更新内容**:
+- 精简文档结构，去除冗余内容
+- 专注于核心API使用和Level兼容性管理
+- 优化示例代码和最佳实践

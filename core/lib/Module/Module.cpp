@@ -120,9 +120,23 @@ namespace LangCore
         return impl.className;
     }
 
-    DisplayText ModuleSpec::name() const {
+    std::string ModuleSpec::name() const {
         __stdc_impl_t;
-        return impl.name;
+        // 无感调用：自动返回当前语言的本地化文本
+        return impl.name.text();
+    }
+
+    std::string ModuleSpec::configurationDisplayName(const std::string &configKey) const {
+        __stdc_impl_t;
+        
+        auto it = impl.configurationDisplayNames.find(configKey);
+        if (it != impl.configurationDisplayNames.end()) {
+            // 无感调用：自动返回当前语言的本地化文本
+            return it->second.text();
+        }
+        
+        // 如果没有找到显示名称，返回原始键名
+        return configKey;
     }
 
     int ModuleSpec::apiLevel() const {
@@ -376,6 +390,22 @@ namespace LangCore
                     };
                 }
                 configuration_ = it->second.toObject();
+            }
+        }
+
+        // configurationDisplayNames
+        {
+            if (auto it = configObj.find("configurationDisplayNames"); it != configObj.end()) {
+                if (!it->second.isObject()) {
+                    return Error{
+                        Error::ConfigError,
+                        stdc::formatN(R"(%1: "configurationDisplayNames" field has invalid value)", configPath),
+                    };
+                }
+                const auto &displayNamesObj = it->second.toObject();
+                for (const auto &[key, value] : displayNamesObj) {
+                    configurationDisplayNames[key] = DisplayText(value);
+                }
             }
         }
 

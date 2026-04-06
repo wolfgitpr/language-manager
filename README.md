@@ -42,7 +42,7 @@ std::string text = "xxx好的123";
 auto segments = langMgr->split(text);
 
 // 语言标记
-auto tags = langMgr->tag(segments);
+auto tags = langMgr->tag(segments, false, false);
 
 // G2p 转换
 std::vector<LangCore::G2pInput *> g2pInput;
@@ -78,4 +78,4 @@ phonetic notation system, such as "eng-cmu", "cmn-pinyin", "jpn-romaji".
 
 Name the new G2p according to the standard and add it to the above table.
 
-Refer to [PRD](./docs/PRD-v3.0.md) and [API Usage Guide](./docs/API-Usage-Guide.md) for development details.
+Refer to [PRD](./docs/PRD-v1.0.md) and [API Usage Guide](./docs/API-Usage-Guide.md) for development details.

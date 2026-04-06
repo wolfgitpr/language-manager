@@ -6,6 +6,7 @@
 #include <shared_mutex>
 #include <map>
 #include <string>
+#include <filesystem>
 
 #include <LangCore/Task/SessionTask.h>
 #include <LangCore/Task/TaskFactory.h>
@@ -28,8 +29,6 @@ namespace LangPlugins::LstmG2p::Internal
 
         std::string getConfig() const override;
 
-        LangCore::Expected<void> setConfig(const std::string &config) override;
-
     protected:
         const LangCore::ModuleSpec *m_spec;
         LangCore::NO<LangCore::SessionFactory> m_driver;
@@ -45,6 +44,12 @@ namespace LangPlugins::LstmG2p::Internal
         int m_eosIdx = 3;
         int m_maxLen = 48;
         std::string m_config;
+        
+        // 配置私有成员变量
+        std::filesystem::path m_encoderPath;
+        std::filesystem::path m_decoderPath;
+        std::filesystem::path m_charVocabPath;
+        std::filesystem::path m_phonemeVocabPath;
 
         // Helper function to load phoneme mapping from JSON file
         static LangCore::Expected<std::map<std::string, int>>

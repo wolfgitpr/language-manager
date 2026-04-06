@@ -35,6 +35,9 @@ namespace LangCore
 
         JsonObject manifestConfiguration;
         NO<TaskConfiguration> configuration;
+        
+        // 配置键名的显示名称（用于 UI 显示）
+        std::map<std::string, DisplayText> configurationDisplayNames;
 
         stdc::VersionNumber fmtVersion;
 

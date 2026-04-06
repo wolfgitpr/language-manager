@@ -5,10 +5,13 @@
 #include <memory>
 #include <shared_mutex>
 #include <string>
+#include <vector>
+#include <filesystem>
 
 #include <cpp-pinyin/Pinyin.h>
 #include <LangCore/Task/G2pTask.h>
 #include <LangCore/Core/PackageManager.h>
+#include <InferUtil/Verifier.h>
 
 namespace LangPlugins::MandarinG2p::Internal::V1
 {
@@ -26,14 +29,16 @@ namespace LangPlugins::MandarinG2p::Internal::V1
 
         std::string getConfig() const override;
 
-        LangCore::Expected<void> setConfig(const std::string &config) override;
-
     private:
         const LangCore::ModuleSpec *m_spec;
         LangCore::NO<LangCore::G2pResultV1> m_result;
         std::unique_ptr<Pinyin::Pinyin> m_mandarin;
         mutable std::shared_mutex m_mutex;
         std::string m_config;
+        
+        // 配置私有成员变量
+        std::filesystem::path m_dictPath;
+        std::vector<LangPlugins::InferUtil::VerifyEntry> m_verifyEntries;
     };
 
 } // namespace LangPlugins::MandarinG2p::Internal::V1

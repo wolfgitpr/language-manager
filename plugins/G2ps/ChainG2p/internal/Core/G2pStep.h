@@ -57,6 +57,10 @@ namespace LangPlugins::ChainG2p
         /// @return 步骤类型列表
         static std::vector<std::string> supportedTypes();
 
+        /// 获取所有支持的步骤类型的字符串表示
+        /// @return 步骤类型列表的字符串表示
+        static std::string supportedTypesAsString();
+
     private:
         /// 连接字符串
         /// @param strings 字符串列表

@@ -1,9 +1,9 @@
 #ifndef LANGPLUGINS_CANTONESEG2PTASK_H
 #define LANGPLUGINS_CANTONESEG2PTASK_H
 
+#include <LangCore/Module/Module.h>
 #include <LangCore/Task/Task.h>
 #include <LangCore/Task/VersionedTaskManager.h>
-#include <LangCore/Module/Module.h>
 #include <memory>
 
 namespace LangPlugins::CantoneseG2p
@@ -21,8 +21,6 @@ namespace LangPlugins::CantoneseG2p
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
         std::string getConfig() const override;
-
-        LangCore::Expected<void> setConfig(const std::string &config) override;
 
     private:
         LangCore::VersionedTaskManager<CantoneseG2pTask> _manager;

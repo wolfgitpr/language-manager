@@ -1,0 +1,98 @@
+#ifndef LANGCORE_CHAING2PMACROS_H
+#define LANGCORE_CHAING2PMACROS_H
+
+#include <LangCore/Support/UiSchema.h>
+
+namespace LangCore
+{
+
+// ============================================================================
+// ChainG2p Schema 宏
+// ============================================================================
+
+#define LANGCORE_CHAIN_G2P_SCHEMA(name, ...) \
+    LangCore::UiSchema { \
+        "1.0", \
+        "chain-g2p", \
+        { __VA_ARGS__ } \
+    }
+
+// ============================================================================
+// Group 宏 - 用于包装每个 step
+// ============================================================================
+
+#define LANGCORE_UI_FIELD_GROUP(id, titleKey, ...) \
+    LangCore::UiField { \
+        #id, \
+        LangCore::UiFieldType::Group, \
+        {}, \
+        {}, \
+        {}, \
+        {}, \
+        {}, \
+        std::make_optional<std::string>(titleKey), \
+        {}, \
+        {}, \
+        {}, \
+        false, \
+        {}, \
+        __VA_ARGS__ \
+    }
+
+// ============================================================================
+// ChainG2p 特殊 Section 宏 - 步骤列表
+// ============================================================================
+
+#define LANGCORE_CHAIN_G2P_SECTION_STEPS(...) \
+    LangCore::UiSection { \
+        "steps", \
+        std::make_optional<std::string>("steps.title"), \
+        std::make_optional<std::string>("steps.description"), \
+        { __VA_ARGS__ } \
+    }
+
+// ============================================================================
+// ChainG2p 步骤宏 - 简化常用步骤的声明
+// ============================================================================
+
+// 标记验证步骤
+#define LANGCORE_CHAIN_G2P_STEP_TAG_VALIDATE(id, enabled, ...) \
+    LANGCORE_UI_FIELD_GROUP( \
+        id, "step.tagAndValidate", \
+        LANGCORE_UI_FIELD_CHECKBOX(enabled, enabled), \
+        __VA_ARGS__ \
+    )
+
+// 字典步骤
+#define LANGCORE_CHAIN_G2P_STEP_DICT(id, enabled, dictPath, ...) \
+    LANGCORE_UI_FIELD_GROUP( \
+        id, "step.dict", \
+        LANGCORE_UI_FIELD_CHECKBOX(enabled, enabled), \
+        LANGCORE_UI_FIELD_TEXT( \
+            dictPath, dictPath, \
+            .required = true \
+        ), \
+        __VA_ARGS__ \
+    )
+
+// 模型步骤
+#define LANGCORE_CHAIN_G2P_STEP_MODEL(id, enabled, batchSize, ...) \
+    LANGCORE_UI_FIELD_GROUP( \
+        id, "step.model", \
+        LANGCORE_UI_FIELD_CHECKBOX(enabled, enabled), \
+        LANGCORE_UI_FIELD_SPINBOX(batchSize, 1, 256, 10, batchSize), \
+        __VA_ARGS__ \
+    )
+
+// 回退步骤
+#define LANGCORE_CHAIN_G2P_STEP_FALLBACK(id, useOriginal, markFailed, ...) \
+    LANGCORE_UI_FIELD_GROUP( \
+        id, "step.fallback", \
+        LANGCORE_UI_FIELD_CHECKBOX(useOriginal, useOriginal), \
+        LANGCORE_UI_FIELD_CHECKBOX(markFailed, markFailed), \
+        __VA_ARGS__ \
+    )
+
+} // namespace LangCore
+
+#endif // LANGCORE_CHAING2PMACROS_H

@@ -3,6 +3,7 @@
 #include "internal/Core/G2pContext.h"
 #include "internal/V1/TaskImpl.h"
 #include <LangCore/Support/ConfigAccessor.h>
+#include <LangCore/Support/Logging.h>
 
 namespace LangPlugins::ChainG2p
 {
@@ -31,10 +32,6 @@ namespace LangPlugins::ChainG2p
 
     std::string ChainG2pTask::getConfig() const {
         return _manager.getConfig();
-    }
-
-    LangCore::Expected<void> ChainG2pTask::setConfig(const std::string &config) {
-        return _manager.setConfig(config);
     }
 
 } // namespace LangPlugins::ChainG2p

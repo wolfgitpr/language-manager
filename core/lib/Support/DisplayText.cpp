@@ -30,8 +30,11 @@ namespace LangCore
             }
 
             if (!texts_.empty()) {
+                // 默认语言候选顺序：英语、中文、日语
                 static const char *candidates[] = {
-                    "en", "en_US", "en_us", "en_GB", "en_gb",
+                    "en", "en_US", "en_us", "en_GB", "en_gb",  // 英语
+                    "zh", "zh_CN", "zh_cn", "zh-Hans",       // 中文（简体）
+                    "ja", "ja_JP", "ja_jp", "ja-JP"          // 日语
                 };
                 for (const auto &item : candidates) {
                     if (!defaultText_.empty()) {
@@ -82,12 +85,14 @@ namespace LangCore
         return *this;
     }
 
-    const std::string &DisplayText::text() const {
+    std::string DisplayText::text() const {
         __stdc_impl_t;
+
+        // 返回默认文本
         return impl.defaultText;
     }
 
-    const std::string &DisplayText::text(const std::string_view locale) const {
+    std::string DisplayText::text(const std::string_view locale) const {
         __stdc_impl_t;
         if (!impl.texts) {
             return impl.defaultText;
@@ -97,6 +102,11 @@ namespace LangCore
             return impl.defaultText;
         }
         return it->second;
+    }
+
+    const std::string &DisplayText::defaultText() const {
+        __stdc_impl_t;
+        return impl.defaultText;
     }
 
     bool DisplayText::isEmpty() const {

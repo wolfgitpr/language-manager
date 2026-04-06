@@ -5,6 +5,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <string>
+#include <vector>
 
 #include <LangCore/Module/Module.h>
 
@@ -26,13 +27,15 @@ namespace LangPlugins::TemplateTagger::Internal::V1
 
         std::string getConfig() const override;
 
-        LangCore::Expected<void> setConfig(const std::string &config) override;
-
     private:
         const LangCore::ModuleSpec *m_spec;
         std::unique_ptr<LangPlugins::TemplateTagger::V1::TaggerUtil> m_taggerUtil;
         mutable std::shared_mutex m_mutex;
         std::string m_config;
+        
+        // 配置私有成员变量
+        std::string m_language;
+        std::vector<LangPlugins::TemplateTagger::V1::TaggerUtilEntry> m_entries;
     };
 
 } // namespace LangPlugins::TemplateTagger::Internal::V1

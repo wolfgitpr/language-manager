@@ -19,7 +19,6 @@ namespace LangPlugins::RegexSplitter::Internal::V1
         start(const LangCore::NO<LangCore::TaskInput> &input) override;
 
         std::string getConfig() const override;
-        LangCore::Expected<void> setConfig(const std::string &config) override;
 
     private:
         const LangCore::ModuleSpec *m_spec;

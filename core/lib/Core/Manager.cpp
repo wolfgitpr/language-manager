@@ -186,12 +186,39 @@ namespace LangCore
         return _input->splitterInput;
     }
 
+    /// 过滤空指针，返回有效的输入指针
+    /// @param input 输入指针列表
+    /// @param logWarnings 是否记录警告日志
+    /// @return 过滤后的有效指针列表
+    static std::vector<G2pInput *>
+    filterNullPointers(const std::vector<G2pInput *> &input, bool logWarnings = true) {
+        std::vector<G2pInput *> validInput;
+        validInput.reserve(input.size());
+
+        for (const auto *item : input) {
+            if (!item) {
+                if (logWarnings) {
+                    MgrLog.langCoreWarning("convert() received null pointer in input, skipping");
+                }
+                continue;
+            }
+            validInput.push_back(const_cast<G2pInput *>(item));
+        }
+
+        return validInput;
+    }
+
     static std::vector<std::pair<std::string, std::vector<std::string>>>
     groupLyrics(const std::vector<G2pInput *> &input) {
         std::vector<std::pair<std::string, std::vector<std::string>>> groups;
         std::string lastId;
 
         for (const auto *item : input) {
+            // 跳过空指针
+            if (!item) {
+                continue;
+            }
+
             if (groups.empty() || item->g2pId != lastId) {
                 groups.emplace_back();
                 lastId = item->g2pId;
@@ -207,15 +234,16 @@ namespace LangCore
         if (input.empty())
             return {};
 
-        // 验证输入指针
-        for (const auto *item : input) {
-            if (!item)
-                MgrLog.langCoreWarning("convert() received null pointer in input, skipping");
-        }
+        // 验证输入指针，过滤掉空指针
+        const auto validInput = filterNullPointers(input, true);
+
+        // 如果所有指针都是空的，返回空结果
+        if (validInput.empty())
+            return {};
 
         __stdc_impl_t;
         auto &g2ps = impl.tasks["g2p"];
-        const auto _lyrics = groupLyrics(input);
+        const auto _lyrics = groupLyrics(validInput);
         const auto _input = NO<G2pInputV1>::create();
         std::vector<G2pRes> result;
 
@@ -266,16 +294,48 @@ namespace LangCore
 
         const auto splitRes = split ? this->split(input) : input;
 
+        // 检查分割结果是否为空
+        if (splitRes.empty()) {
+            MgrLog.langCoreWarning("tag() received empty split result");
+            return {};
+        }
+
         const auto &taggersList = impl.priorityTaggers(priorityLanguages);
+
+        // 检查是否有可用的 tagger
+        if (taggersList.empty()) {
+            MgrLog.langCoreWarning("tag() has no available taggers");
+            return {};
+        }
+
         const auto _input = NO<TaggerInputV1>::create();
         for (const auto &lyric : splitRes)
             inputNote.emplace_back(lyric);
 
         _input->taggerInput = inputNote;
 
+        // 处理每个 tagger，添加错误检查
         for (const auto &task : taggersList) {
+            if (!task) {
+                MgrLog.langCoreWarning("tag() encountered null task in taggersList");
+                continue;
+            }
+
             auto resExp = task->start(_input);
-            _input->taggerInput = resExp.take().as<TaggerResultV1>()->taggerResult;
+            if (!resExp) {
+                MgrLog.langCoreCritical("tag() failed for task: %1", resExp.error().message());
+                // 继续处理下一个 tagger，而不是返回
+                continue;
+            }
+
+            auto result = resExp.take();
+            auto taggerResult = result.as<TaggerResultV1>();
+            if (!taggerResult) {
+                MgrLog.langCoreCritical("tag() received unexpected result type");
+                continue;
+            }
+
+            _input->taggerInput = taggerResult->taggerResult;
         }
 
         auto res = _input->taggerInput;

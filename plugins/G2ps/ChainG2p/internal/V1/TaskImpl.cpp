@@ -1,7 +1,9 @@
 #include "TaskImpl.h"
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Error.h>
+#include <LangCore/Support/Logging.h>
 #include <LangCore/Task/G2pTask.h>
+#include "../Core/G2pStep.h"
 
 namespace LangPlugins::ChainG2p::Internal::V1
 {
@@ -48,11 +50,19 @@ namespace LangPlugins::ChainG2p::Internal::V1
         for (const auto &word : context->words()) {
             LangCore::G2pRes res;
             res.lyric = word.lyric;
-            res.g2pId = m_spec->name().text();
+            res.g2pId = m_spec->id();
             res.pronunciation = word.pronunciation;
             res.candidates = word.candidates;
             res.mode = word.mode;
             res.errorType = word.errorType;
+
+            // copy 模式下，如果发音为空，应该原样返回
+            if (res.mode == "copy" && res.pronunciation.empty()) {
+                res.pronunciation = res.lyric;
+                if (res.candidates.empty()) {
+                    res.candidates = {res.lyric};
+                }
+            }
 
             result->g2pResult.push_back(res);
         }
@@ -64,13 +74,6 @@ namespace LangPlugins::ChainG2p::Internal::V1
     {
         std::shared_lock lock(m_mutex);
         return m_config;
-    }
-
-    LangCore::Expected<void> ChainG2pTaskImpl::setConfig(const std::string &config)
-    {
-        std::unique_lock lock(m_mutex);
-        m_config = config;
-        return {};
     }
 
 } // namespace LangPlugins::ChainG2p::Internal::V1

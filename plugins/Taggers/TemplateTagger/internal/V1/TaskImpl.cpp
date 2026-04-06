@@ -11,6 +11,7 @@
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/TaggerTask.h>
 #include <LangCore/Support/ConfigAccessor.h>
+#include <LangCore/Support/Logging.h>
 
 #include "../../TaggerUtil.h"
 
@@ -127,17 +128,18 @@ namespace LangPlugins::TemplateTagger::Internal::V1
 
         auto cfg = LangCore::config(m_spec);
 
-        // Required fields
+        // Required fields - 存储到私有成员变量
         auto languageExp = cfg.getString("language");
         if (!languageExp) {
             return languageExp.takeError();
         }
-        auto language = languageExp.take();
+        m_language = languageExp.take();
 
-        std::vector<LangPlugins::TemplateTagger::V1::TaggerUtilEntry> entries;
-        parse_tagger_required(entries, "tagger", m_spec);
+        // 解析并存储 entries
+        m_entries.clear();
+        parse_tagger_required(m_entries, "tagger", m_spec);
 
-        auto expVerifier = LangPlugins::TemplateTagger::V1::TaggerUtil::Create(entries, language);
+        auto expVerifier = LangPlugins::TemplateTagger::V1::TaggerUtil::Create(m_entries, m_language);
         if (!expVerifier)
             return expVerifier.takeError();
         m_taggerUtil = expVerifier.take();
@@ -161,11 +163,23 @@ namespace LangPlugins::TemplateTagger::Internal::V1
     }
 
     std::string TemplateTaggerTaskImpl::getConfig() const {
-        return m_config;
-    }
+        std::shared_lock lock(m_mutex);
 
-    LangCore::Expected<void> TemplateTaggerTaskImpl::setConfig(const std::string &config) {
-        m_config = config;
-        return {};
+        // 返回缓存的配置
+        if (!m_config.empty()) {
+            return m_config;
+        }
+
+        // 从私有成员变量生成配置 JSON
+        LangCore::JsonObject configObj;
+
+        // 添加 configuration 对象
+        LangCore::JsonObject configuration;
+        configuration["language"] = LangCore::JsonValue(m_language);
+
+        // 生成 JSON 字符串
+        auto json = LangCore::JsonValue(configObj).toJson(2);
+
+        return json;
     }
 } // namespace LangPlugins::TemplateTagger::Internal::V1

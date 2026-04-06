@@ -10,24 +10,30 @@
 namespace LangCore
 {
 
-    /// DisplayText - Represents a text with multiple translations.
+    /// DisplayText - 表示支持多语言的显示文本
+    /// 设计原则：简洁可靠、无感调用、自动本地化
+    /// 
+    /// 使用示例：
+    ///   DisplayText text("Hello", {{"zh", "你好"}, {"ja", "こんにちは"}});
+    ///   std::string result = text.text();  // 自动返回当前语言的文本（无感调用）
+    ///   std::string zh = text.text("zh");  // 指定语言
+    ///   std::string def = text.defaultText();  // 获取默认文本
     class LANGCORE_EXPORT DisplayText {
     public:
-        /// Constructs an empty display text object.
+        /// 构造空的显示文本对象
         DisplayText();
 
-        /// Constructs with a default text.
+        /// 使用默认文本构造
         explicit DisplayText(std::string text);
 
-        /// Constructs with a default text and a map, where the key is the locale code and the value
-        /// is the corresponding text.
+        /// 使用默认文本和语言映射构造
+        /// @param defaultText 默认文本
+        /// @param texts 语言代码到文本的映射
         DisplayText(std::string defaultText, const std::map<std::string, std::string> &texts);
 
-        /// Constructs with a JSON value.
-        /// \note The JSON value must be a string-mapping object, with the key being the locale code
-        /// and the value being the corresponding text. If the \c _ property exists, use it as the
-        /// default text; otherwise, search for the property of \c en_XX and try to use the value as
-        /// the default text.
+        /// 从 JSON 值构造
+        /// @note JSON 值必须是字符串映射对象，键为语言代码，值为对应文本
+        ///       如果存在 "_" 属性，则将其作为默认文本；否则搜索 "en_XX" 属性
         explicit DisplayText(const JsonValue &value);
 
         ~DisplayText();
@@ -37,9 +43,20 @@ namespace LangCore
 
         void swap(DisplayText &RHS) noexcept { _impl.swap(RHS._impl); }
 
-        const std::string &text() const;
-        const std::string &text(std::string_view locale) const;
+        /// 获取文本（自动返回当前语言的本地化文本，无感调用）
+        /// @return 当前语言的本地化文本，如果不存在则返回默认文本
+        std::string text() const;
+        
+        /// 获取指定语言的文本
+        /// @param locale 语言代码（如 "en", "zh", "ja"）
+        /// @return 指定语言的文本，如果不存在则返回默认文本
+        std::string text(std::string_view locale) const;
 
+        /// 获取默认文本
+        /// @return 默认文本
+        const std::string &defaultText() const;
+
+        /// 检查是否为空
         bool isEmpty() const;
 
     protected:

@@ -22,8 +22,6 @@ namespace LangPlugins::TemplateTagger
 
         std::string getConfig() const override;
 
-        LangCore::Expected<void> setConfig(const std::string &config) override;
-
     private:
         LangCore::VersionedTaskManager<TemplateTaggerTask> _manager;
     };

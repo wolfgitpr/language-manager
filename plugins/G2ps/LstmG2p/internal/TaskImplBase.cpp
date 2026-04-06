@@ -10,6 +10,7 @@
 
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Tensor.h>
+#include <LangCore/Support/Logging.h>
 #include <LangCore/Task/Task.h>
 #include <LangCore/Task/TaskPlugin.h>
 
@@ -77,25 +78,26 @@ namespace LangPlugins::LstmG2p::Internal
 
         auto cfg = LangCore::config(m_spec);
 
-        // Required fields
+        // Required fields - 存储到私有成员变量
         auto encoderExp = cfg.getPath("encoder");
         if (!encoderExp) {
             return encoderExp.takeError();
         }
-        auto encoder = encoderExp.take();
+        m_encoderPath = encoderExp.take();
 
         auto decoderExp = cfg.getPath("decoder");
         if (!decoderExp) {
             return decoderExp.takeError();
         }
-        auto decoder = decoderExp.take();
+        m_decoderPath = decoderExp.take();
 
         // Load charVocab
         auto charVocabPathExp = cfg.getPath("charVocab");
         if (!charVocabPathExp) {
             return charVocabPathExp.takeError();
         }
-        auto charVocabMapping = loadPhonemeMapping(charVocabPathExp.take(), "charVocab");
+        m_charVocabPath = charVocabPathExp.take();
+        auto charVocabMapping = loadPhonemeMapping(m_charVocabPath, "charVocab");
         if (!charVocabMapping) {
             return charVocabMapping.takeError();
         }
@@ -106,7 +108,8 @@ namespace LangPlugins::LstmG2p::Internal
         if (!phonemeVocabPathExp) {
             return phonemeVocabPathExp.takeError();
         }
-        auto phonemeVocabMapping = loadPhonemeMapping(phonemeVocabPathExp.take(), "phonemeVocab");
+        m_phonemeVocabPath = phonemeVocabPathExp.take();
+        auto phonemeVocabMapping = loadPhonemeMapping(m_phonemeVocabPath, "phonemeVocab");
         if (!phonemeVocabMapping) {
             return phonemeVocabMapping.takeError();
         }
@@ -118,13 +121,13 @@ namespace LangPlugins::LstmG2p::Internal
         m_encoderSession = m_driver->createSession();
         const auto encoderOpenArgs = LangCore::NO<LangCore::SessionOpenArgs>::create();
         encoderOpenArgs->useCpu = false;
-        if (auto res = m_encoderSession->open(encoder, encoderOpenArgs); !res)
+        if (auto res = m_encoderSession->open(m_encoderPath, encoderOpenArgs); !res)
             return res;
 
         m_decodeSession = m_driver->createSession();
         const auto predictorOpenArgs = LangCore::NO<LangCore::SessionOpenArgs>::create();
         predictorOpenArgs->useCpu = false;
-        if (auto res = m_decodeSession->open(decoder, predictorOpenArgs); !res)
+        if (auto res = m_decodeSession->open(m_decoderPath, predictorOpenArgs); !res)
             return res;
 
         return {};
@@ -132,13 +135,28 @@ namespace LangPlugins::LstmG2p::Internal
 
     std::string LstmG2pTaskImplBase::getConfig() const {
         std::shared_lock lock(m_mutex);
-        return m_config;
+
+        // 返回缓存的配置
+        if (!m_config.empty()) {
+            return m_config;
+        }
+
+        // 从私有成员变量生成配置 JSON
+        LangCore::JsonObject configObj;
+
+        // 添加 configuration 对象
+        LangCore::JsonObject configuration;
+        configuration["encoder"] = LangCore::JsonValue(m_encoderPath.string());
+        configuration["decoder"] = LangCore::JsonValue(m_decoderPath.string());
+        configuration["charVocab"] = LangCore::JsonValue(m_charVocabPath.string());
+        configuration["phonemeVocab"] = LangCore::JsonValue(m_phonemeVocabPath.string());
+
+        configObj["configuration"] = LangCore::JsonValue(configuration);
+
+        // 生成 JSON 字符串
+        auto json = LangCore::JsonValue(configObj).toJson(2);
+
+        return json;
     }
 
-    LangCore::Expected<void> LstmG2pTaskImplBase::setConfig(const std::string &config) {
-        std::unique_lock lock(m_mutex);
-        m_config = config;
-        return {};
-    }
-
-} // namespace LangPlugins::LstmG2p::Internal
+    } // namespace LangPlugins::LstmG2p::Internal

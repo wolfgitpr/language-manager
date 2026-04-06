@@ -10,6 +10,7 @@
 #include <LangCore/Module/Module.h>
 #include <LangCore/Task/G2pTask.h>
 #include <LangCore/Support/ConfigAccessor.h>
+#include <LangCore/Support/Logging.h>
 
 #include <cpp-pinyin/G2pglobal.h>
 #include <cpp-pinyin/Jyutping.h>
@@ -18,6 +19,7 @@
 
 namespace LangPlugins::CantoneseG2p::Internal::V1
 {
+    using namespace LangPlugins::InferUtil;
     CantoneseG2pTaskImpl::CantoneseG2pTaskImpl(const LangCore::ModuleSpec *spec)
         : m_spec(spec) {}
 
@@ -28,21 +30,21 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
 
         auto cfg = LangCore::config(m_spec);
 
-        // Parse verify entries
-        auto verifyEntryExp = InferUtil::ParseVerifyEntries(cfg.raw(), m_spec->path());
+        // Parse verify entries - 存储到私有成员变量
+        auto verifyEntryExp = ParseVerifyEntries(cfg.raw(), m_spec->path());
         if (!verifyEntryExp) {
             return verifyEntryExp.takeError();
         }
-        auto verifyEntry = verifyEntryExp.take();
+        m_verifyEntries = verifyEntryExp.take();
 
-        // Required fields
+        // Required fields - 存储到私有成员变量
         auto dictPathExp = cfg.getPath("dictPath");
         if (!dictPathExp) {
             return dictPathExp.takeError();
         }
-        auto dictPath = dictPathExp.take();
+        m_dictPath = dictPathExp.take();
 
-        Pinyin::setDictionaryPath(dictPath);
+        Pinyin::setDictionaryPath(m_dictPath);
         m_cantonese = std::make_unique<Pinyin::Jyutping>();
 
         if (!m_cantonese->initialized())
@@ -80,13 +82,8 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
         std::vector<LangCore::G2pRes> res;
         const auto g2pInput = input.as<LangCore::G2pInputV1>();
 
-        // Parse verify entries
-        auto cfg = LangCore::config(m_spec);
-        auto verifyEntryExp = InferUtil::ParseVerifyEntries(cfg.raw(), m_spec->path());
-        if (!verifyEntryExp) {
-            return verifyEntryExp.takeError();
-        }
-        InferUtil::VerifierHolder verifierHolder(verifyEntryExp.take());
+        // 使用私有成员变量 m_verifyEntries
+        LangPlugins::InferUtil::VerifierHolder verifierHolder(m_verifyEntries);
 
         const auto verifyRes = verifierHolder.verify(g2pInput->g2pInput);
         res.reserve(verifyRes.size());
@@ -96,7 +93,7 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
                 wordErrorType = LangCore::InvalidLyric;
             }
             res.emplace_back(LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->name().text()), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
         }
 
         const auto groupLyric = groupLyrics(res);
@@ -133,12 +130,23 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
     }
 
     std::string CantoneseG2pTaskImpl::getConfig() const {
-        return m_config;
-    }
+        // 返回缓存的配置
+        if (!m_config.empty()) {
+            return m_config;
+        }
 
-    LangCore::Expected<void> CantoneseG2pTaskImpl::setConfig(const std::string &config) {
-        m_config = config;
-        return {};
-    }
+        // 从私有成员变量生成配置 JSON
+        LangCore::JsonObject configObj;
 
+        // 添加 configuration 对象
+        LangCore::JsonObject configuration;
+        configuration["dictPath"] = LangCore::JsonValue(m_dictPath.string());
+
+        configObj["configuration"] = LangCore::JsonValue(configuration);
+
+        // 生成 JSON 字符串
+        auto json = LangCore::JsonValue(configObj).toJson(2);
+
+        return json;
+    }
 } // namespace LangPlugins::CantoneseG2p::Internal::V1

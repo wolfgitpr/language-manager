@@ -63,43 +63,14 @@ namespace LangCore
         /// 获取完整配置（JSON 字符串）
         virtual std::string getConfig() const;
 
-        /// 设置完整配置（JSON 字符串）
-        /// 注意：配置会自动保存到用户配置目录
-        virtual Expected<void> setConfig(const std::string &config);
-
-        /// 获取 UI Schema（JSON 字符串）
-        /// @return UI Schema JSON 字符串，如果插件未提供则返回空 JSON 对象 "{}"
-        virtual std::string getUiSchema() const;
-
-        /// 恢复默认配置（删除用户配置文件）
-        /// @return 成功返回 Expected<void>::success()，失败返回错误
-        Expected<void> resetToDefault();
-
-        /// 检查是否使用默认配置
-        /// @return true 如果使用默认配置，false 如果使用用户配置
-        bool isUsingDefaultConfig() const;
-
     protected:
         /// 初始化配置（自动加载配置，子类在 initialize() 中调用）
         /// @return 成功返回 Expected<void>::success()，失败返回错误
         Expected<void> initializeConfig();
 
-        /// 获取用户配置路径
-        /// @return 用户配置文件路径
-        std::filesystem::path getUserConfigPath() const;
-
-        /// 获取默认配置路径
-        /// @return 默认配置文件路径
-        std::filesystem::path getDefaultConfigPath() const;
-
-        /// 加载配置（优先用户配置，回退到默认配置）
+        /// 加载配置（从默认配置路径加载）
         /// @return 配置字符串
         Expected<std::string> loadConfig() const;
-
-        /// 保存配置到用户配置目录
-        /// @param config 配置字符串
-        /// @return 成功返回 Expected<void>::success()，失败返回错误
-        Expected<void> saveConfig(const std::string &config) const;
 
         class Impl;
         explicit Task(Impl &impl);

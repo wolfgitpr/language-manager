@@ -1,5 +1,6 @@
 #include "TemplateTaggerTask.h"
 #include "internal/V1/TaskImpl.h"
+#include <LangCore/Support/Logging.h>
 
 namespace LangPlugins::TemplateTagger
 {
@@ -30,9 +31,5 @@ namespace LangPlugins::TemplateTagger
 
     std::string TemplateTaggerTask::getConfig() const {
         return _manager.getConfig();
-    }
-
-    LangCore::Expected<void> TemplateTaggerTask::setConfig(const std::string &config) {
-        return _manager.setConfig(config);
     }
 } // namespace LangPlugins::TemplateTagger

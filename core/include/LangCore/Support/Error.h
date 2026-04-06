@@ -18,7 +18,21 @@ namespace LangCore
             DependencyError, // 依赖错误（循环依赖、依赖未找到、解释器未找到等）
             RuntimeError, // 运行时错误（会话错误、任务错误、运行时异常等）
             NotImplementedError, // 未实现错误（功能不支持、方法未实现等）
-            InitializationError // 初始化错误（未初始化、初始化失败等）
+            InitializationError, // 初始化错误（未初始化、初始化失败等）
+            ValidationError, // 验证错误（参数验证失败、数据验证失败等）
+            NullPointerError, // 空指针错误（nullptr 访问、无效指针等）
+            IndexError, // 索引错误（数组越界、无效索引等）
+            TimeoutError // 超时错误（操作超时、响应超时等）
+        };
+
+        /// 错误上下文信息
+        struct Context {
+            std::string file;     // 源文件名
+            int line;             // 行号
+            std::string function; // 函数名
+            std::string extra;    // 额外信息
+
+            Context() : line(0) {}
         };
 
         Error() : Error(Success) {}
@@ -54,12 +68,77 @@ namespace LangCore
 
         bool hasSuggestion() const { return _suggestion != nullptr; }
 
+        /// 获取错误上下文
+        const Context &context() const {
+            static const Context emptyContext;
+            return _context ? *_context : emptyContext;
+        }
+
+        /// 检查是否有上下文信息
+        bool hasContext() const { return _context != nullptr; }
+
+        /// 设置错误上下文
+        void setContext(const Context &ctx) {
+            if (!_context) {
+                _context = std::make_shared<Context>();
+            }
+            *_context = ctx;
+        }
+
+        /// 添加错误上下文（链式调用）
+        Error &withContext(const std::string &file, int line, const std::string &function) {
+            if (!_context) {
+                _context = std::make_shared<Context>();
+            }
+            _context->file = file;
+            _context->line = line;
+            _context->function = function;
+            return *this;
+        }
+
+        /// 添加额外信息（链式调用）
+        Error &withExtra(const std::string &extra) {
+            if (!_context) {
+                _context = std::make_shared<Context>();
+            }
+            _context->extra = extra;
+            return *this;
+        }
+
+        /// 获取完整的错误信息（包含上下文）
+        std::string fullMessage() const {
+            std::string result = message();
+            if (hasContext()) {
+                const auto &ctx = context();
+                if (!ctx.file.empty() || ctx.line > 0) {
+                    result += "\n  at ";
+                    if (!ctx.file.empty()) {
+                        result += ctx.file;
+                    }
+                    if (ctx.line > 0) {
+                        result += ":" + std::to_string(ctx.line);
+                    }
+                    if (!ctx.function.empty()) {
+                        result += " (" + ctx.function + ")";
+                    }
+                }
+                if (!ctx.extra.empty()) {
+                    result += "\n  extra: " + ctx.extra;
+                }
+            }
+            if (hasSuggestion()) {
+                result += "\n  suggestion: " + suggestion();
+            }
+            return result;
+        }
+
         static Error success() { return Error(Success); }
 
     protected:
         int _type;
         std::shared_ptr<std::string> _msg;
         std::shared_ptr<std::string> _suggestion;
+        std::shared_ptr<Context> _context;
 
         LANGCORE_EXPORT static std::shared_ptr<std::string> defaultMessage(int type);
     };

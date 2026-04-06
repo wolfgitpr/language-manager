@@ -223,12 +223,20 @@ namespace LangCore
 
             iterator_base(_It it) noexcept : it(it) {}
 
-            iterator_base(const iterator_base &RHS) : it(RHS.it) { ref.emplace(RHS.ref->first, RHS.ref->second); }
+            iterator_base(const iterator_base &RHS) : it(RHS.it) {
+                if (RHS.ref.has_value()) {
+                    ref.emplace(RHS.ref->first, RHS.ref->second);
+                }
+            }
 
             iterator_base &operator=(const iterator_base &RHS) {
                 if (this != &RHS) {
                     it = RHS.it;
-                    ref.emplace(RHS.ref->first, RHS.ref->second);
+                    if (RHS.ref.has_value()) {
+                        ref.emplace(RHS.ref->first, RHS.ref->second);
+                    } else {
+                        ref.reset();
+                    }
                 }
                 return *this;
             }

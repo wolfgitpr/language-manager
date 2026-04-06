@@ -1,19 +1,19 @@
+#include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <chrono>
-#include <cstdlib>
 
 #include <stdcorelib/str.h>
 #include <stdcorelib/system.h>
 
 #include <LangCore/Core/Manager.h>
 #include <LangCore/Module/Module.h>
+#include <LangCore/Support/DisplayText.h>
+#include <LangCore/Task/G2pTask.h>
 #include <LangCore/Task/SessionTask.h>
 #include <LangCore/Task/TaskPlugin.h>
-#include <LangCore/Task/G2pTask.h>
-#include <LangCore/Task/CleanerTask.h>
 
 std::filesystem::path getPluginRootDirectory() {
 #if defined(Q_OS_MAC)
@@ -86,7 +86,6 @@ bool initializeManager() {
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("G2ps"));
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Taggers"));
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Splitters"));
-    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Cleaners"));
 
     // 添加包路径
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
@@ -136,41 +135,6 @@ int main() {
 
             // 插件应该自己解析 JSON 配置
             std::cout << "\nNote: Config parsing should be done by plugins using ConfigAccessor" << std::endl;
-        }
-
-        // ========================================
-        // 测试 Cleaner 任务
-        // ========================================
-        std::cout << "\n=== Testing Cleaner Task ===" << std::endl;
-
-        auto cleanerTaskExp = langMgr->task("cleaner", "cleaner-eng");
-        if (!cleanerTaskExp) {
-            std::cerr << "Failed to load cleaner-eng task: " << cleanerTaskExp.error().message() << std::endl;
-        } else {
-            auto cleanerTask = cleanerTaskExp.take();
-
-            // 创建 cleaner 输入
-            auto cleanerInput = std::make_shared<LangCore::CleanerInputV1>();
-            cleanerInput->cleanerInput = {"Glass", "HELLO", "World!", "123", "Test"};
-
-            // 调用 cleaner
-            auto cleanerResultExp = cleanerTask->start(cleanerInput);
-            if (!cleanerResultExp) {
-                std::cerr << "Failed to run cleaner task: " << cleanerResultExp.error().message() << std::endl;
-            } else {
-                auto cleanerResult = cleanerResultExp.take();
-                if (cleanerResult->error.ok()) {
-                    auto *cleanerResultV1 = dynamic_cast<LangCore::CleanerResultV1*>(cleanerResult.get());
-                    if (cleanerResultV1) {
-                        std::cout << "Cleaner result:" << std::endl;
-                        for (size_t i = 0; i < cleanerInput->cleanerInput.size() && i < cleanerResultV1->cleanerResult.size(); ++i) {
-                            std::cout << "  '" << cleanerInput->cleanerInput[i] << "' -> '" << cleanerResultV1->cleanerResult[i] << "'" << std::endl;
-                        }
-                    }
-                } else {
-                    std::cerr << "Cleaner task error: " << cleanerResult->error.message() << std::endl;
-                }
-            }
         }
 
         // ========================================
@@ -262,10 +226,10 @@ int main() {
         // 生成100个随机的小写字母字符串（长度5-10）
         std::vector<std::string> testWords;
         testWords.reserve(100);
-        const char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
-        
+        constexpr char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
+
         for (int i = 0; i < 100; ++i) {
-            int length = 5 + (i % 6); // 长度5-10
+            int length = 5 + i % 6; // 长度5-10
             std::string word;
             for (int j = 0; j < length; ++j) {
                 word += alphabet[rand() % 26];
@@ -277,40 +241,40 @@ int main() {
 
         // 测试 TemplateG2p (g2p-eng)
         std::cout << "\nTesting TemplateG2p (g2p-eng)..." << std::endl;
-        auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng");
-        if (!g2pEngTaskExp) {
+        if (auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng"); !g2pEngTaskExp) {
             std::cerr << "Failed to load g2p-eng task: " << g2pEngTaskExp.error().message() << std::endl;
         } else {
             auto g2pEngTask = g2pEngTaskExp.take();
             auto startTime = std::chrono::high_resolution_clock::now();
-            
+
             // TemplateG2p 支持批量转换
             auto input = LangCore::NO<LangCore::G2pInputV1>::create();
             input->g2pInput = testWords;
-            
+
             auto resultExp = g2pEngTask->start(input);
             std::vector<LangCore::G2pRes> results;
-            
+
             if (resultExp) {
                 auto result = resultExp.take();
-                if (const auto g2pResult = result.as<LangCore::G2pResultV1>()) {
-                    results = g2pResult->g2pResult;
+                if (const auto g2pRes = result.as<LangCore::G2pResultV1>()) {
+                    results = g2pRes->g2pResult;
                 }
             }
-            
+
             auto endTime = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-            
+
             std::cout << "  Total time: " << duration.count() << " ms" << std::endl;
             std::cout << "  Words converted: " << results.size() << std::endl;
-            std::cout << "  Average time per word: " << (duration.count() / (double)testWords.size()) << " ms" << std::endl;
-            
+            std::cout << "  Average time per word: " << (duration.count() / static_cast<double>(testWords.size()))
+                      << " ms" << std::endl;
+
             // 显示部分结果示例
             std::cout << "\n  Sample results (first 5 words):" << std::endl;
-            for (size_t i = 0; i < std::min(size_t(5), results.size()); ++i) {
+            for (size_t i = 0; i < std::min(static_cast<size_t>(5), results.size()); ++i) {
                 std::cout << "    '" << results[i].lyric << "' -> '" << results[i].pronunciation << "'";
                 if (results[i].errorType != LangCore::NoError) {
-                    std::cout << " [Error: " << static_cast<int>(results[i].errorType) << "]";
+                    std::cout << " [Error: " << results[i].errorType << "]";
                 }
                 std::cout << std::endl;
             }

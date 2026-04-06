@@ -1,5 +1,6 @@
 #include "MandarinG2pTask.h"
 #include "internal/V1/TaskImpl.h"
+#include <LangCore/Support/Logging.h>
 
 namespace LangPlugins::MandarinG2p
 {

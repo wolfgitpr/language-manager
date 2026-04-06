@@ -67,12 +67,18 @@ namespace LangCore
         const std::string &id() const;
         const std::string &category() const;
         const std::string &className() const;
-        DisplayText name() const;
+        
+        /// 获取名称（自动返回当前语言的本地化文本，无感调用）
+        std::string name() const;
+
         int apiLevel() const;
 
         const JsonObject &manifestConfiguration() const;
         NO<TaskConfiguration> configuration() const;
         const std::filesystem::path &path() const;
+
+        /// 获取配置键的显示名称（自动返回当前语言的本地化文本，无感调用）
+        std::string configurationDisplayName(const std::string &configKey) const;
 
         State state() const;
         Package parent() const;
