@@ -10,13 +10,10 @@ namespace LangPlugins::ChainG2p
     {
         m_spec = spec;
 
-        // 解析配置 - 支持两种格式
-        // 1. TemplateG2p 格式（向后兼容）：config 直接包含 "verify" 字段
-        // 2. 责任链格式：config 包含 "tagger" 字段（在 params 内）
-        
+        // 解析配置
         std::vector<VerifyEntry> entries;
         
-        // 优先查找 tagger 字段（责任链格式）
+        // 查找 tagger 字段
         auto taggerIt = config.find("tagger");
         if (taggerIt != config.end() && taggerIt->second.isArray()) {
             const auto &taggerArray = taggerIt->second.toArray();
@@ -45,64 +42,21 @@ namespace LangPlugins::ChainG2p
                     }
                 }
                 
-                // 解析 action (责任链格式) 或 mode (TemplateG2p 格式)
+                // 解析 action
                 auto actionIt = obj.find("action");
                 if (actionIt != obj.end() && actionIt->second.isString()) {
                     entry.mode = actionIt->second.toString();
-                } else {
-                    auto modeIt = obj.find("mode");
-                    if (modeIt != obj.end() && modeIt->second.isString()) {
-                        entry.mode = modeIt->second.toString();
-                    }
                 }
                 
                 entries.push_back(entry);
             }
-        } 
-        // 查找 verify 字段（TemplateG2p 格式）
-        else {
-            auto verifyIt = config.find("verify");
-            if (verifyIt == config.end() || !verifyIt->second.isArray()) {
-                // 如果没有配置 verify/tagger，使用默认规则
-                m_verifyEntries = {
-                    {"regex", {"([A-Z]+)"}, "copy"},
-                    {"regex", {"([a-z]+)"}, "convert"}
-                };
-                return {};
-            }
-
-            const auto &verifyArray = verifyIt->second.toArray();
-            entries.reserve(verifyArray.size());
-
-            for (const auto &item : verifyArray) {
-                if (!item.isObject()) {
-                    continue;
-                }
-
-                const auto &obj = item.toObject();
-                VerifyEntry entry;
-
-                auto typeIt = obj.find("type");
-                if (typeIt != obj.end() && typeIt->second.isString()) {
-                    entry.type = typeIt->second.toString();
-                }
-
-                auto valueIt = obj.find("value");
-                if (valueIt != obj.end() && valueIt->second.isArray()) {
-                    for (const auto &v : valueIt->second.toArray()) {
-                        if (v.isString()) {
-                            entry.value.push_back(v.toString());
-                        }
-                    }
-                }
-
-                auto modeIt = obj.find("mode");
-                if (modeIt != obj.end() && modeIt->second.isString()) {
-                    entry.mode = modeIt->second.toString();
-                }
-
-                entries.push_back(entry);
-            }
+        } else {
+            // 如果没有配置 tagger，使用默认规则
+            m_verifyEntries = {
+                {"regex", {"([A-Z]+)"}, "copy"},
+                {"regex", {"([a-z]+)"}, "convert"}
+            };
+            return {};
         }
         
         m_verifyEntries = entries;

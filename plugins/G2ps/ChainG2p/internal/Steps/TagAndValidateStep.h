@@ -10,7 +10,7 @@ namespace LangPlugins::ChainG2p
 {
     /// TagAndValidateStep - 标记和验证步骤
     ///
-    /// 复用 TemplateG2p 的验证逻辑
+    /// 使用正则表达式对输入词进行分类，决定 copy/convert 模式
     class TagAndValidateStep : public G2pStep {
     public:
         TagAndValidateStep() = default;

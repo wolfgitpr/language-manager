@@ -38,7 +38,7 @@ namespace LangPlugins::MandarinG2p::Internal::V1
         
         // 配置私有成员变量
         std::filesystem::path m_dictPath;
-        std::vector<LangPlugins::InferUtil::VerifyEntry> m_verifyEntries;
+        std::unique_ptr<LangPlugins::InferUtil::Verifier> m_verifier;
     };
 
 } // namespace LangPlugins::MandarinG2p::Internal::V1

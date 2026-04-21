@@ -5,7 +5,7 @@
 namespace LangCore
 {
 
-    std::shared_ptr<std::string> Error::defaultMessage(const int type) {
+    std::shared_ptr<std::string> Error::defaultMessage(const Type type) {
         static const char* const messages[] = {
             "",  // Success
             "config error",  // ConfigError
@@ -23,11 +23,12 @@ namespace LangCore
         static const size_t messageCount = sizeof(messages) / sizeof(messages[0]);
         static std::array<std::shared_ptr<std::string>, messageCount + 1> cached;
 
-        if (type >= 0 && type < static_cast<int>(messageCount)) {
-            if (!cached[type]) {
-                cached[type] = std::make_shared<std::string>(messages[type]);
+        const auto idx = static_cast<int>(type);
+        if (idx >= 0 && idx < static_cast<int>(messageCount)) {
+            if (!cached[idx]) {
+                cached[idx] = std::make_shared<std::string>(messages[idx]);
             }
-            return cached[type];
+            return cached[idx];
         }
 
         // Unknown error type

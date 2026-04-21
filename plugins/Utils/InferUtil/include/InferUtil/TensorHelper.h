@@ -24,7 +24,7 @@ namespace LangPlugins::InferUtil
             helper._tensor = exp.take();
             auto dataPtr = helper._tensor->mutableData<T>();
             if (STDCORELIB_UNLIKELY(dataPtr == nullptr)) {
-                return Error(Error::SessionError, "failed to create tensor");
+                return Error(Error::RuntimeError, "failed to create tensor");
             }
             helper._current = dataPtr;
             helper._end = dataPtr + size;

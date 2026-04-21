@@ -116,68 +116,9 @@ namespace LangPlugins::ChainG2p
                 m_steps.push_back(step);
             }
         } else {
-            // TemplateG2p 格式（向后兼容）
-            // 自动转换为责任链步骤
-
-            // 1. tagAndValidate 步骤
-            auto verifyIt = config.find("verify");
-            if (verifyIt != config.end() && verifyIt->second.isArray()) {
-                auto stepExp = G2pStepFactory::create("tagAndValidate");
-                if (!stepExp) {
-                    return stepExp.takeError();
-                }
-                auto step = stepExp.take();
-                auto configExp = step->configure(m_spec, config);
-                if (!configExp) {
-                    return configExp.takeError();
-                }
-                m_steps.push_back(step);
-            }
-
-            // 2. dict 步骤（检查是否有 file 字段）
-            auto fileIt = config.find("file");
-            if (fileIt != config.end() && fileIt->second.isString()) {
-                auto stepExp = G2pStepFactory::create("dict");
-                if (!stepExp) {
-                    return stepExp.takeError();
-                }
-                auto step = stepExp.take();
-                auto configExp = step->configure(m_spec, config);
-                if (!configExp) {
-                    return configExp.takeError();
-                }
-                m_steps.push_back(step);
-            }
-
-            // 3. model 步骤（检查是否有 id 字段）
-            auto idIt = config.find("id");
-            if (idIt != config.end() && idIt->second.isString()) {
-                auto stepExp = G2pStepFactory::create("model");
-                if (!stepExp) {
-                    return stepExp.takeError();
-                }
-                auto step = stepExp.take();
-                auto configExp = step->configure(m_spec, config);
-                if (!configExp) {
-                    return configExp.takeError();
-                }
-                m_steps.push_back(step);
-            }
-
-            // 4. fallback 步骤（检查是否有 useOriginal 字段）
-            auto useOriginalIt = config.find("useOriginal");
-            if (useOriginalIt != config.end() && useOriginalIt->second.isBool()) {
-                auto stepExp = G2pStepFactory::create("fallback");
-                if (!stepExp) {
-                    return stepExp.takeError();
-                }
-                auto step = stepExp.take();
-                auto configExp = step->configure(m_spec, config);
-                if (!configExp) {
-                    return configExp.takeError();
-                }
-                m_steps.push_back(step);
-            }
+            return LangCore::Error(LangCore::Error::ConfigError,
+                                 "Missing required 'steps' array in configuration",
+                                 "Configuration must contain a 'steps' array defining the G2p pipeline");
         }
 
         return {};

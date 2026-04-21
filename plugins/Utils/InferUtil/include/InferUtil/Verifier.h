@@ -89,35 +89,8 @@ namespace LangPlugins::InferUtil
         std::vector<std::unique_ptr<IVerify>> verifiers_;
     };
 
-    // Helper class to manage verifier instance
-    class VerifierHolder {
-    public:
-        std::unique_ptr<Verifier> verifier;
-
-        explicit VerifierHolder(const std::vector<VerifyEntry> &entries) {
-            auto exp = Verifier::Create(entries);
-            if (exp) {
-                verifier = exp.take();
-            }
-        }
-
-        std::vector<std::tuple<std::string, std::string, std::string>>
-        verify(const std::vector<std::string> &input) const {
-            if (verifier) {
-                auto verifyResults = verifier->verify(input);
-                std::vector<std::tuple<std::string, std::string, std::string>> result;
-                result.reserve(verifyResults.size());
-                for (const auto &res : verifyResults) {
-                    result.emplace_back(res.lyric, res.mode, res.error ? "error" : "");
-                }
-                return result;
-            }
-            return {};
-        }
-    };
-
     // Helper function to parse verify entries from JSON
-    static LangCore::Expected<std::vector<VerifyEntry>>
+    inline LangCore::Expected<std::vector<VerifyEntry>>
         ParseVerifyEntries(const LangCore::JsonObject &config, const std::filesystem::path &basePath) {
         std::vector<VerifyEntry> entries;
 

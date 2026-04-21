@@ -243,9 +243,9 @@ int main() {
         std::cout << "========================================" << std::endl;
 
         // ========================================
-        // TemplateG2p 性能测试
+        // G2p 性能测试
         // ========================================
-        std::cout << "\n=== Testing TemplateG2p Performance ===" << std::endl;
+        std::cout << "\n=== Testing G2p Performance ===" << std::endl;
 
         // 生成100个随机的小写字母字符串（长度5-10）
         std::vector<std::string> testWords;
@@ -263,15 +263,15 @@ int main() {
 
         std::cout << "Generated " << testWords.size() << " random lowercase words for testing" << std::endl;
 
-        // 测试 TemplateG2p (g2p-eng)
-        std::cout << "\nTesting TemplateG2p (g2p-eng)..." << std::endl;
+        // 测试 ChainG2p (g2p-eng)
+        std::cout << "\nTesting ChainG2p (g2p-eng)..." << std::endl;
         if (auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng"); !g2pEngTaskExp) {
             std::cerr << "Failed to load g2p-eng task: " << g2pEngTaskExp.error().message() << std::endl;
         } else {
             auto g2pEngTask = g2pEngTaskExp.take();
             auto startTime = std::chrono::high_resolution_clock::now();
 
-            // TemplateG2p 支持批量转换
+            // ChainG2p 支持批量转换
             auto input = LangCore::NO<LangCore::G2pInputV1>::create();
             input->g2pInput = testWords;
 

@@ -37,23 +37,21 @@ namespace LangCore
 
         Error() : Error(Success) {}
 
-        explicit Error(int type) : Error(static_cast<Type>(type)) {}
-
         Error(const Type type) : _type(type), _msg(defaultMessage(type)) {}
 
-        Error(const int type, std::string msg) : _type(type), _msg(std::make_shared<std::string>(std::move(msg))) {}
+        Error(const Type type, std::string msg) : _type(type), _msg(std::make_shared<std::string>(std::move(msg))) {}
 
-        Error(const int type, const char *msg) : _type(type), _msg(std::make_shared<std::string>(msg)) {}
+        Error(const Type type, const char *msg) : _type(type), _msg(std::make_shared<std::string>(msg)) {}
 
-        Error(const int type, std::string msg, std::string suggestion)
+        Error(const Type type, std::string msg, std::string suggestion)
             : _type(type), _msg(std::make_shared<std::string>(std::move(msg))),
               _suggestion(std::make_shared<std::string>(std::move(suggestion))) {}
 
-        Error(const int type, const char *msg, const char *suggestion)
+        Error(const Type type, const char *msg, const char *suggestion)
             : _type(type), _msg(std::make_shared<std::string>(msg)),
               _suggestion(std::make_shared<std::string>(suggestion)) {}
 
-        int type() const { return _type; }
+        Type type() const { return _type; }
 
         bool ok() const { return _type == Success; }
 
@@ -135,12 +133,12 @@ namespace LangCore
         static Error success() { return Error(Success); }
 
     protected:
-        int _type;
+        Type _type;
         std::shared_ptr<std::string> _msg;
         std::shared_ptr<std::string> _suggestion;
         std::shared_ptr<Context> _context;
 
-        LANGCORE_EXPORT static std::shared_ptr<std::string> defaultMessage(int type);
+        LANGCORE_EXPORT static std::shared_ptr<std::string> defaultMessage(Type type);
     };
 
 } // namespace LangCore

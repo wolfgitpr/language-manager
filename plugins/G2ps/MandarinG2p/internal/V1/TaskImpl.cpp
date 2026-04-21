@@ -30,12 +30,17 @@ namespace LangPlugins::MandarinG2p::Internal::V1
 
         auto cfg = LangCore::config(m_spec);
 
-        // Parse verify entries - 存储到私有成员变量
+        // Parse verify entries and create verifier
         auto verifyEntryExp = ParseVerifyEntries(cfg.raw(), m_spec->path());
         if (!verifyEntryExp) {
             return verifyEntryExp.takeError();
         }
-        m_verifyEntries = verifyEntryExp.take();
+
+        auto verifierExp = Verifier::Create(verifyEntryExp.take());
+        if (!verifierExp) {
+            return verifierExp.takeError();
+        }
+        m_verifier = verifierExp.take();
 
         // Required fields - 存储到私有成员变量
         auto dictPathExp = cfg.getPath("dictPath");
@@ -82,16 +87,11 @@ namespace LangPlugins::MandarinG2p::Internal::V1
         std::vector<LangCore::G2pRes> res;
         const auto g2pInput = input.as<LangCore::G2pInputV1>();
 
-        // 使用私有成员变量 m_verifyEntries
-        LangPlugins::InferUtil::VerifierHolder verifierHolder(m_verifyEntries);
-
-        const auto verifyRes = verifierHolder.verify(g2pInput->g2pInput);
+        // 使用 m_verifier 进行验证
+        const auto verifyRes = m_verifier->verify(g2pInput->g2pInput);
         res.reserve(verifyRes.size());
-        for (const auto &[lyric, mode, verifyError] : verifyRes) {
-            LangCore::G2pErrorType wordErrorType = LangCore::NoError;
-            if (!verifyError.empty()) {
-                wordErrorType = LangCore::InvalidLyric;
-            }
+        for (const auto &[lyric, mode, error] : verifyRes) {
+            LangCore::G2pErrorType wordErrorType = error ? LangCore::InvalidLyric : LangCore::NoError;
             res.emplace_back(LangCore::G2pRes{
                 std::string(lyric), std::string(m_spec->id()), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
         }
