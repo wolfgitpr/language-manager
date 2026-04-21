@@ -1,6 +1,6 @@
 # Language Manager 产品需求文档 v2.0
 
-**版本**：2.2  
+**版本**：2.3  
 **日期**：2026-04-21  
 **核心目标**：C++17 插件化 G2p（Grapheme-to-Phoneme）框架，遵循"Write Once, Run Forever"设计理念。
 
@@ -8,7 +8,7 @@
 
 ## 1. 产品概述
 
-Language Manager 是一个模块化语言处理框架。核心库提供文本分割（Splitter）和语言标记（Tagger）的内置实现，通过插件提供语音转换（G2p）、推理驱动（Driver）、字典查询（Dict）等能力。
+Language Manager 是一个模块化语言处理框架。所有功能（文本分割、语言标记、语音转换、推理驱动、字典查询）均通过插件提供，核心库提供统一的插件管理、依赖解析和任务调度机制。
 
 **设计原则**：
 - 简洁可靠：遇错直接返回，不设计重试或回滚
@@ -54,12 +54,12 @@ Manager Level = M, Plugin Level = P
 
 | 类型 | 使用 Core 结构体 | Level 检查 | 示例 |
 |------|-----------------|-----------|------|
-| **核心插件** | 是（TaskInput/TaskResult） | 是 | G2p, Dict |
+| **核心插件** | 是（TaskInput/TaskResult） | 是 | G2p, Dict, Splitter, Tagger |
 | **工具插件** | 否 | 否 | Driver, 辅助工具 |
 
 判断规则：使用 Core 结构体或继承 Task 的都是核心插件。
 
-> **注意**：Splitter 和 Tagger 不再是插件，而是 core 库的内置工具（见 §3.3）。
+> Splitter 和 Tagger 作为插件实现，分别属于 `splitter` 和 `tagger` 模块类别，通过 `TaskPlugin` 机制加载。Manager 在高层 API（`split()`/`tag()`）中自动调度对应插件任务。
 
 ---
 
@@ -69,8 +69,6 @@ Manager Level = M, Plugin Level = P
 
 ```
 应用层        Manager (单例，高层 API：split/tag/convert)
-               ├── 内置      Splitter (单实例，多正则配置驱动)
-               ├── 内置      Tagger  (单实例，多语言配置驱动，优先级排序)
                ↓ 继承
 管理层        PackageManager (包发现、依赖解析、模块管理)
                ↓ 继承
@@ -92,12 +90,13 @@ class Manager : public PackageManager {
 public:
     static Manager *instance();
     bool initialize(std::string &errMsg);
+    bool initialized() const;
 
-    // 插件任务
+    // 插件任务查询
     Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
     Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
 
-    // 内置工具
+    // 高层便捷 API（内部调度 splitter/tagger/g2p 插件）
     std::vector<std::string> split(const std::string &input);
     std::vector<std::string> split(const std::vector<std::string> &input);
 
@@ -105,7 +104,6 @@ public:
                                bool split = false, bool discard = false,
                                const std::vector<std::string> &priorityLanguages = {});
 
-    // G2p 转换（注：裸指针参数为历史接口，后续版本考虑改为值语义）
     std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
 };
 ```
@@ -115,6 +113,8 @@ public:
 ```cpp
 class Task : public NamedObject {
 public:
+    explicit Task(const ModuleSpec *spec);
+
     // API 兼容性
     virtual int apiLevel() const = 0;
 
@@ -122,15 +122,20 @@ public:
     virtual Expected<void> initialize() = 0;
     virtual Expected<NO<TaskResult>> start(const NO<TaskInput> &input) = 0;
 
+    // 元数据访问
+    const ModuleSpec *spec() const;
+    PackageManager *Mgr() const;
+
     // 配置 API
     virtual std::string getConfig() const;
-    virtual Expected<void> setConfig(const std::string &config);
-    virtual Expected<void> resetToDefault();
-    virtual bool isUsingDefaultConfig() const;
 
 protected:
     // 获取依赖模块并校验 Level
     Expected<NO<NamedObject>> getObject(const std::string &category, const std::string &id) const;
+
+    // 配置加载（子类在 initialize() 中调用）
+    Expected<void> initializeConfig();
+    Expected<std::string> loadConfig() const;
 };
 ```
 
@@ -157,6 +162,14 @@ public:
 **Plugin** — 插件基类，两种派生：
 
 ```cpp
+class Plugin {
+public:
+    virtual const char *iid() const = 0;
+    virtual const char *key() const = 0;
+    virtual int apiLevel() const = 0;
+    std::filesystem::path path() const;
+};
+
 // 任务插件：创建 Task
 class TaskPlugin : public Plugin {
     const char *iid() const override { return "org.openvpi.Task"; }
@@ -170,84 +183,79 @@ class DriverPlugin : public Plugin {
 };
 ```
 
-**ModuleSpec** — 模块元数据（id、category、apiLevel、config、path、所属 Package）。
+**简化宏**——快速定义插件导出：
 
-**ModuleCategory** — 同类模块的容器（ObjectPool），系统预定义三类：`driver`, `g2p`, `dict`。
+```cpp
+// 定义并导出 TaskPlugin
+LANGCORE_DEFINE_TASK_PLUGIN(PluginClass, TaskClass, PluginKey, ApiLevel)
+
+// 定义并导出 DriverPlugin
+LANGCORE_DEFINE_DRIVER_PLUGIN(PluginClass, FactoryClass, PluginKey, ApiLevel)
+```
+
+**ModuleSpec** — 模块元数据（id、category、className、apiLevel、manifestConfiguration、configuration、path、所属 Package）。
+
+**ModuleCategory** — 同类模块的容器（ObjectPool），系统预定义五类：`driver`, `g2p`, `splitter`, `tagger`, `dict`。通过宏 `LANGCORE_DECLARE_MODULE_CATEGORY` / `LANGCORE_DEFINE_MODULE_CATEGORY` 注册。
 
 **Package** — 插件包（id、version、vendor、modules、dependencies）。
 
-### 3.3 内置工具：Splitter 与 Tagger
+### 3.3 Splitter 与 Tagger 插件
 
-Splitter 和 Tagger 不是插件，而是 core 库中由 Manager 持有的**单实例工具**。它们的行为完全由 Package 中的配置 JSON 驱动，初始化时从所有已加载包中收集配置。
+Splitter 和 Tagger 是标准插件，通过 `splitter` 和 `tagger` 模块类别注册。每个语言包在 `package.json` 的 `modules` 中声明各自的 Splitter 和 Tagger 模块，Manager 在高层 API 中自动协调调用。
 
-#### Splitter
+#### Splitter 插件（RegexSplitter）
 
-全局唯一实例。初始化时从所有已加载包中收集正则表达式，对输入文本逐层细分。
+使用正则表达式对输入文本进行分割。配置中指定 `pattern` 或 `regexes`，Task 类型为 `SplitterInputV1` / `SplitterResultV1`。
 
-**配置格式**（在 package.json 的 `splitter` 字段中声明）：
+**配置格式**（在模块的 config.json 中）：
 
 ```json
 {
-  "splitter": {
-    "regexes": ["([\\p{Han}])"],
-    "order": 100
-  }
+  "pattern": "([\\p{Han}])"
 }
 ```
 
-- `regexes`：正则表达式数组，每个正则的第一个捕获组为分割单元。一个包可声明多条正则（如标点包同时切分空白、连字符、换行、标点符号）
-- `order`：包间加载优先级（数值小的先应用），同一 `order` 的按包加载顺序排列
-
-**工作流程**：
-1. 初始化时，按 `order` 排序合并所有包的 `regexes` 为全局有序正则列表
-2. `split(text)` 对输入文本依次应用每条正则，逐层细分——每条正则将前一步的段落进一步拆分，正则匹配部分和非匹配部分都保留为独立段落
-3. `split(vector)` 重载对已有段落列表继续细分
-
-#### Tagger
-
-全局唯一实例。初始化时从所有已加载包中收集匹配规则，对文本段逐条标注语言。
-
-**配置格式**（在 package.json 的 `taggers` 数组中声明，一个包可包含多个语言的配置）：
+或：
 
 ```json
 {
-  "taggers": [
-    {
-      "language": "cmn",
-      "priority": 100,
-      "rules": [
-        { "type": "dict",  "value": ["pinyin_dict.txt"], "tag": "pinyin" },
-        { "type": "regex", "value": ["([\\p{Han}])"],    "tag": "hanzi" }
-      ]
-    },
-    {
-      "language": "punc",
-      "priority": 900,
-      "rules": [
-        { "type": "regex", "value": ["([\\s]+)"],   "tag": "space",  "discard": true },
-        { "type": "regex", "value": ["([\\p{P}])"], "tag": "punc",   "discard": true }
-      ]
-    }
+  "regexes": ["([\\p{Han}])"]
+}
+```
+
+**工作流程**：
+1. `initialize()` 加载并编译正则表达式（RE2）
+2. `start(SplitterInputV1)` 对每个输入字符串应用正则分割，匹配部分和非匹配部分都保留为独立段落
+3. Manager 的 `split()` 方法按依赖拓扑序调度所有 splitter 插件，逐层细分
+
+#### Tagger 插件（TemplateTagger）
+
+使用模板匹配进行语言标记。配置中指定 `language` 和 `tagger` 规则数组，Task 类型为 `TaggerInputV1` / `TaggerResultV1`。
+
+**配置格式**（在模块的 config.json 中）：
+
+```json
+{
+  "language": "cmn",
+  "tagger": [
+    { "type": "dict",  "value": ["ds-zh-pinyin-lite.txt"], "tag": "pinyin", "discard": false },
+    { "type": "regex", "value": ["([\\p{Han}])"],          "tag": "hanzi",  "discard": false }
   ]
 }
 ```
 
-- `taggers`：数组，每个元素描述一种语言的标注配置
-- `language`：标注为哪种语言（如 `"cmn"`, `"eng"`, `"jpn"`, `"punc"`）
-- `priority`：匹配优先级（数值小的先匹配），可被 `tag()` 的 `priorityLanguages` 参数覆盖
-- `rules`：匹配规则数组，三种类型：
+- `language`：标注为哪种语言
+- `tagger`：匹配规则数组，三种类型：
   - `"regex"`：正则全匹配（`RE2::FullMatch`），`value` 中多个正则用 `|` 合并
   - `"array"`：字符串集合精确匹配
   - `"dict"`：从制表符分隔文件加载词表，同 array 匹配逻辑
 - `tag`：匹配后赋予的标签
-- `discard`：可选，默认 `false`，标记为 `true` 的段落在最终结果中移除
+- `discard`：标记为 `true` 的段落在最终结果中可被移除
 
 **工作流程**：
-1. 初始化时，按 `priority` 排序收集所有包的 tagger 配置
-2. `tag(segments, split, discard, priorityLanguages)` 对每个段落，按优先级顺序逐个尝试匹配——仅对 `language == "unknown"` 的段落生效，已标注的跳过
-3. 若传入 `priorityLanguages`，对应语言的 tagger 提升到最高优先级
-4. 若 `split == true`，先调用内置 Splitter 切分输入
-5. 若 `discard == true`，从结果中移除 `discard` 标记为 `true` 的段落
+1. `initialize()` 加载 language 和所有规则，构建 `TaggerUtil` 实例
+2. `start(TaggerInputV1)` 对每个段落，按规则顺序逐个尝试匹配——仅对 `language == "unknown"` 的段落生效，已标注的跳过
+3. Manager 的 `tag()` 方法自动调度所有 tagger 插件并合并结果
 
 ### 3.4 关键数据结构
 
@@ -257,12 +265,23 @@ struct G2pInput {
     std::string g2pId;    // 使用的 G2p 模块 ID
 };
 
+enum G2pErrorType {
+    NoError = 0,
+    InitError, ModelInitFailed, SessionInitFailed, ConfigError,
+    InvalidInput, EmptyInput, InvalidLyric, UnsupportedCharacter,
+    ResourceError, ModelNotFound, DictNotFound, VocabNotFound,
+    ConversionError, PinyinConversionFailed, ModelInferenceFailed,
+    PhonemeGenerationFailed, DependencyError, RuntimeError,
+    TensorError, SessionError, UnknownError,
+};
+
 struct G2pRes {
     std::string lyric;                       // 输入文本
     std::string g2pId;                       // G2p 模块 ID
-    std::string pronunciation = lyric;       // 发音结果
+    std::string pronunciation;               // 发音结果（默认为 lyric）
     std::vector<std::string> candidates;     // 候选发音
     std::string mode = "copy";               // "copy" 或 "convert"
+    G2pErrorType errorType = NoError;        // 错误类型
 };
 
 struct TaggerRes {
@@ -273,7 +292,61 @@ struct TaggerRes {
 };
 ```
 
-### 3.5 多版本任务支持
+### 3.5 版本化任务 I/O 类型
+
+每个模块类别定义版本化的输入/输出类型，均继承自 `TaskInput` / `TaskResult`：
+
+```cpp
+// Splitter
+class SplitterInputV1 : public TaskInput {
+    std::vector<std::string> splitterInput;
+};
+class SplitterResultV1 : public TaskResult {
+    std::vector<std::string> splitterResult;
+};
+
+// Tagger
+class TaggerInputV1 : public TaskInput {
+    std::vector<TaggerRes> taggerInput;
+};
+class TaggerResultV1 : public TaskResult {
+    std::vector<TaggerRes> taggerResult;
+    std::string errorMessage;
+};
+
+// G2p
+class G2pInputV1 : public TaskInput {
+    std::vector<std::string> g2pInput;
+};
+class G2pResultV1 : public TaskResult {
+    std::vector<G2pRes> g2pResult;
+    std::string errorMessage;
+};
+
+// Dict
+class DictInputV1 : public TaskInput {
+    std::string dictId;
+    std::vector<std::string> keys;
+    std::string defaultValue;
+    uint32_t flags = 0;
+};
+class DictResV1 : public TaskResult {
+    std::vector<std::string> values;
+    bool found = false;
+    size_t foundCount = 0;
+};
+
+// Session（AI 模型推理）
+class SessionStartInput : public TaskInput {
+    std::map<std::string, NO<ITensor>> inputs;
+    std::set<std::string> outputs;
+};
+class SessionResult : public TaskResult {
+    std::map<std::string, NO<ITensor>> outputs;
+};
+```
+
+### 3.6 多版本任务支持
 
 通过 `VersionedTaskManager<T>` 模板支持同一 Task 的多个 Level 实现：
 
@@ -288,6 +361,46 @@ class MyTask : public Task {
 };
 ```
 
+`TASK_IMPLEMENT` 宏可自动生成 Task 的构造函数、`apiLevel()`、`initialize()`、`start()`、`getConfig()` 委托代码：
+
+```cpp
+TASK_IMPLEMENT(MyTask, MyTask, Internal::V1, TaskImpl)
+```
+
+### 3.7 SessionFactory
+
+为 AI 模型推理提供会话工厂：
+
+```cpp
+class SessionFactory : public NamedObject {
+public:
+    virtual std::string arch() const = 0;
+    virtual std::string backend() const = 0;
+    virtual Expected<void> initialize(const NO<TaskInitArgs> &args) = 0;
+    virtual NO<SessionTask> createSession() = 0;
+};
+```
+
+相关初始化参数类型：
+
+```cpp
+class DriverInitArgs : public TaskInitArgs {
+    bool loadFromProcess = false;
+    ExecutionProvider ep = CPUExecutionProvider;
+    int deviceIndex = -1;
+    std::filesystem::path runtimePath;
+};
+
+class SessionOpenArgs : public TaskInitArgs {
+    bool useCpu = false;
+};
+
+enum ExecutionProvider {
+    CPUExecutionProvider, CUDAExecutionProvider,
+    DMLExecutionProvider, CoreMLExecutionProvider,
+};
+```
+
 ---
 
 ## 4. Package 格式
@@ -298,7 +411,11 @@ Package 是可分发的最小单位，扩展名 `.lmpk`（UTF-8 编码 ZIP）。
 my-package.lmpk
 ├── package.json           # 包描述文件
 ├── modules/               # 模块配置
-│   └── my-module/
+│   ├── Splitter-Cmn/
+│   │   └── config.json
+│   ├── Tagger-Cmn/
+│   │   └── config.json
+│   └── G2p-Cmn/
 │       └── config.json
 └── assets/                # 资源文件（模型、字典等）
 ```
@@ -309,31 +426,32 @@ my-package.lmpk
 {
   "packageId": "cmn-official",
   "version": "1.0.1",
-  "vendor": { "_": "OpenVPI", "zh": "OpenVPI 团队" },
-
-  "splitter": {
-    "regexes": ["([\\p{Han}])"],
-    "order": 100
-  },
-
-  "taggers": [
-    {
-      "language": "cmn",
-      "priority": 100,
-      "rules": [
-        { "type": "dict",  "value": ["ds-zh-pinyin-lite.txt"], "tag": "pinyin" },
-        { "type": "regex", "value": ["([\\p{Han}])"],          "tag": "hanzi" }
-      ]
-    }
-  ],
+  "vendor": "OpenVPI",
+  "copyright": "Copyright (C) OpenVPI",
 
   "modules": {
+    "splitter": [
+      {
+        "moduleId": "splitter-cmn",
+        "class": "splitter.regex.RegexSplitterInference",
+        "configuration": "modules/Splitter-Cmn/config.json"
+      }
+    ],
+    "tagger": [
+      {
+        "moduleId": "tagger-cmn",
+        "class": "tagger.template.TemplateTaggerInference",
+        "configuration": "modules/Tagger-Cmn/config.json",
+        "dependencies": [
+          { "packageId": "cmn-official", "moduleId": "splitter-cmn", "level": 1, "version": "*" }
+        ]
+      }
+    ],
     "g2p": [
       {
         "moduleId": "g2p-cmn",
-        "class": "g2p.mandarin.MandarinG2pInference",
-        "configuration": "modules/g2p-cmn/config.json",
-        "dependencies": []
+        "class": "g2p.template.MandarinG2pInference",
+        "configuration": "modules/G2p-Cmn/config.json"
       }
     ]
   }
@@ -341,11 +459,10 @@ my-package.lmpk
 ```
 
 **必选**：`packageId`（禁止 `/\[]:;'"` 字符）  
-**可选**：`version`, `vendor`, `copyright`, `description`, `url`, `splitter`, `taggers`, `modules`
+**可选**：`version`, `vendor`, `copyright`, `description`, `url`, `modules`
 
-- `splitter`：内置 Splitter 配置（对象），Manager 初始化时自动收集
-- `taggers`：内置 Tagger 配置（数组），一个包可声明多个语言的标注规则
-- `modules`：插件模块声明（g2p / driver / dict）
+- `modules`：按类别（`splitter` / `tagger` / `g2p` / `driver` / `dict`）声明模块数组
+- 每个模块包含 `moduleId`、`class`（插件 key 匹配）、`configuration`（指向 config.json 路径）、`dependencies`（可选）
 
 声明文件中的相对路径基于该文件所在目录。
 
@@ -360,7 +477,16 @@ class Error {
 public:
     enum Type {
         Success = 0, ConfigError, FileSystemError,
-        DependencyError, RuntimeError, NotImplementedError, InitializationError
+        DependencyError, RuntimeError, NotImplementedError,
+        InitializationError, ValidationError, NullPointerError,
+        IndexError, TimeoutError
+    };
+
+    struct Context {
+        std::string file;
+        int line;
+        std::string function;
+        std::string extra;
     };
 
     Error(int type, std::string msg);
@@ -370,6 +496,11 @@ public:
     bool ok() const;
     const std::string &message() const;
     const std::string &suggestion() const;
+    const Context &context() const;
+
+    Error &withContext(const std::string &file, int line, const std::string &function);
+    Error &withExtra(const std::string &extra);
+    std::string fullMessage() const;
 };
 ```
 
@@ -384,7 +515,7 @@ if (!result) {
     LOG_ERROR("Failed: {}", err.message());
     return err;  // 直接传播，不重试，不回滚
 }
-auto value = result.get();
+auto value = result.take();
 ```
 
 ---
@@ -402,13 +533,19 @@ auto path = cfg.getPath("model_path");
 // 可选字段 — 提供默认值
 auto threshold = cfg.getDouble("threshold", 0.5);
 auto enabled = cfg.getBool("enabled", true);
+
+// 数组字段
+auto regexes = cfg.getStringArray("regexes");
+
+// 字段存在性检查
+if (cfg.has("pattern")) { ... }
 ```
 
-### 6.2 配置持久化
+### 6.2 配置加载
 
-- **加载**：优先用户配置（`~/.config/language-manager/[taskId]/config.json`），回退默认配置
-- **保存**：`setConfig()` 自动写入用户配置目录
-- **重置**：`resetToDefault()` 删除用户配置文件
+- Task 基类提供 `initializeConfig()` 和 `loadConfig()` 方法
+- 插件在 `initialize()` 中调用 `initializeConfig()` 完成配置加载
+- 配置来源：模块的 `config.json`（由 `ModuleSpec::manifestConfiguration()` 提供）
 
 ---
 
@@ -423,6 +560,8 @@ LOG_ERROR("Config missing key: {}", key);
 
 级别：Trace, Debug, Info, Success, Warning, Critical, Fatal。
 
+日志分类（`ManagerLogger.h`）：`MgrLog`, `PluginLog`, `DependencyLog`, `ConfigLog`。
+
 ---
 
 ## 8. 初始化流程
@@ -431,16 +570,16 @@ LOG_ERROR("Config missing key: {}", key);
 Manager::initialize()
   → PackageManager::loadPackagesInOrder()
     → 扫描包目录，解析 package.json
-    → 收集 splitter/taggers 配置，初始化内置工具实例
-    → 收集 ModuleMetadata，构建依赖图
+    → 收集 ModuleMetadata（含 splitter/tagger/g2p/driver/dict 模块）
+    → 构建依赖图，检查依赖完整性
     → 按拓扑序加载插件：PluginFactory::loadPlugin() → Plugin::createTask() → Task::initialize()
 ```
 
 运行时调用：
 
 ```
-Manager::split(text)                            → 内置 Splitter 逐层正则切分 → vector<string>
-Manager::tag(segments, split, discard, priority) → 内置 Tagger 按优先级逐条匹配 → vector<TaggerRes>
+Manager::split(text)                            → 调度 splitter 类别插件 → vector<string>
+Manager::tag(segments, split, discard, priority) → 调度 tagger 类别插件 → vector<TaggerRes>
 Manager::convert(input)                          → 分发到对应 G2p Task → vector<G2pRes>
 ```
 
@@ -485,7 +624,7 @@ Manager::convert(input)                          → 分发到对应 G2p Task �
 | Splitter | 多语言混合文本切分、边界情况（空串、特殊字符） |
 | Tagger | 多语言标注、优先级覆盖、discard 过滤 |
 | G2p | 各语言 G2p 转换正确性、批量处理 |
-| 配置 | getConfig/setConfig/resetToDefault 持久化 |
+| 配置 | getConfig 配置读取 |
 | 错误处理 | 缺失依赖、无效配置、不兼容 Level 的错误报告 |
 
 ---
@@ -495,25 +634,33 @@ Manager::convert(input)                          → 分发到对应 G2p Task �
 ```
 core/
   include/LangCore/        公共头文件
-    Base/                   NamedObject, ObjectPool, LangCommon
-    Support/                Error, Expected, ConfigAccessor, Logging, DisplayText
-    Core/                   Plugin, PluginFactory, PackageManager, Manager
-    Task/                   Task, SessionTask, TaskPlugin, SessionFactory, VersionedTaskManager
-    Module/                 ModuleSpec, ModuleCategory, DependencyGraph
+    Base/                   NamedObject, ObjectPool, LangCommon, AlignedAllocator
+    Support/                Error, Expected, ConfigAccessor, Logging, DisplayText, JSON, PhonemeDict, Tensor
+    Core/                   Plugin, PluginFactory, PackageManager, Manager, ManagerLogger
+    Task/                   Task, SessionTask, TaskPlugin, TaskFactory, VersionedTaskManager,
+                            VersionedTaskImplBase, G2pTask, SplitterTask, TaggerTask, DictTask
+    Module/                 Module (ModuleSpec, ModuleCategory), ModuleCategories,
+                            Dependency/ (DependencyGraph, DependencyResolver, LevelCompatibilityChecker, VersionUtils)
     Package/                Package
-  lib/                      实现（含内置 Splitter/Tagger）
+  lib/                      实现
 
 plugins/
+  Splitters/
+    RegexSplitter/          正则分割插件（RE2）
+  Taggers/
+    TemplateTagger/         模板标注插件（regex/array/dict 规则）
   G2ps/
     MandarinG2p/            普通话 G2p（cpp-pinyin）
     CantoneseG2p/           粤语 G2p（cpp-kana）
     LstmG2p/                LSTM 模型 G2p（ONNX）
     ChainG2p/               责任链 G2p 框架
-  Dicts/DsDict/             字典查询
-  Drivers/OnnxDriver/       ONNX Runtime 推理驱动
+  Dicts/
+    DsDict/                 字典查询
+  Drivers/
+    OnnxDriver/             ONNX Runtime 推理驱动
   Utils/                    辅助工具（InferUtil, OnnxUtil, Common）
 
-res/G2pPackages/            语言包资源（含 splitter/tagger 配置）
+res/G2pPackages/            语言包资源（含各语言的 splitter/tagger/g2p 模块配置）
 tests/                      全流程集成测试
 ```
 
@@ -526,8 +673,10 @@ tests/                      全流程集成测试
 | 插件类 | `[Name]Plugin` | `MandarinG2pPlugin` |
 | 任务类 | `[Name]Task` | `MandarinG2pTask` |
 | 命名空间 | `LangPlugins::[Name]` | `LangPlugins::MandarinG2p` |
-| 插件 key | `category.plugin-name` | `g2p.mandarin` |
+| 插件 key | `category.plugin-name` | `g2p.template.MandarinG2pInference` |
 | 插件导出 | `LANGCORE_EXPORT_PLUGIN(Class)` | `LANGCORE_EXPORT_PLUGIN(MandarinG2pPlugin)` |
+| 简化宏导出 | `LANGCORE_DEFINE_TASK_PLUGIN(...)` | `LANGCORE_DEFINE_TASK_PLUGIN(Plugin, Task, Key, Level)` |
+| 模块类别宏 | `LANGCORE_DECLARE_MODULE_CATEGORY(Name, Key)` | `LANGCORE_DECLARE_MODULE_CATEGORY(G2p, "g2p")` |
 
 ---
 
@@ -539,5 +688,5 @@ tests/                      全流程集成测试
 
 ---
 
-**文档版本**: 2.2  
+**文档版本**: 2.3  
 **最后更新**: 2026-04-21
