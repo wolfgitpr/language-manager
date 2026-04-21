@@ -29,12 +29,6 @@ namespace LangCore
         Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
         Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
 
-        std::vector<std::string> split(const std::string &input);
-        std::vector<std::string> split(const std::vector<std::string> &input);
-
-        std::vector<TaggerRes> tag(const std::vector<std::string> &input, bool split = false, bool discard = false,
-                                   const std::vector<std::string> &priorityLanguages = {});
-
         std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
 
     private:

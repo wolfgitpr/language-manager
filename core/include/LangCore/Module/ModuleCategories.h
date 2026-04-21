@@ -9,14 +9,10 @@ namespace LangCore
 {
     class DriverTask;
     class G2pTask;
-    class SplitterTask;
-    class TaggerTask;
     class DictTask;
 
     LANGCORE_DECLARE_MODULE_CATEGORY(Driver, "driver")
     LANGCORE_DECLARE_MODULE_CATEGORY(G2p, "g2p")
-    LANGCORE_DECLARE_MODULE_CATEGORY(Splitter, "splitter")
-    LANGCORE_DECLARE_MODULE_CATEGORY(Tagger, "tagger")
     LANGCORE_DECLARE_MODULE_CATEGORY(Dict, "dict")
 
 } // namespace LangCore

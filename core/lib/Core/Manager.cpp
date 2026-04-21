@@ -9,8 +9,6 @@
 #include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Task/G2pTask.h>
-#include <LangCore/Task/SplitterTask.h>
-#include <LangCore/Task/TaggerTask.h>
 #include <LangCore/Task/Task.h>
 
 namespace fs = std::filesystem;
@@ -20,29 +18,6 @@ namespace LangCore
     Manager::Impl::Impl(Manager *decl) : PackageManager::Impl(decl) {}
 
     Manager::Impl::~Impl() = default;
-
-    std::vector<NO<Task>> Manager::Impl::priorityTaggers(const std::vector<std::string> &priorityTaggerIds) {
-        const auto &taggers = tasks["tagger"];
-        std::vector<NO<Task>> result;
-        std::unordered_set<std::string> addedIds;
-
-        for (const auto &baseId : priorityTaggerIds) {
-            const std::string id = "tagger-" + baseId;
-            if (auto it = taggers.find(id); it != taggers.end() && addedIds.find(id) == addedIds.end()) {
-                result.push_back(it->second);
-                addedIds.insert(id);
-            }
-        }
-
-        for (const auto &[id, tagger] : taggers) {
-            if (addedIds.find(id) == addedIds.end()) {
-                result.push_back(tagger);
-                addedIds.insert(id);
-            }
-        }
-
-        return result;
-    }
 
     Manager::Manager() : PackageManager(*new Impl(this)) {}
 
@@ -97,7 +72,7 @@ namespace LangCore
         }
 
         // 加载各类任务
-        const std::vector<std::string> categories = {"splitter", "g2p", "tagger"};
+        const std::vector<std::string> categories = {"g2p"};
         for (const auto &category : categories) {
             if (auto result = loadTasksForCategory(category); !result) {
                 errMsg = result.error().message();
@@ -117,16 +92,16 @@ namespace LangCore
     Expected<NO<Task>> Manager::task(const std::string &category, const std::string &id) const {
         if (category.empty())
             return Error(Error::RuntimeError, "category cannot be empty",
-                         "Please provide a valid category name (e.g., 'g2p', 'splitter', 'tagger')");
+                         "Please provide a valid category name (e.g., 'g2p')");
 
         if (id.empty())
             return Error(Error::RuntimeError, "id cannot be empty",
-                         "Please provide a valid task id (e.g., 'g2p-cmn', 'splitter-regex')");
+                         "Please provide a valid task id (e.g., 'g2p-cmn')");
 
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
             return Error(Error::RuntimeError, "could not find category: " + category,
-                         "Available categories: g2p, splitter, tagger, driver");
+                         "Available categories: g2p, driver, dict");
 
         const auto inferenceObject = inferenceCate->getFirstObject(id);
         if (!inferenceObject)
@@ -139,12 +114,12 @@ namespace LangCore
     Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category) const {
         if (category.empty())
             return Error(Error::RuntimeError, "category cannot be empty",
-                         "Please provide a valid category name (e.g., 'g2p', 'splitter', 'tagger')");
+                         "Please provide a valid category name (e.g., 'g2p')");
 
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
             return Error(Error::RuntimeError, "could not find category: " + category,
-                         "Available categories: g2p, splitter, tagger, driver");
+                         "Available categories: g2p, driver, dict");
 
         const auto inferenceObject = inferenceCate->allObjects();
         if (inferenceObject.empty())
@@ -159,31 +134,6 @@ namespace LangCore
             return Error(Error::RuntimeError, "category: " + category + " is empty.",
                          "No tasks available in this category");
         return tasks;
-    }
-
-    std::vector<std::string> Manager::split(const std::string &input) {
-        if (input.empty())
-            return {};
-
-        std::vector<std::string> _input;
-        _input.push_back(input);
-        return this->split(_input);
-    }
-
-    std::vector<std::string> Manager::split(const std::vector<std::string> &input) {
-        if (input.empty())
-            return {};
-
-        __stdc_impl_t;
-        const auto &splitters = impl.tasks["splitter"];
-        const auto _input = NO<SplitterInputV1>::create();
-        _input->splitterInput = input;
-
-        for (const auto &[splitterId, task] : splitters) {
-            auto resExp = task->start(_input);
-            _input->splitterInput = resExp.take().as<SplitterResultV1>()->splitterResult;
-        }
-        return _input->splitterInput;
     }
 
     /// 过滤空指针，返回有效的输入指针
@@ -281,68 +231,5 @@ namespace LangCore
         }
 
         return result;
-    }
-
-    std::vector<TaggerRes> Manager::tag(const std::vector<std::string> &input, const bool split, bool discard,
-                                        const std::vector<std::string> &priorityLanguages) {
-        if (input.empty())
-            return {};
-
-        __stdc_impl_t;
-        std::vector<TaggerRes> inputNote;
-        inputNote.reserve(input.size());
-
-        const auto splitRes = split ? this->split(input) : input;
-
-        // 检查分割结果是否为空
-        if (splitRes.empty()) {
-            MgrLog.langCoreWarning("tag() received empty split result");
-            return {};
-        }
-
-        const auto &taggersList = impl.priorityTaggers(priorityLanguages);
-
-        // 检查是否有可用的 tagger
-        if (taggersList.empty()) {
-            MgrLog.langCoreWarning("tag() has no available taggers");
-            return {};
-        }
-
-        const auto _input = NO<TaggerInputV1>::create();
-        for (const auto &lyric : splitRes)
-            inputNote.emplace_back(lyric);
-
-        _input->taggerInput = inputNote;
-
-        // 处理每个 tagger，添加错误检查
-        for (const auto &task : taggersList) {
-            if (!task) {
-                MgrLog.langCoreWarning("tag() encountered null task in taggersList");
-                continue;
-            }
-
-            auto resExp = task->start(_input);
-            if (!resExp) {
-                MgrLog.langCoreCritical("tag() failed for task: %1", resExp.error().message());
-                // 继续处理下一个 tagger，而不是返回
-                continue;
-            }
-
-            auto result = resExp.take();
-            auto taggerResult = result.as<TaggerResultV1>();
-            if (!taggerResult) {
-                MgrLog.langCoreCritical("tag() received unexpected result type");
-                continue;
-            }
-
-            _input->taggerInput = taggerResult->taggerResult;
-        }
-
-        auto res = _input->taggerInput;
-
-        res.erase(
-            std::remove_if(res.begin(), res.end(), [discard](const TaggerRes &it) { return discard && it.discard; }),
-            res.end());
-        return res;
     }
 } // namespace LangCore

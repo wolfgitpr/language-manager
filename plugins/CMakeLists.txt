@@ -53,6 +53,4 @@ endif ()
 add_subdirectory(Utils)
 
 add_subdirectory(Drivers)
-add_subdirectory(Splitters)
-add_subdirectory(Taggers)
 add_subdirectory(G2ps)

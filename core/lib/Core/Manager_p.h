@@ -19,8 +19,6 @@ namespace LangCore
 
         using Decl = Manager;
 
-        std::vector<NO<Task>> priorityTaggers(const std::vector<std::string> &priorityTaggerIds = {});
-
         bool initialized = false;
         std::map<std::string, std::map<std::string, NO<Task>>> tasks;
 

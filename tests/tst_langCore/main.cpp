@@ -15,6 +15,9 @@
 #include <LangCore/Task/SessionTask.h>
 #include <LangCore/Task/TaskPlugin.h>
 
+#include "TextSplitter.h"
+#include "TextTagger.h"
+
 std::filesystem::path getPluginRootDirectory() {
 #if defined(Q_OS_MAC)
     return MacOSUtils::getMainBundlePath() / _TSTR("Contents/PlugIns");
@@ -84,8 +87,6 @@ bool initializeManager() {
     const auto defaultPluginDir = getPluginRootDirectory() / _TSTR("LangPlugins");
     langMgr->addPluginPath("org.openvpi.Driver", defaultPluginDir / _TSTR("Drivers"));
     langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("G2ps"));
-    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Taggers"));
-    langMgr->addPluginPath("org.openvpi.Task", defaultPluginDir / _TSTR("Splitters"));
 
     // 添加包路径
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
@@ -108,13 +109,36 @@ bool initializeManager() {
     return true;
 }
 
+bool initializeSplitterAndTagger() {
+    const std::filesystem::path configRoot = R"(D:\projects\language-manager\tests\tst_langCore\configs)";
+    const std::filesystem::path packagesRoot = R"(D:\projects\language-manager\res\G2pPackages)";
+
+    if (!TestUtils::initSplitters(configRoot / "splitter")) {
+        std::cerr << "Failed to initialize splitters" << std::endl;
+        return false;
+    }
+
+    if (!TestUtils::initTaggers(configRoot / "tagger", packagesRoot)) {
+        std::cerr << "Failed to initialize taggers" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     std::cout << "========================================" << std::endl;
     std::cout << "Language Manager - G2p Test Suite" << std::endl;
     std::cout << "========================================" << std::endl;
 
     try {
-        // 初始化 Manager（加载所有插件和包）
+        // 初始化 Splitter 和 Tagger（test-local 实现）
+        if (!initializeSplitterAndTagger()) {
+            std::cerr << "Failed to initialize Splitter/Tagger" << std::endl;
+            return -1;
+        }
+
+        // 初始化 Manager（加载 G2p 插件和包）
         if (!initializeManager()) {
             std::cerr << "Failed to initialize Manager" << std::endl;
             return -1;
@@ -147,8 +171,8 @@ int main() {
             "wo neng tun xia Glass er bu shang shen ti\nhalloween蝉ce "
             "声--陪かな伴着qwe行云流浪---\nka回-忆-开始132后安静遥望远方\n荒草覆没的古井--枯塘\n匀-散asdaw一缕过往\n";
 
-        const auto splitRes = langMgr->split(text);
-        const auto tagExp = langMgr->tag(splitRes, false, true, {"cmn"});
+        const auto splitRes = TestUtils::split(text);
+        const auto tagExp = TestUtils::tag(splitRes, true, {"cmn"});
 
         std::vector<LangCore::G2pInput *> g2pInput;
         std::cout << "Tag result:" << std::endl;
@@ -183,35 +207,35 @@ int main() {
 
         // 边界测试 1：空字符串
         std::cout << "Edge Case 1: Empty string..." << std::endl;
-        const auto emptySplit = langMgr->split("");
+        const auto emptySplit = TestUtils::split("");
         std::cout << "  Empty split result size: " << emptySplit.size() << std::endl;
 
         // 边界测试 2：特殊字符
         std::cout << "Edge Case 2: Special characters..." << std::endl;
         const auto specialText = "!@#$%^&*()_+-=[]{}|;:',.<>?/~`";
-        const auto specialSplit = langMgr->split(specialText);
-        const auto specialTags = langMgr->tag(specialSplit, false, false, {});
+        const auto specialSplit = TestUtils::split(specialText);
+        const auto specialTags = TestUtils::tag(specialSplit, false, {});
         std::cout << "  Special split result size: " << specialSplit.size() << std::endl;
 
         // 边界测试 3：混合语言边界
         std::cout << "Edge Case 3: Mixed language boundaries..." << std::endl;
         const auto mixedText = "a中b日c英d中e";
-        const auto mixedSplit = langMgr->split(mixedText);
-        const auto mixedTags = langMgr->tag(mixedSplit, false, false, {});
+        const auto mixedSplit = TestUtils::split(mixedText);
+        const auto mixedTags = TestUtils::tag(mixedSplit, false, {});
         std::cout << "  Mixed split result size: " << mixedSplit.size() << std::endl;
 
         // 边界测试 4：单个字符
         std::cout << "Edge Case 4: Single character..." << std::endl;
         const auto singleCharText = "中";
-        const auto singleCharSplit = langMgr->split(singleCharText);
-        const auto singleCharTags = langMgr->tag(singleCharSplit, false, false, {});
+        const auto singleCharSplit = TestUtils::split(singleCharText);
+        const auto singleCharTags = TestUtils::tag(singleCharSplit, false, {});
         std::cout << "  Single char split result size: " << singleCharSplit.size() << std::endl;
 
         // 边界测试 5：包含数字和符号
         std::cout << "Edge Case 5: Mixed text with numbers and symbols..." << std::endl;
         const auto mixedSymbolText = "测试123Test@#456测试";
-        const auto mixedSymbolSplit = langMgr->split(mixedSymbolText);
-        const auto mixedSymbolTags = langMgr->tag(mixedSymbolSplit, false, false, {});
+        const auto mixedSymbolSplit = TestUtils::split(mixedSymbolText);
+        const auto mixedSymbolTags = TestUtils::tag(mixedSymbolSplit, false, {});
         std::cout << "  Mixed symbol split result size: " << mixedSymbolSplit.size() << std::endl;
 
         std::cout << "\n========================================" << std::endl;
