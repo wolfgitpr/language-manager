@@ -8,7 +8,7 @@
 namespace TestUtils
 {
     /// 从 JSON 配置目录加载所有 splitter 配置并初始化
-    /// @param configDir  splitter 配置目录（包含 cmn.json, eng.json 等）
+    /// @param configDir  splitter 配置目录（包含 cmn.json, jpn.json, kor.json 等）
     /// @return true 成功
     bool initSplitters(const std::filesystem::path &configDir);
 

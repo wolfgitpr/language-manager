@@ -96,7 +96,7 @@ namespace LangCore
 
         if (id.empty())
             return Error(Error::RuntimeError, "id cannot be empty",
-                         "Please provide a valid task id (e.g., 'g2p-cmn')");
+                         "Please provide a valid task id (e.g., 'g2p-cmn-official')");
 
         const auto inferenceCate = this->category(category);
         if (!inferenceCate)
@@ -199,15 +199,14 @@ namespace LangCore
 
         for (const auto &[g2pId, lyricVec] : _lyrics) {
             _input->g2pInput = lyricVec;
-            const auto targetG2pId = "g2p-" + g2pId;
-            if (g2ps.find(targetG2pId) == g2ps.end()) {
+            if (g2ps.find(g2pId) == g2ps.end()) {
                 MgrLog.langCoreCritical("Error: fail to find g2p: '%1'", g2pId);
                 for (const auto &lyric : lyricVec)
                     result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
                 continue;
             }
 
-            auto resultExp = g2ps[targetG2pId]->start(_input);
+            auto resultExp = g2ps[g2pId]->start(_input);
             if (!resultExp) {
                 MgrLog.langCoreCritical("inference failed for g2p '%1': %2", 
                                         g2pId, resultExp.error().message());

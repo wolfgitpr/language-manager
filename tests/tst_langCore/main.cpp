@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <stdcorelib/str.h>
@@ -126,6 +127,28 @@ bool initializeSplitterAndTagger() {
     return true;
 }
 
+// 语言代码 -> g2pId 映射表
+// 基于 res/G2pPackages 下实际存在的语种包
+static const std::unordered_map<std::string, std::string> g_langToG2pId = {
+    {"cmn",     "g2p-cmn-official"    },
+    {"yue",     "g2p-yue-official"    },
+    {"jpn",     "g2p-jpn-official"    },
+    {"eng",     "g2p-eng-official"    },
+    {"num",     "g2p-num-official"    },
+    {"punc",    "g2p-punc-official"   },
+    {"unknown", "g2p-unknown-official"},
+};
+
+static const std::string g_unknownG2pId = "g2p-unknown-official";
+
+// 将 tagger 输出的语言代码映射为 g2pId
+std::string mapLangToG2pId(const std::string &language) {
+    auto it = g_langToG2pId.find(language);
+    if (it != g_langToG2pId.end())
+        return it->second;
+    return g_unknownG2pId;
+}
+
 int main() {
     std::cout << "========================================" << std::endl;
     std::cout << "Language Manager - G2p Test Suite" << std::endl;
@@ -152,7 +175,7 @@ int main() {
         const auto langMgr = LangCore::Manager::instance();
 
         // 测试配置 API（使用普通 G2p 任务）
-        if (auto g2pTask = langMgr->task("g2p", "g2p-cmn")) {
+        if (auto g2pTask = langMgr->task("g2p", "g2p-cmn-official")) {
             std::cout << "Testing getConfig()..." << std::endl;
             auto configJson = g2pTask.get()->getConfig();
             std::cout << "Config size: " << configJson.size() << " bytes" << std::endl;
@@ -177,9 +200,10 @@ int main() {
         std::vector<LangCore::G2pInput *> g2pInput;
         std::cout << "Tag result:" << std::endl;
         for (const auto &res : tagExp) {
-            g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, res.language));
-            std::cout << "  lyric: '" << res.lyric << "' language: '" << res.language << "' tag: '" << res.tag << "'"
-                      << std::endl;
+            const auto g2pId = mapLangToG2pId(res.language);
+            g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, g2pId));
+            std::cout << "  lyric: '" << res.lyric << "' language: '" << res.language << "' g2pId: '" << g2pId
+                      << "' tag: '" << res.tag << "'" << std::endl;
         }
 
         // 测试 G2p 转换
@@ -263,10 +287,10 @@ int main() {
 
         std::cout << "Generated " << testWords.size() << " random lowercase words for testing" << std::endl;
 
-        // 测试 ChainG2p (g2p-eng)
-        std::cout << "\nTesting ChainG2p (g2p-eng)..." << std::endl;
-        if (auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng"); !g2pEngTaskExp) {
-            std::cerr << "Failed to load g2p-eng task: " << g2pEngTaskExp.error().message() << std::endl;
+        // 测试 ChainG2p (g2p-eng-official)
+        std::cout << "\nTesting ChainG2p (g2p-eng-official)..." << std::endl;
+        if (auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng-official"); !g2pEngTaskExp) {
+            std::cerr << "Failed to load g2p-eng-official task: " << g2pEngTaskExp.error().message() << std::endl;
         } else {
             auto g2pEngTask = g2pEngTaskExp.take();
             auto startTime = std::chrono::high_resolution_clock::now();

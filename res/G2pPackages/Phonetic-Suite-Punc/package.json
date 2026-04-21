@@ -1,1 +1,1 @@
-{"packageId": "punc-official", "version": "0.0.1", "vendor": "小狼", "copyright": "Copyright (C) 小狼", "modules": {"g2p": [{"moduleId": "g2p-punc", "class": "g2p.chain.ChainG2pInference", "configuration": "modules/ChainG2p-Punc/config.json"}]}}
+{"packageId": "punc-official", "version": "0.0.1", "vendor": "小狼", "copyright": "Copyright (C) 小狼", "modules": {"g2p": [{"moduleId": "g2p-punc-official", "class": "g2p.chain.ChainG2pInference", "configuration": "modules/ChainG2p-Punc/config.json"}]}}

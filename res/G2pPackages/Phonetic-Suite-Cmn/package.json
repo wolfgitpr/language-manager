@@ -1,1 +1,1 @@
-{"packageId": "cmn-official", "version": "1.0.1", "vendor": "小狼Korou", "copyright": "Copyright (C) 小狼Korou", "modules": {"g2p": [{"moduleId": "g2p-cmn", "class": "g2p.template.MandarinG2pInference", "configuration": "modules/G2p-Cmn/config.json"}]}}
+{"packageId": "cmn-official", "version": "1.0.1", "vendor": "小狼Korou", "copyright": "Copyright (C) 小狼Korou", "modules": {"g2p": [{"moduleId": "g2p-cmn-official", "class": "g2p.template.MandarinG2pInference", "configuration": "modules/G2p-Cmn/config.json"}]}}

@@ -1,1 +1,1 @@
-{"packageId": "yue-official", "version": "1.0.1", "vendor": "小狼Korou", "copyright": "Copyright (C) 小狼Korou", "modules": {"g2p": [{"moduleId": "g2p-yue", "class": "g2p.template.CantoneseG2pInference", "configuration": "modules/G2p-Yue/config.json"}]}}
+{"packageId": "yue-official", "version": "1.0.1", "vendor": "小狼Korou", "copyright": "Copyright (C) 小狼Korou", "modules": {"g2p": [{"moduleId": "g2p-yue-official", "class": "g2p.template.CantoneseG2pInference", "configuration": "modules/G2p-Yue/config.json"}]}}
