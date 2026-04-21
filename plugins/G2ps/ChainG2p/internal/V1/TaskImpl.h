@@ -25,8 +25,15 @@ namespace LangPlugins::ChainG2p::Internal::V1
 
         std::string getConfig() const override;
 
+        /// 设置 Task 对象
+        void setTask(LangCore::Task* task) { m_task = task; }
+
+        /// 获取 Task 对象
+        LangCore::Task* task() const { return m_task; }
+
     private:
         const LangCore::ModuleSpec* m_spec;
+        LangCore::Task* m_task = nullptr;
         std::unique_ptr<G2pPipeline> m_pipeline;
         mutable std::shared_mutex m_mutex;
         std::string m_config;

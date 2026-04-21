@@ -94,6 +94,9 @@ namespace LangPlugins::ChainG2p
                 }
                 auto step = stepExp.take();
 
+                // 设置 Task
+                step->setTask(m_task);
+
                 // 配置步骤
                 auto paramsIt = stepObj.find("params");
                 if (paramsIt != stepObj.end() && paramsIt->second.isObject()) {

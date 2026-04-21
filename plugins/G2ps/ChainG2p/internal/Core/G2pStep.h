@@ -39,9 +39,14 @@ namespace LangPlugins::ChainG2p
         /// @return 步骤名称
         virtual std::string name() const = 0;
 
+        /// 设置 Task 管理器（用于访问其他 Task）
+        /// @param task Task 对象
+        void setTask(LangCore::Task* task) { m_task = task; }
+
     protected:
         const LangCore::ModuleSpec* m_spec = nullptr;
         LangCore::PackageManager* m_mgr = nullptr;
+        LangCore::Task* m_task = nullptr;
         std::string m_config;
     };
 

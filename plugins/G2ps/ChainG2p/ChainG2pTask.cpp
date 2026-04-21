@@ -12,7 +12,9 @@ namespace LangPlugins::ChainG2p
         int level = spec->apiLevel();
         _manager.setCurrentLevel(level);
         // 目前只实现 Level 1
-        _manager.setImpl(std::make_unique<Internal::V1::ChainG2pTaskImpl>(spec));
+        auto impl = std::make_unique<Internal::V1::ChainG2pTaskImpl>(spec);
+        impl->setTask(this);  // 设置 Task 对象
+        _manager.setImpl(std::move(impl));
     }
 
     ChainG2pTask::~ChainG2pTask() = default;

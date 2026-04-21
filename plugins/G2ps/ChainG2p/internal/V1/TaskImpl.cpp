@@ -16,8 +16,8 @@ namespace LangPlugins::ChainG2p::Internal::V1
 
         auto cfg = LangCore::config(m_spec);
 
-        // 创建管道
-        m_pipeline = std::make_unique<G2pPipeline>(m_spec);
+        // 创建管道，传递 Task 对象
+        m_pipeline = std::make_unique<G2pPipeline>(m_spec, m_task);
 
         // 配置管道
         auto configExp = m_pipeline->configure(cfg.raw());

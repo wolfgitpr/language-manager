@@ -16,7 +16,8 @@ namespace LangPlugins::ChainG2p
     /// 负责管理多个处理步骤的执行顺序
     class G2pPipeline {
     public:
-        explicit G2pPipeline(const LangCore::ModuleSpec *spec) : m_spec(spec) {}
+        explicit G2pPipeline(const LangCore::ModuleSpec *spec, LangCore::Task* task = nullptr)
+            : m_spec(spec), m_task(task) {}
         ~G2pPipeline() = default;
 
         /// 配置管道
@@ -33,6 +34,7 @@ namespace LangPlugins::ChainG2p
 
     private:
         const LangCore::ModuleSpec* m_spec;
+        LangCore::Task* m_task;
         std::vector<std::shared_ptr<G2pStep>> m_steps;
     };
 
