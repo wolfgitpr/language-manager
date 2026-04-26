@@ -94,7 +94,10 @@ namespace LangCore
     }
 
     void Logger::abort() {
-        std::abort(); // ###FIXME: robust implementation
+        // Flush stderr/stdout so that any buffered log output is visible before termination.
+        std::fflush(stderr);
+        std::fflush(stdout);
+        std::abort();
     }
 
     Logger::LogCallback Logger::logCallback() { return LogRegistry::callback; }

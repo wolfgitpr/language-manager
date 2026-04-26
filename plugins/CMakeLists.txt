@@ -54,3 +54,4 @@ add_subdirectory(Utils)
 
 add_subdirectory(Drivers)
 add_subdirectory(G2ps)
+add_subdirectory(Dicts)

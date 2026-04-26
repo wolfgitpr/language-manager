@@ -107,7 +107,7 @@ namespace LangCore
         }
         template <class U = T>
         T valueOr(const U &defaultValue) const & {
-            return _has_value ? **this : static_cast<T>(std::forward<U>(defaultValue));
+            return _has_value ? **this : static_cast<T>(defaultValue);
         }
         template <class U = T>
         T valueOr(U &&defaultValue) && {

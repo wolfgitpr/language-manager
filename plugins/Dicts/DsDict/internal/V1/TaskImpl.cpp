@@ -2,68 +2,38 @@
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Logging.h>
 #include <fstream>
-#include <sstream>
-#include <algorithm>
 #include <filesystem>
 
 namespace LangPlugins::DsDict::Internal::V1
 {
+    static LangCore::LogCategory Log("DsDict");
+
+    // Static dedup map: canonical-path -> weak_ptr<Dictionary>
+    std::unordered_map<std::string, std::weak_ptr<Dictionary>> DsDictTaskImpl::s_loadedFiles;
+    std::mutex DsDictTaskImpl::s_loadedFilesMutex;
+
     // ============================================================
     // Dictionary Implementation
     // ============================================================
 
-    void Dictionary::addEntry(const std::string& key, const std::string& value, const std::string& metadata) {
-        std::lock_guard<std::mutex> lock(_mutex);
-        _entries[key] = DictEntry(key, value, metadata);
-    }
-
-    void Dictionary::addEntries(const std::vector<DictEntry>& entries) {
-        std::lock_guard<std::mutex> lock(_mutex);
-        for (const auto& entry : entries) {
-            _entries[entry.key] = entry;
-        }
-    }
-
-    bool Dictionary::lookup(const std::string& key, std::string& value, std::string& metadata) const {
-        std::lock_guard<std::mutex> lock(_mutex);
+    bool Dictionary::lookup(const std::string &key, std::string &value) const {
+        std::shared_lock lock(_mutex);
         auto it = _entries.find(key);
         if (it != _entries.end()) {
             value = it->second.value;
-            metadata = it->second.metadata;
             return true;
         }
         return false;
     }
 
-    bool Dictionary::contains(const std::string& key) const {
-        std::lock_guard<std::mutex> lock(_mutex);
+    bool Dictionary::contains(const std::string &key) const {
+        std::shared_lock lock(_mutex);
         return _entries.find(key) != _entries.end();
     }
 
-    std::vector<DictEntry> Dictionary::getAllEntries() const {
-        std::lock_guard<std::mutex> lock(_mutex);
-        std::vector<DictEntry> result;
-        result.reserve(_entries.size());
-        for (const auto& pair : _entries) {
-            result.push_back(pair.second);
-        }
-        return result;
-    }
-
-    void Dictionary::clear() {
-        std::lock_guard<std::mutex> lock(_mutex);
-        _entries.clear();
-    }
-
-    size_t Dictionary::hash() const {
-        std::lock_guard<std::mutex> lock(_mutex);
-        size_t h = 0;
-        std::hash<std::string> hasher;
-        for (const auto& pair : _entries) {
-            h ^= hasher(pair.first) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= hasher(pair.second.value) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        }
-        return h;
+    size_t Dictionary::size() const {
+        std::shared_lock lock(_mutex);
+        return _entries.size();
     }
 
     // ============================================================
@@ -77,52 +47,58 @@ namespace LangPlugins::DsDict::Internal::V1
     LangCore::Expected<void> DsDictTaskImpl::initialize() {
         auto cfg = LangCore::config(_spec);
 
-        // Load dictionaries from configuration
-        auto dictPaths = cfg.getObject("dictionaries");
+        // Read the raw config JSON to iterate dictionary entries.
+        // Config format:
+        //   "dictionaries": {
+        //     "my-dict": "relative/path/to/dict.txt",
+        //     "other": { "path": "another.txt" }
+        //   }
+        const auto &raw = cfg.raw();
+        auto dictIt = raw.find("dictionaries");
+        if (dictIt == raw.end() || !dictIt->second.isObject()) {
+            Log.langCoreInfo("DsDictTaskImpl: no dictionaries configured, skipping.");
+            return {};
+        }
 
-        if (!dictPaths.empty()) {
-            for (const auto& pair : dictPaths) {
-                const std::string& dictId = pair.first;
-                const auto& dictConfig = pair.second;
+        const auto &dictObj = dictIt->second.toObject();
+        for (const auto &[dictId, dictConfig] : dictObj) {
+            std::string pathStr;
 
-                if (dictConfig.isString()) {
-                    // Simple path configuration
-                    auto path = dictConfig.toString();
-                    auto result = loadDictionary(dictId, path);
-                    if (!result) {
-                        auto err = result.takeError();
-                        LOG_WARNING("Failed to load dictionary '{}': {}", dictId, err.message());
-                    } else {
-                        LOG_INFO("Loaded dictionary '{}' from '{}'", dictId, path);
-                    }
-                } else if (dictConfig.isObject()) {
-                    // Advanced configuration with options
-                    const auto& configObj = dictConfig.toObject();
-                    auto pathIt = configObj.find("path");
-                    if (pathIt != configObj.end() && pathIt->second.isString()) {
-                        auto path = pathIt->second.toString();
-                        auto result = loadDictionary(dictId, path);
-                        if (!result) {
-                            auto err = result.takeError();
-                            LOG_WARNING("Failed to load dictionary '{}': {}", dictId, err.message());
-                        } else {
-                            LOG_INFO("Loaded dictionary '{}' from '{}'", dictId, path);
-                        }
-                    }
+            if (dictConfig.isString()) {
+                pathStr = dictConfig.toString();
+            } else if (dictConfig.isObject()) {
+                const auto &obj = dictConfig.toObject();
+                auto pathIt2 = obj.find("path");
+                if (pathIt2 != obj.end() && pathIt2->second.isString()) {
+                    pathStr = pathIt2->second.toString();
+                } else {
+                    Log.langCoreWarning("DsDict: dictionary '%1' has no 'path' field, skipping", dictId);
+                    continue;
                 }
+            } else {
+                Log.langCoreWarning("DsDict: dictionary '%1' has invalid config type, skipping", dictId);
+                continue;
+            }
+
+            // Resolve relative to the module's base path
+            auto resolvedPath = cfg.basePath() / pathStr;
+            auto result = loadDictionary(dictId, resolvedPath);
+            if (!result) {
+                Log.langCoreWarning("DsDict: failed to load dictionary '%1': %2",
+                                    dictId, result.error().message());
             }
         }
 
-        LOG_INFO("DsDictTaskImpl initialized with {} dictionaries", _dictionaries.size());
-
+        Log.langCoreInfo("DsDictTaskImpl initialized with %1 dictionaries", _dictionaries.size());
         return {};
     }
 
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     DsDictTaskImpl::start(const LangCore::NO<LangCore::TaskInput> &input) {
-        auto dictInput = LangCore::dynamic_pointer_cast<LangCore::DictInputV1>(input);
+        auto dictInput = std::dynamic_pointer_cast<LangCore::DictInputV1>(
+            static_cast<const std::shared_ptr<LangCore::TaskInput> &>(input));
         if (!dictInput) {
-            return LangCore::Error(LangCore::Error::InvalidArgument,
+            return LangCore::Error(LangCore::Error::ValidationError,
                                    "Invalid input type, expected DictInputV1");
         }
 
@@ -130,72 +106,131 @@ namespace LangPlugins::DsDict::Internal::V1
     }
 
     std::string DsDictTaskImpl::getConfig() const {
-        return LangCore::Task::defaultConfig(_spec);
+        // Delegate to the Task base loadConfig mechanism via the spec.
+        // Return empty string if no config is available.
+        return {};
     }
 
-    LangCore::Expected<void> DsDictTaskImpl::loadDictionary(const std::string& dictId, const std::filesystem::path& path) {
-        // Check if dictionary already exists
+    LangCore::Expected<void> DsDictTaskImpl::loadDictionary(const std::string &dictId,
+                                                             const std::filesystem::path &path) {
+        // Check for duplicate dictId
         {
-            std::lock_guard<std::mutex> lock(_dictMutex);
+            std::shared_lock lock(_dictMutex);
             if (_dictionaries.find(dictId) != _dictionaries.end()) {
                 return LangCore::Error(LangCore::Error::RuntimeError,
                                        "Dictionary '" + dictId + "' already loaded");
             }
         }
 
-        if (!std::filesystem::exists(path)) {
+        // Resolve canonical path for deduplication
+        std::error_code ec;
+        auto canonical = std::filesystem::canonical(path, ec);
+        if (ec) {
             return LangCore::Error(LangCore::Error::FileSystemError,
                                    "Dictionary file not found: " + path.string());
         }
+        std::string canonicalStr = canonical.string();
 
-        // Create new dictionary
-        auto dict = std::make_shared<Dictionary>(dictId);
+        // Try to reuse an already-loaded dictionary for the same file
+        {
+            std::lock_guard fileLock(s_loadedFilesMutex);
+            auto it = s_loadedFiles.find(canonicalStr);
+            if (it != s_loadedFiles.end()) {
+                if (auto existing = it->second.lock()) {
+                    // Reuse: same physical file already parsed
+                    std::unique_lock lock(_dictMutex);
+                    _dictionaries[dictId] = existing;
+                    Log.langCoreInfo("DsDict: reusing already-loaded file '%1' for dict '%2' (dedup)",
+                                     canonicalStr, dictId);
+                    return {};
+                }
+                // Weak pointer expired, remove stale entry
+                s_loadedFiles.erase(it);
+            }
+        }
 
-        // Load entries from file (assuming simple line-based format: key\tvalue)
-        std::ifstream file(path);
+        // Load from file
+        std::ifstream file(canonical, std::ios::in | std::ios::binary);
         if (!file.is_open()) {
             return LangCore::Error(LangCore::Error::FileSystemError,
-                                   "Failed to open dictionary file: " + path.string());
+                                   "Failed to open dictionary file: " + canonical.string());
         }
 
-        std::string line;
+        auto dict = std::make_shared<Dictionary>(dictId, canonicalStr);
+
+        // Read the entire file into memory and parse
+        file.seekg(0, std::ios::end);
+        const auto fileSize = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        std::string buf(static_cast<size_t>(fileSize), '\0');
+        if (!file.read(buf.data(), fileSize)) {
+            return LangCore::Error(LangCore::Error::FileSystemError,
+                                   "Failed to read dictionary file: " + canonical.string());
+        }
+
+        // Pre-allocate: estimate line count for large files
+        if (fileSize > 1024 * 1024) {
+            size_t lineCount = std::count(buf.begin(), buf.end(), '\n') + 1;
+            dict->_entries.reserve(lineCount);
+        }
+
+        // Parse lines: key\tvalue
+        size_t pos = 0;
         int lineNum = 0;
-        while (std::getline(file, line)) {
+        while (pos < buf.size()) {
             lineNum++;
 
+            // Find end of line
+            size_t eol = buf.find_first_of("\r\n", pos);
+            if (eol == std::string::npos)
+                eol = buf.size();
+
             // Skip empty lines and comments
-            if (line.empty() || line[0] == '#') {
+            if (eol == pos || buf[pos] == '#') {
+                pos = (eol < buf.size() && buf[eol] == '\r' && eol + 1 < buf.size() && buf[eol + 1] == '\n')
+                          ? eol + 2
+                          : eol + 1;
                 continue;
             }
 
-            // Parse line: key\tvalue
-            size_t tabPos = line.find('\t');
-            if (tabPos == std::string::npos) {
-                LOG_WARNING("Invalid format at line {} in '{}', skipping", lineNum, path.string());
+            // Find tab separator
+            size_t tabPos = buf.find('\t', pos);
+            if (tabPos == std::string::npos || tabPos >= eol) {
+                Log.langCoreWarning("DsDict: invalid format at line %1, skipping", lineNum);
+                pos = (eol < buf.size() && buf[eol] == '\r' && eol + 1 < buf.size() && buf[eol + 1] == '\n')
+                          ? eol + 2
+                          : eol + 1;
                 continue;
             }
 
-            std::string key = line.substr(0, tabPos);
-            std::string value = line.substr(tabPos + 1);
+            std::string key = buf.substr(pos, tabPos - pos);
+            std::string value = buf.substr(tabPos + 1, eol - tabPos - 1);
 
-            dict->addEntry(key, value);
+            dict->_entries.emplace(std::move(key), DictEntry(std::move(value)));
+
+            pos = (eol < buf.size() && buf[eol] == '\r' && eol + 1 < buf.size() && buf[eol + 1] == '\n')
+                      ? eol + 2
+                      : eol + 1;
         }
 
-        file.close();
-
-        // Add to dictionaries map
+        // Register in instance map and global dedup map
         {
-            std::lock_guard<std::mutex> lock(_dictMutex);
+            std::unique_lock lock(_dictMutex);
             _dictionaries[dictId] = dict;
         }
+        {
+            std::lock_guard fileLock(s_loadedFilesMutex);
+            s_loadedFiles[canonicalStr] = dict;
+        }
 
-        LOG_INFO("Loaded {} entries from '{}' into dictionary '{}'", dict->size(), path.string(), dictId);
-
+        Log.langCoreInfo("DsDict: loaded %1 entries from '%2' as dict '%3'",
+                         dict->size(), canonical.filename().string(), dictId);
         return {};
     }
 
-    std::shared_ptr<Dictionary> DsDictTaskImpl::getDictionary(const std::string& dictId) {
-        std::lock_guard<std::mutex> lock(_dictMutex);
+    std::shared_ptr<Dictionary> DsDictTaskImpl::getDictionary(const std::string &dictId) const {
+        std::shared_lock lock(_dictMutex);
         auto it = _dictionaries.find(dictId);
         if (it != _dictionaries.end()) {
             return it->second;
@@ -204,40 +239,33 @@ namespace LangPlugins::DsDict::Internal::V1
     }
 
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
-    DsDictTaskImpl::processQuery(const LangCore::DictInputV1& input) {
+    DsDictTaskImpl::processQuery(const LangCore::DictInputV1 &input) const {
         auto result = LangCore::NO<LangCore::DictResV1>::create();
-        result->found = true;
+        result->found = false;
         result->foundCount = 0;
 
         auto dict = getDictionary(input.dictId);
         if (!dict) {
-            LOG_WARNING("Dictionary '{}' not found", input.dictId);
+            Log.langCoreWarning("DsDict: dictionary '%1' not found", input.dictId);
+            // Return empty results for all keys
+            result->values.resize(input.keys.size());
             return result;
         }
 
-        for (const auto& key : input.keys) {
-            std::string value, metadata;
-            if (dict->lookup(key, value, metadata)) {
+        result->values.reserve(input.keys.size());
+        for (const auto &key : input.keys) {
+            std::string value;
+            if (dict->lookup(key, value)) {
                 result->foundCount++;
-                result->values.push_back(value);
-                LOG_DEBUG("Dictionary lookup: dict='{}', key='{}', value='{}'",
-                          input.dictId, key, value);
+                result->values.push_back(std::move(value));
+            } else if (!input.defaultValue.empty()) {
+                result->values.push_back(input.defaultValue);
             } else {
-                // Return default value if provided
-                if (!input.defaultValue.empty()) {
-                    result->foundCount++;
-                    result->values.push_back(input.defaultValue);
-                } else {
-                    result->values.push_back("");
-                }
-                LOG_DEBUG("Dictionary lookup failed: dict='{}', key='{}'",
-                          input.dictId, key);
+                result->values.emplace_back();
             }
         }
 
-        // Set found flag based on whether all keys were found
         result->found = (result->foundCount == input.keys.size());
-
         return result;
     }
 

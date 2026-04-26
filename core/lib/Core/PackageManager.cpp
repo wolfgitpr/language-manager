@@ -98,46 +98,40 @@ namespace LangCore
         do {
             std::unique_lock lock(su_mtx);
             auto &pkgMap = loadedPackageMap;
-            Error error1;
+
+            // Helper: handle duplicate detection — sets error and returns early
+            auto handleDuplicate = [&](Error &&error) -> PackageData * {
+                pd->err = std::move(error);
+                resourcePackages.insert(pd);
+                return pd;
+            };
 
             // Check if a package with same id and version but different path is loaded
-            {
-                if (auto it = pkgMap.idIndexes.find(pd->id); it != pkgMap.idIndexes.end()) {
-                    const auto &versionMap = it->second;
-                    if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
-                        auto pkg = *it2->second;
-                        error1 = {
-                            Error::FileSystemError,
-                            stdc::formatN("duplicated package %1[%2] in %3 is loaded.", pd->id, pd->version.toString(),
-                                          pkg.spec->path),
-                        };
-                        goto out_dup;
-                    }
+            if (auto it = pkgMap.idIndexes.find(pd->id); it != pkgMap.idIndexes.end()) {
+                const auto &versionMap = it->second;
+                if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
+                    auto pkg = *it2->second;
+                    return handleDuplicate({
+                        Error::FileSystemError,
+                        stdc::formatN("duplicated package %1[%2] in %3 is loaded.", pd->id, pd->version.toString(),
+                                      pkg.spec->path),
+                    });
                 }
             }
 
             // Check pending list
-            {
-                if (auto it = pendingPackages.find(pd->id); it != pendingPackages.end()) {
-                    const auto &versionMap = it->second;
-                    if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
-                        error1 = {
-                            Error::DependencyError,
-                            stdc::formatN("recursive dependency chain detected: package %1[%2] in %3 is being loaded.",
-                                          pd->id, pd->version.toString(), it2->second),
-                        };
-                        goto out_dup;
-                    }
+            if (auto it = pendingPackages.find(pd->id); it != pendingPackages.end()) {
+                const auto &versionMap = it->second;
+                if (auto it2 = versionMap.find(pd->version); it2 != versionMap.end()) {
+                    return handleDuplicate({
+                        Error::DependencyError,
+                        stdc::formatN("recursive dependency chain detected: package %1[%2] in %3 is being loaded.",
+                                      pd->id, pd->version.toString(), it2->second),
+                    });
                 }
             }
 
             pendingPackages[pd->id][pd->version] = pd->path;
-            break;
-
-        out_dup:
-            pd->err = error1;
-            resourcePackages.insert(pd);
-            return pd;
         }
         while (false);
 
@@ -769,6 +763,7 @@ namespace LangCore
         __stdc_impl_t;
         if (!fs::is_directory(packageDir)) {
             MgrLog.langCoreCritical("Invalid package path %1.", packageDir);
+            return;
         }
 
         for (const auto &[moduleType, moduleArray] : modulesObj) {

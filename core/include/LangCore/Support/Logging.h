@@ -180,16 +180,16 @@ static const LangCore::LogCategory &_langCoreGetLogCategory() { return LangCore:
 #define langCoreInfo(...) langCoreLog(Information, __VA_ARGS__)
 #define langCoreWarning(...) langCoreLog(Warning, __VA_ARGS__)
 #define langCoreCritical(...) langCoreLog(Critical, __VA_ARGS__)
-#define langCoreFatal(...) langCoreLog(Critical, __VA_ARGS__)
+#define langCoreFatal(...) langCoreLog(Fatal, __VA_ARGS__)
 
 #define langCoreLogF(LEVEL, ...)                                                                                       \
-    _langCoreGetLogCategory().logf<langCore::Logger::LEVEL>(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+    _langCoreGetLogCategory().logf<LangCore::Logger::LEVEL>(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #define langCoreTraceF(...) langCoreLogF(Trace, __VA_ARGS__)
 #define langCoreDebugF(...) langCoreLogF(Debug, __VA_ARGS__)
 #define langCoreSuccessF(...) langCoreLogF(Success, __VA_ARGS__)
 #define langCoreInfoF(...) langCoreLogF(Information, __VA_ARGS__)
 #define langCoreWarningF(...) langCoreLogF(Warning, __VA_ARGS__)
 #define langCoreCriticalF(...) langCoreLogF(Critical, __VA_ARGS__)
-#define langCoreFatalF(...) langCoreLogF(Critical, __VA_ARGS__)
+#define langCoreFatalF(...) langCoreLogF(Fatal, __VA_ARGS__)
 
 #endif // LANGCORE_LOGGING_H

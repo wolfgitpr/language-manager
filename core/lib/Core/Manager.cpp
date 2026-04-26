@@ -72,12 +72,15 @@ namespace LangCore
         }
 
         // 加载各类任务
-        const std::vector<std::string> categories = {"g2p"};
-        for (const auto &category : categories) {
-            if (auto result = loadTasksForCategory(category); !result) {
-                errMsg = result.error().message();
-                return false;
-            }
+        // g2p 是必需的；dict 是可选的（可能没有词典插件）
+        if (auto result = loadTasksForCategory("g2p"); !result) {
+            errMsg = result.error().message();
+            return false;
+        }
+
+        // dict 加载失败不阻止初始化
+        if (auto result = loadTasksForCategory("dict"); !result) {
+            MgrLog.langCoreInfo("No dict tasks loaded (this is normal if no dict plugins are installed)");
         }
 
         impl.initialized = true;
@@ -145,14 +148,14 @@ namespace LangCore
         std::vector<G2pInput *> validInput;
         validInput.reserve(input.size());
 
-        for (const auto *item : input) {
+        for (auto *item : input) {
             if (!item) {
                 if (logWarnings) {
                     MgrLog.langCoreWarning("convert() received null pointer in input, skipping");
                 }
                 continue;
             }
-            validInput.push_back(const_cast<G2pInput *>(item));
+            validInput.push_back(item);
         }
 
         return validInput;
@@ -203,7 +206,7 @@ namespace LangCore
             if (g2pIt == g2ps.end()) {
                 MgrLog.langCoreCritical("Error: fail to find g2p: '%1'", g2pId);
                 for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", UnknownError));
                 continue;
             }
 
@@ -212,7 +215,7 @@ namespace LangCore
                 MgrLog.langCoreCritical("inference failed for g2p '%1': %2", 
                                         g2pId, resultExp.error().message());
                 for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", ModelInferenceFailed));
                 continue;
             }
 
@@ -226,7 +229,7 @@ namespace LangCore
             } else {
                 MgrLog.langCoreCritical("unexpected result type for g2p '%1'", g2pId);
                 for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
+                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", UnknownError));
             }
         }
 

@@ -2,15 +2,53 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <iostream>
 #include <map>
-#include <regex>
 #include <sstream>
 
 #include <LangCore/Core/ManagerLogger.h>
 
 namespace LangCore
 {
+    // Helper: check if a string is a version-like pattern (digits and dots only)
+    static bool isVersionString(const std::string &s) {
+        if (s.empty())
+            return false;
+        for (char c : s) {
+            if (!std::isdigit(c) && c != '.')
+                return false;
+        }
+        return std::isdigit(s.front());
+    }
+
+    // Helper: try to parse "VERSION - VERSION" hyphen range without regex.
+    // Returns true if parsed, fills lhs/rhs.
+    static bool parseHyphenRange(const std::string &str, std::string &lhs, std::string &rhs) {
+        // Find the '-' that is surrounded by optional whitespace and version strings.
+        // We look for the first '-' that has a version on each side.
+        auto dashPos = str.find('-');
+        while (dashPos != std::string::npos) {
+            // Trim left side
+            auto leftEnd = dashPos;
+            while (leftEnd > 0 && str[leftEnd - 1] == ' ')
+                leftEnd--;
+            std::string left = str.substr(0, leftEnd);
+
+            // Trim right side
+            auto rightStart = dashPos + 1;
+            while (rightStart < str.size() && str[rightStart] == ' ')
+                rightStart++;
+            std::string right = str.substr(rightStart);
+
+            if (isVersionString(left) && isVersionString(right)) {
+                lhs = left;
+                rhs = right;
+                return true;
+            }
+
+            dashPos = str.find('-', dashPos + 1);
+        }
+        return false;
+    }
     bool VersionRange::Constraint::matches(const std::string &testVersion) const {
         if (op == Op::ANY)
             return true;
@@ -75,15 +113,14 @@ namespace LangCore
         }
 
         if (rangeStr.find('-') != std::string::npos) {
-            static const std::regex hyphenPattern(R"((\d+(?:\.\d+)*)\s*-\s*(\d+(?:\.\d+)*))");
-
-            if (std::smatch match; std::regex_match(rangeStr, match, hyphenPattern)) {
-                constraints_.push_back({Op::HYPHEN_RANGE, match[1].str(), match[2].str()});
+            std::string lhs, rhs;
+            if (parseHyphenRange(rangeStr, lhs, rhs)) {
+                constraints_.push_back({Op::HYPHEN_RANGE, lhs, rhs});
                 return;
             }
         }
 
-        if (static const std::regex versionOnlyPattern(R"(^\d+(?:\.\d+)*$)"); std::regex_match(rangeStr, versionOnlyPattern)) {
+        if (isVersionString(rangeStr)) {
             constraints_.push_back({Op::EQUAL, rangeStr});
             return;
         }
@@ -503,7 +540,7 @@ namespace LangCore
 
     std::string VersionResolver::selectHighestVersion(const std::vector<std::string> &versions) {
         if (versions.empty()) {
-            std::cerr << "Error: Cannot select highest version from empty list" << std::endl;
+            DependencyLog.langCoreWarning("Cannot select highest version from empty list");
             return "";
         }
 

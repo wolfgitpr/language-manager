@@ -11,7 +11,7 @@
 
 #include <LangCore/LangCoreGlobal.h>
 
-// TODO: Remove this macro
+// In-place storage for nlohmann::json - avoids heap allocation for JsonValue instances.
 #define LANGCORE_JSON_IN_PLACE
 
 namespace LangCore

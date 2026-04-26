@@ -23,7 +23,7 @@ namespace LangCore
         int resolvedLevel = -1;
     };
 
-    class VersionRange {
+    class LANGCORE_EXPORT VersionRange {
     public:
         enum class Op { LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, EQUAL, COMPATIBLE, ANY, HYPHEN_RANGE };
 
@@ -52,7 +52,7 @@ namespace LangCore
         static Constraint parseConstraint(const std::string &constraintStr);
     };
 
-    class VersionResolver {
+    class LANGCORE_EXPORT VersionResolver {
     public:
         static ResolutionResult resolveDependency(const std::vector<ModuleMetadata> &allModules,
                                                   const DependencyRequirement &dependency,

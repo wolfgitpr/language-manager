@@ -1,5 +1,6 @@
 #include <LangCore/Support/PhonemeDict.h>
 
+#include <cstring>
 #include <fstream>
 
 #include <sparsepp/spp.h>
@@ -33,8 +34,30 @@ namespace LangCore
             uint32_t offset;
             uint32_t count;
         };
+        using MapType = spp::sparse_hash_map<char *, Entry, const_char_hash, const_char_equal>;
+        using SppIterator = MapType::const_iterator;
+
         std::vector<char> filebuf;
-        spp::sparse_hash_map<char *, Entry, const_char_hash, const_char_equal> map;
+        MapType map;
+
+        // Store/load a sparsepp const_iterator to/from the two void* slots (_row, _col).
+        // Uses memcpy to safely round-trip without accessing sparsepp internal member names.
+        static_assert(sizeof(SppIterator) <= 2 * sizeof(void *),
+                      "sparsepp iterator size exceeds two void* slots");
+
+        static SppIterator loadIter(const void *row, const void *col) {
+            SppIterator it{};
+            const void *buf[2] = {row, col};
+            std::memcpy(&it, buf, sizeof(it));
+            return it;
+        }
+
+        static void storeIter(const SppIterator &it, const void *&row, const void *&col) {
+            const void *buf[2] = {};
+            std::memcpy(buf, &it, sizeof(it));
+            row = buf[0];
+            col = buf[1];
+        }
     };
 
     PhonemeDict::PhonemeDict() : _impl(std::make_shared<Impl>()) {}
@@ -75,8 +98,8 @@ namespace LangCore
         const auto buffer_end = buffer_begin + filebuf.size();
 
         // Estimate line numbers if the file is too large
-        static constexpr size_t larget_file_size = 1 * 1024 * 1024;
-        if (file_size > larget_file_size) {
+        static constexpr size_t large_file_size = 1 * 1024 * 1024;
+        if (file_size > large_file_size) {
             const size_t line_cnt = std::count(buffer_begin, buffer_end, '\n') + 1;
             map.reserve(line_cnt);
         }
@@ -152,48 +175,38 @@ namespace LangCore
         return true;
     }
 
+    // ==================== Iterator ====================
+    // Uses memcpy-based round-tripping of sparsepp iterators through the opaque
+    // void* slots. This avoids direct access to sparsepp internal member names.
+
     void PhonemeDict::iterator::fetch() const {
         if (_copy) {
             return;
         }
-        auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = static_cast<decltype(it.row_current)>(const_cast<void *>(_row));
-        it.col_current = static_cast<decltype(it.col_current)>(const_cast<void *>(_col));
-
+        auto it = Impl::loadIter(_row, _col);
         const char *key = it->first;
         PhonemeList value(_buf + it->second.offset, it->second.count);
-
         _copy = std::make_pair(key, value);
     }
 
     void PhonemeDict::iterator::next() {
-        auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = static_cast<decltype(it.row_current)>(_row);
-        it.col_current = static_cast<decltype(it.col_current)>(_col);
+        auto it = Impl::loadIter(_row, _col);
         ++it;
-        _row = it.row_current;
-        _col = it.col_current;
+        Impl::storeIter(it, _row, _col);
         _copy.reset();
     }
 
     void PhonemeDict::iterator::prev() {
-        auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = static_cast<decltype(it.row_current)>(_row);
-        it.col_current = static_cast<decltype(it.col_current)>(_col);
+        auto it = Impl::loadIter(_row, _col);
         --it;
-        _row = it.row_current;
-        _col = it.col_current;
+        Impl::storeIter(it, _row, _col);
         _copy.reset();
     }
 
     bool PhonemeDict::iterator::equals(const iterator &RHS) const {
-        auto it = decltype(Impl::map)::const_iterator();
-        it.row_current = static_cast<decltype(it.row_current)>(_row);
-        it.col_current = static_cast<decltype(it.col_current)>(_col);
-        auto it2 = decltype(Impl::map)::const_iterator();
-        it2.row_current = static_cast<decltype(it2.row_current)>(RHS._row);
-        it2.col_current = static_cast<decltype(it2.col_current)>(RHS._col);
-        return it == it2;
+        auto lhs = Impl::loadIter(_row, _col);
+        auto rhs = Impl::loadIter(RHS._row, RHS._col);
+        return lhs == rhs;
     }
 
     PhonemeDict::iterator PhonemeDict::find(const char *key) const {
@@ -206,7 +219,10 @@ namespace LangCore
         if (it == map.end()) {
             return end();
         }
-        return iterator(impl.filebuf.data(), it.row_current, it.col_current);
+        const void *row = nullptr;
+        const void *col = nullptr;
+        Impl::storeIter(it, row, col);
+        return iterator(impl.filebuf.data(), row, col);
     }
 
     bool PhonemeDict::contains(const char *key) const {
@@ -244,13 +260,19 @@ namespace LangCore
     PhonemeDict::iterator PhonemeDict::begin() const {
         __stdc_impl_t;
         const auto it = impl.map.begin();
-        return iterator(impl.filebuf.data(), it.row_current, it.col_current);
+        const void *row = nullptr;
+        const void *col = nullptr;
+        Impl::storeIter(it, row, col);
+        return iterator(impl.filebuf.data(), row, col);
     }
 
     PhonemeDict::iterator PhonemeDict::end() const {
         __stdc_impl_t;
         const auto it = impl.map.end();
-        return iterator(impl.filebuf.data(), it.row_current, it.col_current);
+        const void *row = nullptr;
+        const void *col = nullptr;
+        Impl::storeIter(it, row, col);
+        return iterator(impl.filebuf.data(), row, col);
     }
 
 } // namespace LangCore

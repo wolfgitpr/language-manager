@@ -8,7 +8,7 @@
 
 namespace LangCore
 {
-    class DependencyResolver {
+    class LANGCORE_EXPORT DependencyResolver {
     public:
         DependencyResolver() = default;
 

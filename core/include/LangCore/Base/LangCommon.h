@@ -26,19 +26,11 @@ namespace LangCore
 
     enum G2pErrorType {
         NoError = 0,
-
-        // 输入验证错误
-        InvalidLyric = 7,
-
-        // 转换错误
-        ModelInferenceFailed = 15,
-        PhonemeGenerationFailed = 16,
-
-        // 依赖错误
-        DriverUnavailable = 22,
-
-        // 未知错误
-        UnknownError = 21,
+        InvalidLyric,
+        ModelInferenceFailed,
+        PhonemeGenerationFailed,
+        DriverUnavailable,
+        UnknownError,
     };
     struct G2pRes {
         std::string lyric;

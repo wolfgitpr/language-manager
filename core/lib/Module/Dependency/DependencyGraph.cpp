@@ -52,8 +52,7 @@ namespace LangCore
         const size_t h3 = std::hash<std::string>()(info.type);
         const size_t h4 = std::hash<std::string>()(info.configuration);
         const size_t h5 = std::hash<int>()(info.level);
-        const size_t h6 = std::hash<int>()(info.level);
-        return h1 ^ h2 << 1 ^ h3 << 2 ^ h4 << 3 ^ h5 << 4 ^ h6 << 5;
+        return h1 ^ h2 << 1 ^ h3 << 2 ^ h4 << 3 ^ h5 << 4;
     }
 
     bool ModuleMetadata::MainModuleEqual::operator()(const ModuleMetadata &a, const ModuleMetadata &b) const {
@@ -137,27 +136,18 @@ namespace LangCore
     }
 
     std::vector<std::vector<ModuleMetadata>> DependencyGraph::Impl::getCycles() const {
-        // Use Kahn's algorithm to detect cycle members:
+        // Use Kahn's algorithm over the already-built graph to detect cycle members:
         // modules remaining after topological sort exhaustion are in cycles.
-        std::unordered_map<std::string, std::set<std::string>> graph;
         std::unordered_map<std::string, int> inDegree;
 
         for (const auto &[key, node] : nodeMap) {
-            graph[key] = {};
             inDegree[key] = 0;
         }
 
+        // Compute in-degrees from the existing neighbor edges
         for (const auto &[key, node] : nodeMap) {
-            for (const auto &dep : node->module.resolvedDependencies) {
-                for (const auto &[otherKey, otherNode] : nodeMap) {
-                    if (otherNode->module.packageId == dep.packageId && otherNode->module.moduleId == dep.moduleId &&
-                        otherNode->module.version == dep.version && otherNode->module.level == dep.level) {
-                        if (otherKey != key && graph[otherKey].insert(key).second) {
-                            inDegree[key]++;
-                        }
-                        break;
-                    }
-                }
+            for (const auto &neighbor : node->neighbors) {
+                inDegree[neighbor->module.key()]++;
             }
         }
 
@@ -172,9 +162,13 @@ namespace LangCore
             auto key = q.front();
             q.pop();
             visited.insert(key);
-            for (const auto &neighbor : graph[key]) {
-                if (--inDegree[neighbor] == 0)
-                    q.push(neighbor);
+            auto nodeIt = nodeMap.find(key);
+            if (nodeIt != nodeMap.end()) {
+                for (const auto &neighbor : nodeIt->second->neighbors) {
+                    auto neighborKey = neighbor->module.key();
+                    if (--inDegree[neighborKey] == 0)
+                        q.push(neighborKey);
+                }
             }
         }
 
@@ -197,40 +191,47 @@ namespace LangCore
     std::vector<ModuleMetadata> DependencyGraph::Impl::getGlobalModuleInitializationOrder(
         std::vector<ModuleMetadata> *cycleMembers) const {
 
-        std::unordered_map<std::string, std::set<std::string>> graph;
+        // Reuse the already-built neighbor edges from buildGraph() instead of
+        // rebuilding the adjacency structure from resolvedDependencies.
         std::unordered_map<std::string, int> inDegree;
-        std::unordered_map<std::string, const GraphNode *> nodeMapById;
 
         for (const auto &[key, node] : nodeMap) {
-            nodeMapById[key] = node.get();
-            graph[key] = {};
             inDegree[key] = 0;
         }
 
+        // node->neighbors are the nodes that *depend on* node (i.e. node is a dependency
+        // of its neighbors). The edge direction in buildGraph() is: dependency -> dependent.
+        // Actually, looking at buildGraph(), node->neighbors stores the dependencies of node,
+        // not the dependents. So for topological sort (dependencies first), the edge direction
+        // is: node depends on neighbor, so neighbor should come first.
+        // In-degree should count how many dependencies a node has (how many edges point TO it
+        // in the "dependent -> dependency" direction). But for Kahn's we need the reverse:
+        // edges go dependency -> dependent, and we process zero-in-degree first.
+        //
+        // buildGraph() stores: for each node, its neighbors = the nodes it depends on.
+        // So the edge is: node -> neighbor (meaning "node depends on neighbor").
+        // For topological sort (dependencies first), we need to reverse:
+        // neighbor -> node means "neighbor must come before node".
+        // In-degree of node = number of its dependencies = node->neighbors.size().
+
         for (const auto &[key, node] : nodeMap) {
-            for (const auto &dep : node->module.resolvedDependencies) {
-                std::string depKey;
-                for (const auto &[otherKey, otherNode] : nodeMap) {
-                    if (otherNode->module.packageId == dep.packageId && otherNode->module.moduleId == dep.moduleId &&
-                        otherNode->module.version == dep.version && otherNode->module.level == dep.level) {
-                        depKey = otherKey;
-                        break;
-                    }
-                }
-                if (!depKey.empty() && depKey != key) {
-                    if (graph[depKey].insert(key).second) {
-                        inDegree[key]++;
-                    }
-                }
+            inDegree[key] = static_cast<int>(node->neighbors.size());
+        }
+
+        // Build reverse adjacency: for each dependency, track which nodes depend on it.
+        std::unordered_map<std::string, std::vector<const GraphNode *>> reverseDeps;
+        for (const auto &[key, node] : nodeMap) {
+            for (const auto &neighbor : node->neighbors) {
+                reverseDeps[neighbor->module.key()].push_back(node.get());
             }
         }
 
         std::vector<ModuleMetadata> order;
         std::queue<const GraphNode *> zeroInDegreeNodes;
 
-        for (const auto &[key, degree] : inDegree) {
-            if (degree == 0) {
-                zeroInDegreeNodes.push(nodeMapById[key]);
+        for (const auto &[key, node] : nodeMap) {
+            if (inDegree[key] == 0) {
+                zeroInDegreeNodes.push(node.get());
             }
         }
 
@@ -239,14 +240,17 @@ namespace LangCore
             zeroInDegreeNodes.pop();
             order.push_back(node->module);
 
-            for (const auto &neighborKey : graph[node->module.key()]) {
-                if (--inDegree[neighborKey] == 0) {
-                    zeroInDegreeNodes.push(nodeMapById[neighborKey]);
+            auto rIt = reverseDeps.find(node->module.key());
+            if (rIt != reverseDeps.end()) {
+                for (const auto *dependent : rIt->second) {
+                    if (--inDegree[dependent->module.key()] == 0) {
+                        zeroInDegreeNodes.push(dependent);
+                    }
                 }
             }
         }
 
-        if (order.size() != nodeMapById.size()) {
+        if (order.size() != nodeMap.size()) {
             // Cycle detected — collect remaining nodes
             if (cycleMembers) {
                 std::unordered_set<std::string> visited;
