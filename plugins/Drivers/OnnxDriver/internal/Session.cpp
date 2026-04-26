@@ -346,7 +346,12 @@ namespace LangPlugins::OnnxDriver::V1
             }
             catch (const Ort::Exception &err) {
                 if (error) {
-                    *error = Error(Error::RuntimeError, err.what());
+                    *error = Error(Error::RuntimeError, std::string("ONNX Runtime error: ") + err.what());
+                }
+            }
+            catch (const std::exception &err) {
+                if (error) {
+                    *error = Error(Error::RuntimeError, std::string("Session run error: ") + err.what());
                 }
             }
             return {};

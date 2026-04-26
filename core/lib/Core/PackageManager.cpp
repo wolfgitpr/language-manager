@@ -442,6 +442,8 @@ namespace LangCore
         levelConfig.minimumLevel = _impl->minimumLevel;
         levelConfig.maximumLevel = _impl->maximumLevel;
 
+        // §14.14 fix: collect ALL incompatible modules before returning, not just the first
+        bool hasIncompatible = false;
         for (const auto &info : moduleInfos) {
             auto checkResult = LevelCompatibilityChecker::checkCorePlugin(info.level, levelConfig);
 
@@ -464,10 +466,18 @@ namespace LangCore
 
                 MgrLog.langCoreCritical("Strict compatibility mode: rejecting incompatible module.");
 
-                return false;
+                hasIncompatible = true;
             }
         }
 
+        if (hasIncompatible) {
+            return false;
+        }
+
+
+        // §14.22 fix: clear dependency graph before adding modules to ensure
+        // repeated calls don't accumulate stale data
+        _impl->dependencyGraph.clear();
 
         for (const auto &info : moduleInfos)
 
@@ -621,6 +631,7 @@ namespace LangCore
         }
 
         int pkgSize = 0;
+        int failedPkgCount = 0;
 
         for (const auto &packageInfo : packageOrder) {
             MgrLog.langCoreInfo("Loading package: %1 from %2", packageInfo.packageId, packageInfo.packagePath);
@@ -628,12 +639,14 @@ namespace LangCore
             auto exp = this->open(packageInfo.packagePath);
             if (!exp) {
                 MgrLog.langCoreCritical("Failed to open package %1: %2", packageInfo.packageId, exp.error().message());
+                failedPkgCount++;
                 continue;
             }
 
             Package pkg = exp.take();
             if (!pkg.isLoaded()) {
                 MgrLog.langCoreCritical("Failed to load package %1: %2", packageInfo.packageId, pkg.error().message());
+                failedPkgCount++;
                 continue;
             }
 
@@ -651,6 +664,10 @@ namespace LangCore
             }
         }
         MgrLog.langCoreInfo("Successfully loaded %1 packages.", pkgSize);
+        if (failedPkgCount > 0) {
+            MgrLog.langCoreCritical("%1 package(s) failed to load.", failedPkgCount);
+            return false;
+        }
         return true;
     }
 

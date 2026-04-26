@@ -1,6 +1,6 @@
 # Language Manager 测试设计文档
 
-**版本**：1.1  
+**版本**：1.2  
 **日期**：2026-04-26  
 **关联 PRD**：PRD-v2.0.md §10
 
@@ -771,6 +771,36 @@ tst_plugin / tst_dict / tst_integration → 依赖全部核心
 
 ---
 
+## 12.3 PRD §14 回归测试清单
+
+以下测试用例用于验证 PRD §14 中记录的 bug 修复和设计问题，防止回归。应分散到对应的测试模块中。
+
+### 已修复项 — 回归防护
+
+| PRD § | 分类 | 建议测试位置 | 测试内容 |
+|-------|------|------------|---------|
+| 14.10 | LstmG2p g2pId | `tst_plugin` 或 `tst_integration` | 验证 `G2pRes.g2pId` 等于模块 `spec->id()`，而非硬编码值 |
+| 14.16 | pluginsDirty | `tst_plugin` | 调用 `plugin()` 两次，验证第二次不触发重复目录扫描 |
+
+### 待修复项 — 验证修复后的行为
+
+| PRD § | 分类 | 建议测试位置 | 测试内容 |
+|-------|------|------------|---------|
+| 14.11 | MandarinG2p copy | `tst_integration` | "copy" 模式词的 `G2pRes.lyric` 应与输入完全一致 |
+| 14.13 | FormatStep 命名 | `tst_unit` | 边界输入（`"AH0L"`, `"AH0 L OW1"`, 混合 alphanumeric/symbol）的输出验证 |
+| 14.14 | checkDependencies | `tst_dependency` | 准备多个不兼容模块，验证返回的错误列表包含所有不兼容项 |
+| 14.15 | Expected\<T\> 默认构造 | `tst_support` | 编译期验证：对不可默认构造类型使用 `Expected<T>` 应编译失败或受 SFINAE 约束 |
+| 14.17 | Session::close | `tst_plugin` | Session open→close 生命周期，特别是 path_map 命中路径 |
+| 14.18 | selectBestModules | `tst_dependency` | 3+ 个同 module 不同版本，验证保留最高版本且无崩溃 |
+| 14.19 | Task::Mgr() | `tst_support` | 默认构造 Task 调用 `Mgr()` 应返回 nullptr 或 assert，不崩溃 |
+| 14.20 | VersionedTaskManager | `tst_support` | 未调用 `setImpl()` 的 VersionedTaskManager 调用 `initialize()` 应安全失败 |
+| 14.22 | dependencyGraph | `tst_dependency` | 连续两次调用 `checkDependencies()`，验证第二次结果正确 |
+| 14.24 | Mandarin/Cantonese init | `tst_plugin` | 底层库初始化失败时 `Task::initialize()` 应返回错误 |
+| 14.25 | LstmG2p .take() | `tst_plugin` | 缺少 tensor 时 `start()` 应返回错误而非崩溃 |
+| 14.29 | Parser_impl.h | `tst_unit` | `parse_stringVec_required` 多元素输入，验证 `out` 包含所有解析结果 |
+
+---
+
 ## 13. Voice Bank Context 测试（tst_context）
 
 > 对应设计文档：`docs/VoiceBank-Scoped-Package-Design.md`
@@ -948,5 +978,5 @@ tst_context/
 
 ---
 
-**文档版本**: 1.1  
+**文档版本**: 1.2  
 **最后更新**: 2026-04-26

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <unordered_set>
 
 #include <LangCore/Module/Dependency/DependencyGraph.h>
 #include <LangCore/Module/Dependency/VersionUtils.h>
@@ -168,28 +169,33 @@ namespace LangCore
     }
 
     void DependencyResolver::selectBestModules(std::vector<ModuleMetadata> &modules) {
-        std::unordered_map<std::string, ModuleMetadata *> bestModules;
-        std::vector<ModuleMetadata> selected;
+        // §14.18 fix: use index-based lookup instead of raw pointers to avoid
+        // iterator/pointer invalidation when remove_if moves elements.
+        std::unordered_map<std::string, size_t> bestIndexes; // uniqueKey -> index of best module
 
-        for (auto &module : modules) {
+        for (size_t i = 0; i < modules.size(); ++i) {
+            const auto &module = modules[i];
             std::string uniqueKey = module.packageId + ":" + module.moduleId + ":" + std::to_string(module.level);
 
-            if (auto it = bestModules.find(uniqueKey); it == bestModules.end()) {
-                bestModules[uniqueKey] = &module;
+            if (auto it = bestIndexes.find(uniqueKey); it == bestIndexes.end()) {
+                bestIndexes[uniqueKey] = i;
             } else {
-                if (VersionRange::compareVersions(module.version, it->second->version) > 0) {
-                    bestModules[uniqueKey] = &module;
+                if (VersionRange::compareVersions(module.version, modules[it->second].version) > 0) {
+                    it->second = i;
                 }
             }
         }
 
+        // Collect the uniqueKeys of selected modules (identified by their content, not address)
+        std::unordered_set<std::string> selectedKeys;
+        for (const auto &[uniqueKey, idx] : bestIndexes) {
+            selectedKeys.insert(modules[idx].key());
+        }
+
         modules.erase(std::remove_if(modules.begin(), modules.end(),
-                                     [&bestModules](const ModuleMetadata &module)
+                                     [&selectedKeys](const ModuleMetadata &module)
                                      {
-                                         const std::string uniqueKey = module.packageId + ":" + module.moduleId + ":" +
-                                             std::to_string(module.level);
-                                         const auto it = bestModules.find(uniqueKey);
-                                         return it == bestModules.end() || it->second != &module;
+                                         return selectedKeys.find(module.key()) == selectedKeys.end();
                                      }),
                       modules.end());
     }

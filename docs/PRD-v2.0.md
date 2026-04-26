@@ -1,6 +1,6 @@
 # Language Manager 产品需求文档 v2.0
 
-**版本**：3.3  
+**版本**：3.5  
 **日期**：2026-04-26  
 **核心目标**：C++17 插件化 G2p（Grapheme-to-Phoneme）框架，遵循"Write Once, Run Forever"设计理念。
 
@@ -567,8 +567,8 @@ Manager::initialize()
         VersionResolver 按 packageId/moduleId/level/version 过滤
         迭代解析（最多 2N 轮）
     → DependencyGraph::buildGraph()：
-        Tarjan SCC 检测循环依赖
-        拓扑排序计算初始化顺序
+        Kahn 拓扑排序（副产物检测循环依赖）
+        计算初始化顺序
     → LevelCompatibilityChecker::checkCorePlugin()：
         验证核心插件 Level 在 [minimumLevel, maximumLevel] 范围内
     → 按 PackageInitializationPlan 顺序加载：
@@ -776,19 +776,13 @@ V2 的 `start()` 在每步解码时，已生成 EOS 的样本仍在 batch 中参
 
 **优化方向**：对已完成样本的 decoder_input 替换为 PAD token（而非 EOS），避免模型产生不确定行为。更激进的优化是动态缩小 batch，但需要 reshape 张量，增加实现复杂度。当前实现可接受。
 
-### 14.10 LstmG2p 硬编码 g2pId 为 "eng" 🟡 Bug
+### 14.10 ~~LstmG2p 硬编码 g2pId 为 "eng"~~ ✅ 已修复
 
-V1 和 V2 的 `start()` 中所有 `G2pRes` 构造都硬编码 `g2pId = "eng"`（如 V1 line 204, 284; V2 line 377, 380）。LstmG2p 作为通用 LSTM 推理框架，理论上可被任何语言的 ONNX 模型使用，但结果中的 g2pId 总是 "eng"。
+V1 和 V2 的 `start()` 中所有 `G2pRes` 构造现已使用 `m_spec->id()`（如 V1 line 204, 284; V2 line 377, 380），不再硬编码 "eng"。
 
-**修复建议**：使用 `m_spec->id()` 代替硬编码 "eng"。
+### 14.11 ~~MandarinG2p/CantoneseG2p 忽略 Verifier 的 mode 分类~~ ✅ 已修复
 
-### 14.11 MandarinG2p/CantoneseG2p 忽略 Verifier 的 mode 分类 🟡 Bug
-
-`MandarinG2pTaskImpl::start()` 使用 `m_verifier->verify()` 对输入词进行 mode 分类（copy/convert），然后调用 `groupLyrics()` 按 mode 分组。但在 line 110-111 中，所有分组的词都传给了 `hanziToPinyin()`，包括 `mode == "copy"` 的分组。随后 line 121 根据 mode 决定 pronunciation：`mode == "convert"` 时使用 pinyin，否则使用原词。
-
-问题在于：对 "copy" 模式的词调用 `hanziToPinyin()` 是不必要的 I/O 和计算开销。更关键的是，`hanziToPinyin` 可能改变返回的 `hanzi` 字段（如拆分连续汉字），导致 `newRes.lyric = hanzi` 与原始输入不完全一致。
-
-**影响**：轻微——主要是性能浪费和潜在的 lyric 不一致。
+`start()` 现在对 `mode != "convert"` 的分组跳过 `hanziToPinyin()` 调用，直接保留原始 lyric 作为 pronunciation。同时为 `hanziToPinyin` 调用添加了 try-catch（§14.26）。
 
 ### 14.12 MandarinG2p/CantoneseG2p getConfig() 每次重建 JSON 🟢 微性能问题
 
@@ -802,23 +796,17 @@ V1 和 V2 的 `start()` 中所有 `G2pRes` 构造都硬编码 `g2pId = "eng"`（
 
 **影响**：该函数名暗示「在音素之间加空格」，但实际行为更像是「在 alphanumeric 和非 alphanumeric 之间加空格」。需要明确文档或重命名。
 
-### 14.14 PackageManager::checkDependencies 首个不兼容即返回 🟡 设计问题
+### 14.14 ~~PackageManager::checkDependencies 首个不兼容即返回~~ ✅ 已修复
 
-`PackageManager::checkDependencies()` 在 Level 兼容性检查循环中（line ~383），遇到第一个不兼容模块就 `return false`。这意味着用户只能看到第一个不兼容模块的错误信息，需要反复修复、重启才能发现所有不兼容模块。
+`checkDependencies()` 现在遍历所有模块收集全部不兼容错误后再返回 false，用户可一次性看到所有问题。
 
-**修复建议**：收集所有不兼容模块的错误信息后再返回 false，让用户一次性看到所有问题。
+### 14.15 ~~Expected<T> 默认构造值初始化~~ ✅ 已修复
 
-### 14.15 Expected<T> 默认构造值初始化 🟡 设计问题
+`Expected<T>` 的默认构造函数现已通过 SFINAE（`std::enable_if_t<std::is_default_constructible_v<T>>`）约束，不可默认构造的类型无法调用默认构造函数。
 
-`Expected<T>` 的默认构造函数 (Expected.h line 41) 使用 `value_type{}` 值初始化。对于不可默认构造的类型 T，这会导致编译错误。虽然当前代码中没有使用不可默认构造类型的 Expected，但作为通用库类型，应考虑删除默认构造函数或使用 SFINAE 约束。
+### 14.16 ~~PluginFactory 的 pluginsDirty 从不清除~~ ✅ 已修复
 
-### 14.16 PluginFactory 的 pluginsDirty 从不清除 🟢 微性能问题
-
-`PluginFactory::scanPlugins()` 完成后未从 `pluginsDirty` 中移除已扫描的 iid。后续每次调用 `plugin()`/`plugins()` 都会重新进入 `scanPlugins()`，虽然 `scannedPluginDirs` 缓存阻止了重复 DLL 加载，但仍有不必要的目录遍历和锁竞争。
-
-**实际影响**：`plugin()` 仅在初始化阶段被调用（每个模块一次），运行时不调用，因此开销可忽略。
-
-**修复建议**：在 `scanPlugins()` 末尾调用 `pluginsDirty.erase(iid)`，使代码语义更清晰。
+`PluginFactory::scanPlugins()` 末尾已有 `pluginsDirty.erase(iid)`（PluginFactory.cpp line 142），语义正确。
 
 ### 14.17 Session::close 中 hash_size_map 查找可能崩溃 🟡 潜在 Bug
 
@@ -826,7 +814,59 @@ V1 和 V2 的 `start()` 中所有 `G2pRes` 构造都硬编码 `g2pId = "eng"`（
 
 **建议**：用结构化控制流替代 goto，提高可读性和可维护性。
 
+### 14.18 ~~DependencyResolver::selectBestModules 指针失效~~ ✅ 已修复
+
+改用 index + key 比较替代原始指针，避免 `remove_if` 移动元素后指针失效。添加了回归测试。
+
+### 14.19 ~~Task::Mgr() 空指针解引用~~ ✅ 已修复
+
+`Task::Mgr()` 现在检查 `impl.spec_` 是否为 nullptr，为空时返回 nullptr。
+
+### 14.20 ~~VersionedTaskManager 空 _impl 解引用~~ ✅ 已修复
+
+`initialize()`、`start()`、`getConfig()` 方法现在检查 `_impl` 是否为空，为空时返回 `Error(NullPointerError)` 或空字符串。
+
+### 14.21 ~~Error::defaultMessage 静态缓存线程安全~~ ✅ 已修复
+
+改为在静态 lambda 中一次性初始化所有缓存字符串（利用 C++11 静态局部变量线程安全保证），消除了 read-then-write 数据竞争。
+
+### 14.22 ~~PackageManager::dependencyGraph 未重置~~ ✅ 已修复
+
+`checkDependencies()` 在添加模块前调用 `dependencyGraph.clear()`，确保重复调用不会累积旧数据。添加了回归测试。
+
+### 14.23 ~~PackageManager::loadPackagesInOrder 失败包静默跳过~~ ✅ 已修复
+
+函数现在记录失败包计数，若有包加载失败则返回 false。
+
+### 14.24 ~~MandarinG2p/CantoneseG2p initialize() 失败返回成功~~ ✅ 已修复
+
+`initialize()` 在底层库未初始化时返回 `Error(InitializationError)` 而非空 `Expected<void>`。
+
+### 14.25 ~~LstmG2p V1 未检查 .take() 返回值~~ ✅ 已修复
+
+将 `hidden_new` 和 `cell_new` 的 Expected 先检查再 `.take()`，在检查通过后才移动取值。同时修正了成功推理结果的 `mode` 从 `"copy"` 改为 `"convert"`。
+
+### 14.26 ~~MandarinG2p/CantoneseG2p 缺少第三方库异常捕获~~ ✅ 已修复
+
+`hanziToPinyin()` 调用现在被 `try-catch (const std::exception &)` 包裹，异常时回退为 copy 模式并设置 `UnknownError`。
+
+### 14.27 ~~OnnxDriver Session::run 未捕获 std::exception~~ ✅ 已修复
+
+`sessionRun()` 的 catch 块追加了 `catch (const std::exception &err)` 分支。
+
+### 14.28 ~~DsDict V1 不当的 shared_ptr static_cast~~ ✅ 已修复
+
+改为使用 `input.as<DictInputV1>()` 惯用法，与其他插件一致。
+
+### 14.29 ~~InferUtil Parser_impl.h 循环内覆盖输出~~ ✅ 已修复
+
+`out = regexes` 赋值移至 for 循环结束后。同时修正了 include guard 中对同一宏的重复检查（改为检查 `LANGPLUGINS_INFERUTIL_PARSER_H`）。
+
+### 14.30 PackageManager::open dependencies 向量始终为空 🟢 未完成功能
+
+`PackageManager::open()` (PackageManager.cpp line 145-151) 声明了 `llvm::SmallVector<PackageData *> dependencies` 但从未向其中添加元素。`closeDependencies` lambda 和 `pkg.linked = std::move(dependencies)` 操作的都是空向量，传递依赖包加载功能似乎从未实现。
+
 ---
 
-**文档版本**: 3.3  
+**文档版本**: 3.5  
 **最后更新**: 2026-04-26

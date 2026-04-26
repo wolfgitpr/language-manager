@@ -21,20 +21,24 @@ namespace LangCore
         };
 
         static const size_t messageCount = sizeof(messages) / sizeof(messages[0]);
-        static std::array<std::shared_ptr<std::string>, messageCount + 1> cached;
+
+        // §14.21 fix: eagerly initialize all cached strings to avoid data race
+        // on concurrent lazy initialization of the static array.
+        static const auto cached = []() {
+            std::array<std::shared_ptr<std::string>, messageCount + 1> arr;
+            for (size_t i = 0; i < messageCount; ++i) {
+                arr[i] = std::make_shared<std::string>(messages[i]);
+            }
+            arr[messageCount] = std::make_shared<std::string>("unknown error");
+            return arr;
+        }();
 
         const auto idx = static_cast<int>(type);
         if (idx >= 0 && idx < static_cast<int>(messageCount)) {
-            if (!cached[idx]) {
-                cached[idx] = std::make_shared<std::string>(messages[idx]);
-            }
             return cached[idx];
         }
 
         // Unknown error type
-        if (!cached[messageCount]) {
-            cached[messageCount] = std::make_shared<std::string>("unknown error");
-        }
         return cached[messageCount];
     }
 

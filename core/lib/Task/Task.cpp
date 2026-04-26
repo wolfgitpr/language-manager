@@ -33,6 +33,8 @@ namespace LangCore
 
     PackageManager *Task::Mgr() const {
         __stdc_impl_t;
+        if (!impl.spec_)
+            return nullptr;
         return impl.spec_->Mgr();
     }
 

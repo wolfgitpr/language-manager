@@ -56,7 +56,8 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
         m_config = getConfig();
 
         if (!m_cantonese->initialized())
-            return {};
+            return LangCore::Error(LangCore::Error::InitializationError,
+                                   "CantoneseG2p: cpp-pinyin library failed to initialize");
 
         return {};
     }
@@ -110,7 +111,38 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
             for (const auto &g2pRes : g2pResGroup)
                 _input.push_back(g2pRes.lyric);
 
-            auto pinyinRes = m_cantonese->hanziToPinyin(_input, Pinyin::CanTone::NORMAL, Pinyin::Default, true);
+            // §14.11 fix: skip hanziToPinyin for "copy" mode words
+            if (mode != "convert") {
+                for (const auto &word : _input) {
+                    LangCore::G2pRes newRes;
+                    newRes.lyric = word;
+                    newRes.g2pId = std::string(m_spec->id());
+                    newRes.pronunciation = word;
+                    newRes.candidates = std::vector<std::string>();
+                    newRes.mode = std::string(mode);
+                    newRes.errorType = LangCore::NoError;
+                    g2pResult->g2pResult.emplace_back(newRes);
+                }
+                continue;
+            }
+
+            // §14.26 fix: wrap third-party cpp-pinyin call in try-catch
+            std::vector<Pinyin::PinyinRes> pinyinRes;
+            try {
+                pinyinRes = m_cantonese->hanziToPinyin(_input, Pinyin::CanTone::NORMAL, Pinyin::Default, true);
+            } catch (const std::exception &e) {
+                for (const auto &word : _input) {
+                    LangCore::G2pRes newRes;
+                    newRes.lyric = word;
+                    newRes.g2pId = std::string(m_spec->id());
+                    newRes.pronunciation = word;
+                    newRes.candidates = std::vector<std::string>();
+                    newRes.mode = std::string("copy");
+                    newRes.errorType = LangCore::UnknownError;
+                    g2pResult->g2pResult.emplace_back(newRes);
+                }
+                continue;
+            }
 
             for (auto &[hanzi, pinyin, candidates, conversionError] : pinyinRes) {
                 LangCore::G2pErrorType wordErrorType = LangCore::NoError;
@@ -120,7 +152,7 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
                 LangCore::G2pRes newRes;
                 newRes.lyric = std::string(hanzi);
                 newRes.g2pId = std::string(m_spec->id());
-                newRes.pronunciation = std::string(mode == "convert" ? pinyin : hanzi);
+                newRes.pronunciation = std::string(pinyin);
                 newRes.candidates = std::vector<std::string>();
                 newRes.mode = std::string(mode);
                 newRes.errorType = wordErrorType;

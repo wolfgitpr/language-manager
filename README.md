@@ -2,12 +2,12 @@
 
 ## Intro
 
-The G2p module is used for text to speech conversion, and its subordinate LanguageAnalyzer recognizes the language of
-the
-current G2p.
+A C++17 plugin-based G2p (Grapheme-to-Phoneme) framework with modular language processing capabilities.
 
 Provide support for the [dsinfer](https://github.com/diffscope/dsinfer/blob/main/docs/ds-spec-2.3.md) format sound
 library for [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
+
+> **Note**: Text splitting (Splitter) and language tagging (Tagger) have been moved to the frontend. The core framework focuses on plugin management, dependency resolution, and G2p conversion.
 
 ## Optional G2P
 
@@ -26,32 +26,24 @@ library for [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
 ## How To Use
 
 ```c++
-#include <LangCore/Runtime/Manager.h>
+#include <LangCore/Core/Manager.h>
 
-const auto langMgr = LangCore::Manager::instance();  // 获取单例
+const auto langMgr = LangCore::Manager::instance();
 
-// 初始化 Manager
+// Initialize Manager
 std::string errorMessage;
 if (!langMgr->initialize(errorMessage)) {
     std::cerr << "Failed to initialize: " << errorMessage << std::endl;
     return -1;
 }
 
-// 文本分割
-std::string text = "xxx好的123";
-auto segments = langMgr->split(text);
-
-// 语言标记
-auto tags = langMgr->tag(segments, false, false);
-
-// G2p 转换
+// G2p conversion (splitting and tagging are done by the frontend)
 std::vector<LangCore::G2pInput *> g2pInput;
-for (const auto &tag : tags) {
-    g2pInput.emplace_back(new LangCore::G2pInput(tag.lyric, tag.language));
-}
+g2pInput.emplace_back(new LangCore::G2pInput("hello", "eng-cmu"));
+g2pInput.emplace_back(new LangCore::G2pInput("你好", "cmn-pinyin"));
 auto results = langMgr->convert(g2pInput);
 
-// 清理
+// Cleanup
 for (auto *input : g2pInput) {
     delete input;
 }
@@ -61,14 +53,22 @@ for (auto *input : g2pInput) {
 
 Temporarily using the vcpkg environment of [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
 
-[cpp-pinyin](https://github.com/wolfgitpr/cpp-pinyin)
-
-[cpp-kana](https://github.com/wolfgitpr/cpp-kana)
+- [cpp-pinyin](https://github.com/wolfgitpr/cpp-pinyin)
+- [cpp-kana](https://github.com/wolfgitpr/cpp-kana)
+- ONNX Runtime
+- nlohmann-json
+- Qt 6 (test infrastructure)
 
 ```bash
--DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/cmake/buildsystems/vcpkg.cmake
--DCMAKE_PREFIX_PATH=path/to/qmsetup;path/to/qt/6.10.2/msvc2022_64;
--DCMAKE_INSTALL_PREFIX=install
+cmake -B build ^
+  -DCMAKE_TOOLCHAIN_FILE=path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+  -DCMAKE_PREFIX_PATH=path/to/qt/6.10.2/msvc2022_64 ^
+  -DCMAKE_INSTALL_PREFIX=install ^
+  -DLANGMGR_BUILD_PLUGINS=ON ^
+  -DLANGMGR_BUILD_TESTS=ON
+
+cmake --build build --config Debug
+ctest --test-dir build -C Debug
 ```
 
 ## Add New G2p
@@ -78,4 +78,4 @@ phonetic notation system, such as "eng-cmu", "cmn-pinyin", "jpn-romaji".
 
 Name the new G2p according to the standard and add it to the above table.
 
-Refer to [PRD](./docs/PRD-v1.0.md) and [API Usage Guide](./docs/API-Usage-Guide.md) for development details.
+Refer to [PRD](./docs/PRD-v2.0.md) and [Plugin Development Guide](./docs/Plugin-Development-Guide.md) for development details.

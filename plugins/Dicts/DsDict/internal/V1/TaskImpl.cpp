@@ -95,8 +95,7 @@ namespace LangPlugins::DsDict::Internal::V1
 
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     DsDictTaskImpl::start(const LangCore::NO<LangCore::TaskInput> &input) {
-        auto dictInput = std::dynamic_pointer_cast<LangCore::DictInputV1>(
-            static_cast<const std::shared_ptr<LangCore::TaskInput> &>(input));
+        auto dictInput = input.as<LangCore::DictInputV1>();
         if (!dictInput) {
             return LangCore::Error(LangCore::Error::ValidationError,
                                    "Invalid input type, expected DictInputV1");

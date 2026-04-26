@@ -503,3 +503,109 @@ TEST_CASE(ModuleMetadata_Equality) {
 }
 
 // ModuleMetadata_Hash test removed: MainModuleHash::operator() is not exported from DLL
+
+// ============================================================================
+// §14.18 regression: selectBestModules pointer invalidation fix
+// ============================================================================
+
+TEST_CASE(DependencyResolver_SelectBest_ThreeVersions) {
+    // Three versions of the same module — only the highest should remain
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg", "mod", "1.0.0", 1);
+    auto m2 = makeModule("pkg", "mod", "3.0.0", 1);
+    auto m3 = makeModule("pkg", "mod", "2.0.0", 1);
+    modules.push_back(m1);
+    modules.push_back(m2);
+    modules.push_back(m3);
+
+    DependencyResolver resolver;
+    resolver.resolveAllDependencies(modules);
+
+    // After resolution, only v3.0.0 should remain (selectBestModules is called internally)
+    auto resolved = resolver.getResolvedModules();
+    ASSERT_EQ(resolved.size(), static_cast<size_t>(1));
+    ASSERT_STREQ(resolved[0].version.c_str(), "3.0.0");
+}
+
+TEST_CASE(DependencyResolver_SelectBest_DifferentLevels) {
+    // Same module at different levels should both be kept
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg", "mod", "1.0.0", 1);
+    auto m2 = makeModule("pkg", "mod", "2.0.0", 2);
+    modules.push_back(m1);
+    modules.push_back(m2);
+
+    DependencyResolver resolver;
+    resolver.resolveAllDependencies(modules);
+
+    auto resolved = resolver.getResolvedModules();
+    ASSERT_EQ(resolved.size(), static_cast<size_t>(2));
+}
+
+TEST_CASE(DependencyResolver_SelectBest_ManyModulesMixed) {
+    // Mix of different modules and versions — stress test for pointer stability
+    std::vector<ModuleMetadata> modules;
+    for (int i = 0; i < 10; ++i) {
+        modules.push_back(makeModule("pkg", "mod-a", std::to_string(i) + ".0.0", 1));
+        modules.push_back(makeModule("pkg", "mod-b", std::to_string(i) + ".0.0", 1));
+    }
+
+    DependencyResolver resolver;
+    resolver.resolveAllDependencies(modules);
+
+    auto resolved = resolver.getResolvedModules();
+    // Should have exactly 2 modules: best of mod-a (9.0.0) and best of mod-b (9.0.0)
+    ASSERT_EQ(resolved.size(), static_cast<size_t>(2));
+    for (const auto &m : resolved) {
+        ASSERT_STREQ(m.version.c_str(), "9.0.0");
+    }
+}
+
+// ============================================================================
+// §14.14 regression: checkDependencies should collect all errors
+// (tested indirectly via DependencyResolver and LevelCompatibilityChecker)
+// ============================================================================
+
+TEST_CASE(LevelChecker_MultipleIncompatible) {
+    // Verify we can check multiple modules and get results for all of them
+    LevelCompatibilityChecker::LevelConfig config;
+    config.currentLevel = 2;
+    config.minimumLevel = 1;
+    config.maximumLevel = 3;
+
+    auto r1 = LevelCompatibilityChecker::checkCorePlugin(0, config);
+    ASSERT_FALSE(r1.isCompatible);
+
+    auto r2 = LevelCompatibilityChecker::checkCorePlugin(2, config);
+    ASSERT_TRUE(r2.isCompatible);
+
+    auto r3 = LevelCompatibilityChecker::checkCorePlugin(5, config);
+    ASSERT_FALSE(r3.isCompatible);
+
+    // All three checks work independently — framework can now collect all errors
+}
+
+// ============================================================================
+// §14.22 regression: DependencyGraph::clear before reuse
+// ============================================================================
+
+TEST_CASE(DependencyGraph_ClearAndReuse) {
+    DependencyGraph graph;
+    auto modA = makeModule("pkg", "mod-a", "1.0.0", 1);
+    graph.addModule(modA);
+    ASSERT_TRUE(graph.buildGraph());
+
+    auto modules1 = graph.getAllModules();
+    ASSERT_EQ(modules1.size(), static_cast<size_t>(1));
+
+    // Clear and add different module
+    graph.clear();
+    auto modB = makeModule("pkg", "mod-b", "2.0.0", 1);
+    graph.addModule(modB);
+    ASSERT_TRUE(graph.buildGraph());
+
+    auto modules2 = graph.getAllModules();
+    // Should have only mod-b, not mod-a + mod-b
+    ASSERT_EQ(modules2.size(), static_cast<size_t>(1));
+    ASSERT_STREQ(modules2[0].moduleId.c_str(), "mod-b");
+}

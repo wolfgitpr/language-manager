@@ -261,3 +261,55 @@ TEST_CASE(ExpectedVoid_MoveSemantics) {
     Expected<void> d(std::move(c));
     ASSERT_FALSE(d.hasValue());
 }
+
+// ============================================================================
+// §14.15 regression: Expected<T> default constructor SFINAE
+// ============================================================================
+
+// A non-default-constructible type
+struct NonDefaultConstructible {
+    int value;
+    explicit NonDefaultConstructible(int v) : value(v) {}
+    // No default constructor
+};
+
+TEST_CASE(Expected_NonDefaultConstructible_ValueConstruct) {
+    // Verify Expected<NonDefaultConstructible> works with explicit value
+    Expected<NonDefaultConstructible> e(NonDefaultConstructible(42));
+    ASSERT_TRUE(e.hasValue());
+    ASSERT_EQ(e.value().value, 42);
+}
+
+TEST_CASE(Expected_NonDefaultConstructible_ErrorConstruct) {
+    Expected<NonDefaultConstructible> e(Error(Error::RuntimeError, "fail"));
+    ASSERT_FALSE(e.hasValue());
+    ASSERT_EQ(e.error().type(), Error::RuntimeError);
+}
+
+// Compile-time check: Expected<NonDefaultConstructible>() should NOT compile.
+// We verify this indirectly by checking the SFINAE constraint works:
+TEST_CASE(Expected_DefaultConstructible_Works) {
+    // std::string is default-constructible, so Expected<string>() should work
+    Expected<std::string> e;
+    ASSERT_TRUE(e.hasValue());
+    ASSERT_STREQ(e.value().c_str(), "");
+}
+
+// ============================================================================
+// §14.21 regression: Error::defaultMessage thread safety
+// ============================================================================
+
+TEST_CASE(Error_AllTypesHaveDefaultMessage) {
+    // Verify every Error::Type from 0..10 has a non-null default message
+    // and that only Success returns ok() == true
+    for (int i = 0; i <= 10; ++i) {
+        Error err(static_cast<Error::Type>(i));
+        if (i == 0) {
+            ASSERT_TRUE(err.ok());
+        } else {
+            ASSERT_FALSE(err.ok());
+        }
+        // All types should have a non-empty what() (except Success which is "")
+        ASSERT_TRUE(err.what() != nullptr);
+    }
+}

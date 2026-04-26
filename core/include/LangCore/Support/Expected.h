@@ -30,6 +30,7 @@ namespace LangCore
         using const_pointer = const std::remove_reference_t<T> *;
 
     public:
+        template <typename U = T, std::enable_if_t<std::is_default_constructible_v<U>, int> = 0>
         Expected() : _has_value(true) { new (&_storage.val) value_type(value_type{}); }
 
         /// Create an Expected<T> error value from the given Error.

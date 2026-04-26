@@ -4,7 +4,7 @@
 #ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 #define LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
 
-#ifndef LANGPLUGINS_INFERUTIL_PARSER_IMPL_H
+#ifndef LANGPLUGINS_INFERUTIL_PARSER_H
 #error "Parser_impl.h should only be included by Parser.h"
 #endif
 
@@ -227,9 +227,8 @@ namespace LangPlugins::InferUtil
                         regexes.push_back(item.toString());
                     else
                         collectError(fieldName + " array value #" + std::to_string(i) + " must be string");
-
-                    out = regexes;
                 }
+                out = regexes;
             }
         } else {
             collectError("array field \"" + fieldName + "\" is missing");

@@ -24,13 +24,23 @@ namespace LangCore
             _impl = std::move(impl);
         }
 
-        Expected<void> initialize() { return _impl->initialize(); }
+        Expected<void> initialize() {
+            if (!_impl)
+                return Error(Error::NullPointerError, "VersionedTaskManager: impl not set (call setImpl() first)");
+            return _impl->initialize();
+        }
 
         Expected<NO<TaskResult>> start(const NO<TaskInput> &input) {
+            if (!_impl)
+                return Error(Error::NullPointerError, "VersionedTaskManager: impl not set (call setImpl() first)");
             return _impl->start(input);
         }
 
-        std::string getConfig() const { return _impl->getConfig(); }
+        std::string getConfig() const {
+            if (!_impl)
+                return {};
+            return _impl->getConfig();
+        }
 
     private:
         const ModuleSpec *_spec;

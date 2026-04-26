@@ -104,12 +104,15 @@ namespace LangPlugins::LstmG2p::Internal::V1
                 }
 
                 auto output = getTensorFromResult(decoderResult, "output");
-                currentHidden = getTensorFromResult(decoderResult, "hidden_new").take();
-                currentCell = getTensorFromResult(decoderResult, "cell_new").take();
+                auto hiddenExp = getTensorFromResult(decoderResult, "hidden_new");
+                auto cellExp = getTensorFromResult(decoderResult, "cell_new");
 
-                if (!output || !currentHidden || !currentCell) {
+                if (!output || !hiddenExp || !cellExp) {
                     return LangCore::Error(LangCore::Error::RuntimeError, "failed to get decoder outputs");
                 }
+
+                currentHidden = hiddenExp.take();
+                currentCell = cellExp.take();
 
                 // Get predicted phoneme ID (argmax)
                 const auto outputTensor = output.take();
@@ -281,7 +284,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
         for (auto &phone : phonemes_)
             pronStr += phone + " ";
         g2pResult->g2pResult = {LangCore::G2pRes{
-            std::string(lyric), std::string(m_spec->id()), std::string(pronStr), std::vector<std::string>(), std::string("copy")}};
+            std::string(lyric), std::string(m_spec->id()), std::string(pronStr), std::vector<std::string>(), std::string("convert")}};
 
         return g2pResult;
     }
