@@ -52,6 +52,9 @@ namespace LangPlugins::MandarinG2p::Internal::V1
         Pinyin::setDictionaryPath(m_dictPath);
         m_mandarin = std::make_unique<Pinyin::Pinyin>();
 
+        // 缓存配置 JSON（m_dictPath 已确定，后续不再变化）
+        m_config = getConfig();
+
         if (!m_mandarin->initialized())
             return {};
 

@@ -1,8 +1,8 @@
 # Language Manager 测试设计文档
 
-**版本**：1.0  
+**版本**：1.1  
 **日期**：2026-04-26  
-**关联 PRD**：PRD-v2.0.md §10, §15.5, §16.4
+**关联 PRD**：PRD-v2.0.md §10
 
 ---
 
@@ -29,13 +29,15 @@
 
 ### 1.3 测试框架选择
 
-使用 **Qt Test**（`QTest`），理由：
+**当前状态**：`tst_unit/` 使用自定义轻量级测试框架（`tst_framework.h`，提供 `TEST_CASE`、`ASSERT_*` 宏和注册表），不依赖 Qt Test。`tst_langCore/` 的集成测试使用裸 `main()` + 手动断言。
+
+**规划方向**：迁移至 **Qt Test**（`QTest`），理由：
 - 项目已依赖 Qt 6，无需引入新依赖
 - 支持 `QCOMPARE`、`QVERIFY`、数据驱动测试（`_data()` + `QTest::addColumn`）
 - 与 CTest 天然集成（`add_test()` 或 `qt_add_test()`）
 - `QBENCHMARK` 可替代手写性能计时
 
-如果需要在无 Qt 环境运行核心单元测试，备选方案是引入 header-only 的 doctest 或 Catch2。
+> **注意**：下文 §2-§13 描述的是规划中的测试架构。当前实际测试代码仅有 `tst_unit/`（L1 单元测试，5 个测试文件，覆盖 Error/Expected、JSON/ConfigAccessor、VersionRange/Dependency、基础类型）和 `tst_langCore/`（L4 端到端集成测试）。
 
 ---
 

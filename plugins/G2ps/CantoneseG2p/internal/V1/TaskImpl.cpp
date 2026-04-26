@@ -52,6 +52,9 @@ namespace LangPlugins::CantoneseG2p::Internal::V1
         Pinyin::setDictionaryPath(m_dictPath);
         m_cantonese = std::make_unique<Pinyin::Jyutping>();
 
+        // 缓存配置 JSON（m_dictPath 已确定，后续不再变化）
+        m_config = getConfig();
+
         if (!m_cantonese->initialized())
             return {};
 

@@ -1,6 +1,6 @@
 # Language Manager 产品需求文档 v2.0
 
-**版本**：3.2  
+**版本**：3.3  
 **日期**：2026-04-26  
 **核心目标**：C++17 插件化 G2p（Grapheme-to-Phoneme）框架，遵循"Write Once, Run Forever"设计理念。
 
@@ -399,7 +399,7 @@ my-package.lmpk
 | 层级 | 类型 | 用途 | 使用者 |
 |------|------|------|--------|
 | **框架层** | `Error` (11 codes) | 插件加载、配置、依赖解析、运行时异常 | 核心框架、`Expected<T>` |
-| **领域层** | `G2pErrorType` (22 codes) | G2p 转换的具体业务错误 | `G2pRes::errorType`、前端 |
+| **领域层** | `G2pErrorType` (6 codes) | G2p 转换的具体业务错误 | `G2pRes::errorType`、前端 |
 
 两层不合并：`Error` 服务于框架通用错误传播（`Expected<T>`），`G2pErrorType` 服务于 G2p 领域结果报告，各自语义清晰。
 
@@ -760,5 +760,73 @@ tests/tst_langCore/         全流程集成测试
 
 ---
 
-**文档版本**: 3.2  
+### 14.8 ~~LstmG2p V1 只处理首个单词~~ ✅ 设计如此，非 Bug
+
+`LstmG2p::Internal::V1::LstmG2pTaskImpl::start()` (line 198) 仅处理 `g2pInput[0]`，这是 **V1 的设计意图**——V1 是逐词推理实现（Level 1），V2 才是批量推理实现（Level 2）。
+
+当前英语包 `LstmG2p-Eng/config.json` 中 `"level": 2`，因此 `LstmG2pTask` 构造时选择 V2 实现。ChainG2p 的 ModelStep 通过依赖声明 `"level": 2` 确保获取到 V2 实例。V1 仅在 Level 1 配置下使用，此时 ModelStep 应以 `batchSize: 1` 调用。
+
+**潜在风险**：若某个 package 误配 LstmG2p 为 `level: 1` 但 ChainG2p ModelStep 的 `batchSize > 1`，V1 会丢弃首词以外的输入，触发 ModelStep 的 fallback 路径。**建议**：V1 的 `start()` 应检查输入大小，若 > 1 则返回明确错误或循环处理所有词。
+
+### 14.9 LstmG2p V2 已完成样本继续参与解码 🟢 性能优化建议
+
+V2 的 `start()` 在每步解码时，已生成 EOS 的样本仍在 batch 中参与计算（line 330-333 将 EOS token 作为下一步输入）。这是简单且正确的批量解码实现——LSTM 模型通常能容忍 EOS-after-EOS 输入，且 `finished` 标记确保不会将后续输出记录到 `allPredictions`。
+
+**性能影响**：仅当 batch 内序列长度差异大时浪费明显（如最短词 3 步完成，最长词 48 步，则前者有 45 步无效计算）。
+
+**优化方向**：对已完成样本的 decoder_input 替换为 PAD token（而非 EOS），避免模型产生不确定行为。更激进的优化是动态缩小 batch，但需要 reshape 张量，增加实现复杂度。当前实现可接受。
+
+### 14.10 LstmG2p 硬编码 g2pId 为 "eng" 🟡 Bug
+
+V1 和 V2 的 `start()` 中所有 `G2pRes` 构造都硬编码 `g2pId = "eng"`（如 V1 line 204, 284; V2 line 377, 380）。LstmG2p 作为通用 LSTM 推理框架，理论上可被任何语言的 ONNX 模型使用，但结果中的 g2pId 总是 "eng"。
+
+**修复建议**：使用 `m_spec->id()` 代替硬编码 "eng"。
+
+### 14.11 MandarinG2p/CantoneseG2p 忽略 Verifier 的 mode 分类 🟡 Bug
+
+`MandarinG2pTaskImpl::start()` 使用 `m_verifier->verify()` 对输入词进行 mode 分类（copy/convert），然后调用 `groupLyrics()` 按 mode 分组。但在 line 110-111 中，所有分组的词都传给了 `hanziToPinyin()`，包括 `mode == "copy"` 的分组。随后 line 121 根据 mode 决定 pronunciation：`mode == "convert"` 时使用 pinyin，否则使用原词。
+
+问题在于：对 "copy" 模式的词调用 `hanziToPinyin()` 是不必要的 I/O 和计算开销。更关键的是，`hanziToPinyin` 可能改变返回的 `hanzi` 字段（如拆分连续汉字），导致 `newRes.lyric = hanzi` 与原始输入不完全一致。
+
+**影响**：轻微——主要是性能浪费和潜在的 lyric 不一致。
+
+### 14.12 MandarinG2p/CantoneseG2p getConfig() 每次重建 JSON 🟢 微性能问题
+
+`MandarinG2pTaskImpl::getConfig()` 检查 `m_config.empty()`，但 `initialize()` 从未设置 `m_config`，导致每次调用都重新构造 JSON。由于 `getConfig()` 只读取 `initialize()` 后不再变化的成员（`m_dictPath`），并发调用不存在数据竞争。但重复构造 JSON 是不必要的开销。
+
+**修复建议**：在 `initialize()` 末尾生成并缓存 `m_config`。
+
+### 14.13 FormatStep::addSpaceBetweenPhones 行为不符直觉 🟡 设计问题
+
+`FormatStep::addSpaceBetweenPhones()` (line 52-72) 的逻辑：在 alphanumeric 字符后遇到非空格、非 alphanumeric 字符时插入空格。但不处理「多个连续空格」或「音素间已有空格」的情况。例如输入 `"AH0 L OW1"` 不会被改变（已有空格），但 `"AH0L"` 也不会被拆分（因为 `isalnum` 对数字也返回 true，`'0'` 和 `'L'` 之间不会插入空格）。
+
+**影响**：该函数名暗示「在音素之间加空格」，但实际行为更像是「在 alphanumeric 和非 alphanumeric 之间加空格」。需要明确文档或重命名。
+
+### 14.14 PackageManager::checkDependencies 首个不兼容即返回 🟡 设计问题
+
+`PackageManager::checkDependencies()` 在 Level 兼容性检查循环中（line ~383），遇到第一个不兼容模块就 `return false`。这意味着用户只能看到第一个不兼容模块的错误信息，需要反复修复、重启才能发现所有不兼容模块。
+
+**修复建议**：收集所有不兼容模块的错误信息后再返回 false，让用户一次性看到所有问题。
+
+### 14.15 Expected<T> 默认构造值初始化 🟡 设计问题
+
+`Expected<T>` 的默认构造函数 (Expected.h line 41) 使用 `value_type{}` 值初始化。对于不可默认构造的类型 T，这会导致编译错误。虽然当前代码中没有使用不可默认构造类型的 Expected，但作为通用库类型，应考虑删除默认构造函数或使用 SFINAE 约束。
+
+### 14.16 PluginFactory 的 pluginsDirty 从不清除 🟢 微性能问题
+
+`PluginFactory::scanPlugins()` 完成后未从 `pluginsDirty` 中移除已扫描的 iid。后续每次调用 `plugin()`/`plugins()` 都会重新进入 `scanPlugins()`，虽然 `scannedPluginDirs` 缓存阻止了重复 DLL 加载，但仍有不必要的目录遍历和锁竞争。
+
+**实际影响**：`plugin()` 仅在初始化阶段被调用（每个模块一次），运行时不调用，因此开销可忽略。
+
+**修复建议**：在 `scanPlugins()` 末尾调用 `pluginsDirty.erase(iid)`，使代码语义更清晰。
+
+### 14.17 Session::close 中 hash_size_map 查找可能崩溃 🟡 潜在 Bug
+
+`Session::close()` (Session.cpp line 600) 在 `images.empty()` 时查找 `hash_size_map.find({group.size, group.hash})`。如果 `Session::open()` 走了 `out_search_hash` 路径（即 path_map 命中但 hash 未计算），则 `group.hash` 可能为空 vector，而 `hash_size_map` 中对应的 key 是通过 `it->second->hash` 引用的。由于 `out_search_hash` 路径之后的 `image_group` 是从 `path_map` 获取的已有 group，其 hash 在首次创建时已被设置，所以实际上不会出问题。但代码的控制流（goto labels）使得正确性推理很困难。
+
+**建议**：用结构化控制流替代 goto，提高可读性和可维护性。
+
+---
+
+**文档版本**: 3.3  
 **最后更新**: 2026-04-26

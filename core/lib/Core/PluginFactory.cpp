@@ -138,6 +138,8 @@ namespace LangCore
         if (plugins.empty()) {
             allPlugins.erase(iid);
         }
+
+        pluginsDirty.erase(iid);
     }
 
     PluginFactory::PluginFactory() : _impl(new Impl(this)) {}

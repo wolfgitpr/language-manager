@@ -1,8 +1,9 @@
 # Voice Bank Scoped Package 设计文档
 
-**版本**：2.0  
+**版本**：2.1  
 **日期**：2026-04-26  
-**关联 PRD**：PRD-v2.0.md §17
+**关联 PRD**：PRD-v2.0.md §14  
+**状态**：设计方案，尚未实现。当前代码中 Manager/PackageManager API 不含 context 参数。
 
 ---
 
@@ -35,7 +36,7 @@ voicebanks/
 |------|------|------|
 | **g2pId 冲突** | ObjectPool 和 `impl.tasks` 使用 `moduleId` 作为 flat key | 不同声库的同名模块互相覆盖 |
 | **无调用方区分** | `G2pInput.g2pId` 是 flat string | 调用方无法指定使用哪个声库的 G2p |
-| **版本冗余** | `moduleInfoSet` 去重不含 packageId | 同声库不同版本若内容没变，第二个被静默跳过，无明确共用语义 |
+| **版本冗余** | 模块去重不含 packageId | 同声库不同版本若内容没变，第二个被静默跳过，无明确共用语义 |
 | **无声库概念** | `addPackagePath` 只接受路径 | 框架不知道哪些包属于哪个声库 |
 
 ### 1.3 设计目标

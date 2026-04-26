@@ -1,6 +1,6 @@
 # ChainG2p 设计文档
 
-**版本**：2.0  
+**版本**：2.1  
 **日期**：2026-04-26
 
 ---
@@ -193,7 +193,9 @@ public:
 
 ## 6. 线程安全
 
-`ChainG2pTaskImpl` 使用 `shared_mutex`：`initialize()` / `start()` 持写锁，`getConfig()` 持读锁。Pipeline 和 Step 本身不保证线程安全——并发由 TaskImpl 层控制。
+`ChainG2pTaskImpl` 使用 `shared_mutex`：`initialize()` 持写锁，`getConfig()` 持读锁。`start()` 不持锁——每次调用创建独立的 `G2pContext`，无共享可变状态。Pipeline 和 Step 本身不保证线程安全——并发由 TaskImpl 层控制。
+
+> **注意**：当前 `start()` 无锁设计假设 Pipeline 在 `initialize()` 后不可变。若未来支持运行时重新配置 Pipeline，需要在 `start()` 中增加读锁。
 
 ---
 
@@ -205,5 +207,5 @@ public:
 
 ---
 
-**文档版本**: 2.0  
+**文档版本**: 2.1  
 **最后更新**: 2026-04-26

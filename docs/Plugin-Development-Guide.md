@@ -2,7 +2,7 @@
 
 > 核心概念、接口定义和命名规范见 [PRD-v2.0.md](PRD-v2.0.md)。本文档仅覆盖实操流程。
 
-**版本**：3.0  
+**版本**：3.1  
 **日期**：2026-04-26
 
 ---
@@ -134,9 +134,11 @@ public:
     std::string getConfig() const override;
 
 private:
-    LangCore::VersionedTaskManager<MyTask> _manager;
+    LangCore::VersionedTaskManager _manager;
 };
 ```
+
+**单版本插件（推荐）**：
 
 ```cpp
 // MyTask.cpp
@@ -144,11 +146,24 @@ private:
 #include "internal/V1/TaskImpl.h"
 
 namespace LangPlugins::MyPlugin {
-    TASK_IMPLEMENT(MyTask, VersionedTaskManager<MyTask>, Internal::V1, MyTaskImpl)
+    TASK_IMPLEMENT(MyTask, Internal::V1::MyTaskImpl)
 }
 ```
 
-`TASK_IMPLEMENT` 宏自动生成构造函数（读取 `spec->apiLevel()` 并选择对应实现）、`apiLevel()`、`initialize()`、`start()`、`getConfig()` 五个方法的委托代码。
+`TASK_IMPLEMENT(TaskClass, ImplClass)` 自动生成构造函数和所有委托方法。
+
+**多版本插件**：手动编写构造函数，使用 `TASK_IMPLEMENT_METHODS` 生成其余方法：
+
+```cpp
+// MyTask.cpp
+MyTask::MyTask(const LangCore::ModuleSpec *spec) : Task(spec), _manager(spec) {
+    switch (spec->apiLevel()) {
+        case 2: _manager.setImpl(std::make_unique<Internal::V2::MyTaskImpl>(spec)); break;
+        default: _manager.setImpl(std::make_unique<Internal::V1::MyTaskImpl>(spec)); break;
+    }
+}
+TASK_IMPLEMENT_METHODS(MyTask)
+```
 
 ---
 
@@ -213,5 +228,5 @@ Package 格式为 `.lmpk`（ZIP），包含 `package.json`：
 
 ---
 
-**文档版本**: 3.0  
+**文档版本**: 3.1  
 **最后更新**: 2026-04-26
