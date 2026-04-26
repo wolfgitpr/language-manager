@@ -56,6 +56,7 @@ namespace LangCore
 
         // 依赖错误
         DependencyError = 17,
+        DriverUnavailable = 22,
 
         // 运行时错误
         RuntimeError = 18,

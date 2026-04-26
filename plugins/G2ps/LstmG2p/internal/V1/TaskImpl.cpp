@@ -175,20 +175,24 @@ namespace LangPlugins::LstmG2p::Internal::V1
 
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     LstmG2pTaskImpl::start(const LangCore::NO<LangCore::TaskInput> &input) {
-        {
-            std::shared_lock lock(m_mutex);
-            if (!m_driver)
-                return LangCore::Error(LangCore::Error::RuntimeError, "inference driver not initialized");
-        }
-
         if (!input)
             return LangCore::Error(LangCore::Error::ConfigError, "g2p input is nullptr");
 
         const auto g2pInput = input.as<LangCore::G2pInputV1>();
 
-        // Preprocess input word
         if (g2pInput->g2pInput.empty())
             return LangCore::Error(LangCore::Error::ConfigError, "input words are empty");
+
+        // Driver unavailable — graceful degradation
+        if (!m_driverAvailable) {
+            return makeFallbackResult(g2pInput->g2pInput);
+        }
+
+        {
+            std::shared_lock lock(m_mutex);
+            if (!m_driver)
+                return LangCore::Error(LangCore::Error::RuntimeError, "inference driver not initialized");
+        }
 
         // For now, process only the first word
         const auto &lyric = g2pInput->g2pInput[0];

@@ -118,12 +118,6 @@ namespace LangPlugins::LstmG2p::Internal::V2
 
     LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
     LstmG2pTaskImpl::start(const LangCore::NO<LangCore::TaskInput> &input) {
-        {
-            std::shared_lock lock(m_mutex);
-            if (!m_driver)
-                return LangCore::Error(LangCore::Error::RuntimeError, "inference driver not initialized");
-        }
-
         if (!input)
             return LangCore::Error(LangCore::Error::ConfigError, "g2p input is nullptr");
 
@@ -132,6 +126,17 @@ namespace LangPlugins::LstmG2p::Internal::V2
         // 预检查输入
         if (g2pInput->g2pInput.empty())
             return LangCore::Error(LangCore::Error::ConfigError, "input words are empty");
+
+        // Driver unavailable — graceful degradation
+        if (!m_driverAvailable) {
+            return makeFallbackResult(g2pInput->g2pInput);
+        }
+
+        {
+            std::shared_lock lock(m_mutex);
+            if (!m_driver)
+                return LangCore::Error(LangCore::Error::RuntimeError, "inference driver not initialized");
+        }
 
         const size_t batchSize = g2pInput->g2pInput.size();
 

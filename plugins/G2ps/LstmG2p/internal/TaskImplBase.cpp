@@ -13,6 +13,7 @@
 #include <LangCore/Support/Logging.h>
 #include <LangCore/Task/Task.h>
 #include <LangCore/Task/TaskPlugin.h>
+#include <LangCore/Task/G2pTask.h>
 
 namespace LangPlugins::LstmG2p::Internal
 {
@@ -64,17 +65,23 @@ namespace LangPlugins::LstmG2p::Internal
     LangCore::Expected<void> LstmG2pTaskImplBase::initialize() {
         std::unique_lock lock(m_mutex);
 
-        // Get driver from package manager
+        static LangCore::LogCategory Log("lstmG2p");
+
+        // Get driver from package manager (graceful degradation)
+        bool driverFound = false;
         auto driverCate = m_spec->Mgr()->category("driver");
-        if (!driverCate) {
-            return LangCore::Error(LangCore::Error::RuntimeError, "could not find category: driver");
+        if (driverCate) {
+            auto driverObj = driverCate->getFirstObject("g2pOnnxDriver");
+            if (driverObj) {
+                m_driver = driverObj.as<LangCore::SessionFactory>();
+                driverFound = true;
+            }
         }
 
-        auto driverObj = driverCate->getFirstObject("g2pOnnxDriver");
-        if (!driverObj) {
-            return LangCore::Error(LangCore::Error::RuntimeError, "could not find id: g2pOnnxDriver");
+        if (!driverFound) {
+            Log.langCoreWarning("ONNX driver unavailable: inference will be disabled for module '%1'. "
+                                "Words will be returned as-is with DriverUnavailable error.", m_spec->id());
         }
-        m_driver = driverObj.as<LangCore::SessionFactory>();
 
         auto cfg = LangCore::config(m_spec);
 
@@ -118,6 +125,12 @@ namespace LangPlugins::LstmG2p::Internal
         for (const auto &[phoneme, index] : m_phonemeVocab)
             m_idxToPhoneme[index] = phoneme;
 
+        // Only open sessions if driver is available
+        if (!driverFound) {
+            m_driverAvailable = false;
+            return {};
+        }
+
         m_encoderSession = m_driver->createSession();
         const auto encoderOpenArgs = LangCore::NO<LangCore::SessionOpenArgs>::create();
         encoderOpenArgs->useCpu = false;
@@ -130,6 +143,7 @@ namespace LangPlugins::LstmG2p::Internal
         if (auto res = m_decodeSession->open(m_decoderPath, predictorOpenArgs); !res)
             return res;
 
+        m_driverAvailable = true;
         return {};
     }
 
@@ -157,6 +171,20 @@ namespace LangPlugins::LstmG2p::Internal
         auto json = LangCore::JsonValue(configObj).toJson(2);
 
         return json;
+    }
+
+    LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
+    LstmG2pTaskImplBase::makeFallbackResult(const std::vector<std::string> &lyrics) const {
+        auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
+        g2pResult->g2pResult.reserve(lyrics.size());
+        for (const auto &lyric : lyrics) {
+            g2pResult->g2pResult.emplace_back(LangCore::G2pRes{
+                std::string(lyric), std::string("eng"), std::string(lyric),
+                std::vector<std::string>(), std::string("copy"),
+                LangCore::DriverUnavailable});
+        }
+        g2pResult->errorMessage = "ONNX driver unavailable, returning original lyrics";
+        return g2pResult;
     }
 
     } // namespace LangPlugins::LstmG2p::Internal

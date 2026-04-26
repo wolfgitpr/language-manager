@@ -44,6 +44,7 @@ namespace LangPlugins::LstmG2p::Internal
         int m_eosIdx = 3;
         int m_maxLen = 48;
         std::string m_config;
+        bool m_driverAvailable = false;
         
         // 配置私有成员变量
         std::filesystem::path m_encoderPath;
@@ -54,6 +55,10 @@ namespace LangPlugins::LstmG2p::Internal
         // Helper function to load phoneme mapping from JSON file
         static LangCore::Expected<std::map<std::string, int>>
         loadPhonemeMapping(const std::filesystem::path &path, const std::string &fieldName);
+
+        /// 当驱动不可用时，生成降级结果（原样复制 lyric）
+        LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
+        makeFallbackResult(const std::vector<std::string> &lyrics) const;
     };
 
 } // namespace LangPlugins::LstmG2p::Internal

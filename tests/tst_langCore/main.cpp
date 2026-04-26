@@ -93,10 +93,10 @@ bool initializeManager() {
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
     langMgr->addPackagePath(packagesRootDir);
 
-    // 初始化 ONNX Driver
+    // 初始化 ONNX Driver（降级模式：失败时警告但继续）
     if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized) {
-        std::cerr << "Failed to initialize ONNX driver" << std::endl;
-        return false;
+        std::cerr << "Warning: Failed to initialize ONNX driver. "
+                  << "Model inference will be disabled; plugins will run in degraded mode." << std::endl;
     }
 
     // 初始化 Manager

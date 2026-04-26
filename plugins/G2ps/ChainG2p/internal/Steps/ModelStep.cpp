@@ -1,10 +1,13 @@
 #include "ModelStep.h"
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Error.h>
+#include <LangCore/Support/Logging.h>
 #include <LangCore/Core/PackageManager.h>
 
 namespace LangPlugins::ChainG2p
 {
+    static LangCore::LogCategory ModelLog("chainG2p.model");
+
     LangCore::Expected<void> ModelStep::configure(const LangCore::ModuleSpec *spec,
                                                    const LangCore::JsonObject &config)
     {
@@ -37,16 +40,22 @@ namespace LangPlugins::ChainG2p
             m_batchSize = 50;
         }
 
-        // 获取 G2p 任务
+        // 获取 G2p 任务（graceful degradation）
         auto g2pCate = spec->Mgr()->category("g2p");
         if (!g2pCate) {
-            return LangCore::Error(LangCore::Error::RuntimeError, "Could not find category: g2p");
+            ModelLog.langCoreWarning("Model step: category 'g2p' not found, "
+                                     "model inference will be disabled for '%1'", m_onnxG2pId);
+            m_enabled = false;
+            return {};
         }
 
         auto g2pObj = g2pCate->getFirstObject(m_onnxG2pId);
         if (!g2pObj) {
-            return LangCore::Error(LangCore::Error::RuntimeError,
-                                 "Could not find g2p task: " + m_onnxG2pId);
+            ModelLog.langCoreWarning("Model step: g2p task '%1' not found, "
+                                     "model inference will be disabled. Words needing inference will use original lyrics.",
+                                     m_onnxG2pId);
+            m_enabled = false;
+            return {};
         }
 
         m_onnxTask = g2pObj.as<LangCore::Task>();
@@ -57,6 +66,17 @@ namespace LangPlugins::ChainG2p
     void ModelStep::handle(G2pContext &context)
     {
         if (!m_enabled || !m_onnxTask) {
+            // Mark words that need inference with DriverUnavailable
+            if (!m_onnxTask) {
+                for (auto &word : context.words()) {
+                    if (word.mode == "convert" && !word.discard && !word.fromDict &&
+                        word.pronunciation.empty()) {
+                        word.pronunciation = word.lyric;
+                        word.candidates = {word.lyric};
+                        word.errorType = LangCore::DriverUnavailable;
+                    }
+                }
+            }
             return;
         }
 
