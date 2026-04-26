@@ -896,7 +896,7 @@ namespace LangCore
 
     std::vector<ModuleMetadata> PackageManager::getModuleMetadatas() {
         __stdc_impl_t;
-        std::shared_lock lock(impl.su_mtx);
+        std::unique_lock lock(impl.su_mtx);
 
         if (impl.dependencyResolutionSuccessful && !impl.moduleInfos.empty()) {
             return impl.moduleInfos;

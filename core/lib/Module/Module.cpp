@@ -423,7 +423,7 @@ namespace LangCore
         __stdc_impl_t;
         std::vector<ModuleSpec *> res;
         auto temp = impl.findModuleSpecs(identifier);
-        res.reserve(res.size());
+        res.reserve(temp.size());
         for (const auto &item : std::as_const(temp)) {
             res.push_back(static_cast<ModuleSpec *>(item));
         }

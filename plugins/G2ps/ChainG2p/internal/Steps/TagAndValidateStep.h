@@ -5,6 +5,8 @@
 #include <LangCore/Support/ConfigAccessor.h>
 #include <vector>
 #include <string>
+#include <memory>
+#include <re2/re2.h>
 
 namespace LangPlugins::ChainG2p
 {
@@ -32,10 +34,17 @@ namespace LangPlugins::ChainG2p
             std::string mode;
         };
 
+        struct CompiledVerifyEntry {
+            std::unique_ptr<RE2> regex;
+            std::string mode;
+        };
+
         std::vector<VerifyEntry> m_verifyEntries;
+        std::vector<CompiledVerifyEntry> m_compiledEntries;
         const LangCore::ModuleSpec* m_spec = nullptr;
 
         bool verifyWord(const std::string &word, std::string &mode) const;
+        void compileEntries();
     };
 
 } // namespace LangPlugins::ChainG2p

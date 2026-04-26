@@ -20,9 +20,9 @@ namespace LangPlugins::LstmG2p::Internal::V1
     // Helper class for inference
     namespace InferenceHelper {
         static LangCore::Expected<LangCore::NO<LangCore::ITensor>>
-        preprocessWord(const std::string &word, std::map<std::string, int> charVocab,
+        preprocessWord(const std::string &word, const std::map<std::string, int> &charVocab,
                        const int bosIdx, const int eosIdx, const int unkIdx) {
-            const std::string processedWord = stdc::to_lower(word);
+            std::string processedWord = stdc::to_lower(word);
             stdc::trim(processedWord);
 
             std::vector<int64_t> indices;

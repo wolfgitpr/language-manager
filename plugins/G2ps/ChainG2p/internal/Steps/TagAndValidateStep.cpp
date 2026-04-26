@@ -56,11 +56,37 @@ namespace LangPlugins::ChainG2p
                 {"regex", {"([A-Z]+)"}, "copy"},
                 {"regex", {"([a-z]+)"}, "convert"}
             };
+            compileEntries();
             return {};
         }
         
         m_verifyEntries = entries;
+        
+        // 预编译所有正则
+        compileEntries();
         return {};
+    }
+
+    void TagAndValidateStep::compileEntries() {
+        m_compiledEntries.clear();
+        RE2::Options options;
+        options.set_encoding(RE2::Options::EncodingUTF8);
+
+        for (const auto &entry : m_verifyEntries) {
+            if (entry.type == "regex") {
+                // 合并多个模式
+                std::string merged;
+                for (size_t i = 0; i < entry.value.size(); ++i) {
+                    if (i > 0)
+                        merged += "|";
+                    merged += entry.value[i];
+                }
+                CompiledVerifyEntry compiled;
+                compiled.regex = std::make_unique<RE2>(merged, options);
+                compiled.mode = entry.mode;
+                m_compiledEntries.push_back(std::move(compiled));
+            }
+        }
     }
 
     void TagAndValidateStep::handle(G2pContext &context)
@@ -79,18 +105,10 @@ namespace LangPlugins::ChainG2p
 
     bool TagAndValidateStep::verifyWord(const std::string &word, std::string &mode) const
     {
-        RE2::Options options;
-        options.set_encoding(RE2::Options::EncodingUTF8);
-
-        for (const auto &entry : m_verifyEntries) {
-            if (entry.type == "regex") {
-                for (const auto &pattern : entry.value) {
-                    RE2 regex(pattern, options);
-                    if (regex.ok() && RE2::FullMatch(word, regex)) {
-                        mode = entry.mode;
-                        return true;
-                    }
-                }
+        for (const auto &entry : m_compiledEntries) {
+            if (entry.regex && entry.regex->ok() && RE2::FullMatch(word, *entry.regex)) {
+                mode = entry.mode;
+                return true;
             }
         }
 

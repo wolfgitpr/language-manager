@@ -73,7 +73,7 @@ namespace LangCore
         }
 
         if (rangeStr.find('-') != std::string::npos) {
-            std::regex hyphenPattern(R"((\d+(?:\.\d+)*)\s*-\s*(\d+(?:\.\d+)*))");
+            static const std::regex hyphenPattern(R"((\d+(?:\.\d+)*)\s*-\s*(\d+(?:\.\d+)*))");
 
             if (std::smatch match; std::regex_match(rangeStr, match, hyphenPattern)) {
                 constraints_.push_back({Op::HYPHEN_RANGE, match[1].str(), match[2].str()});
@@ -81,7 +81,7 @@ namespace LangCore
             }
         }
 
-        if (std::regex versionOnlyPattern(R"(^\d+(?:\.\d+)*$)"); std::regex_match(rangeStr, versionOnlyPattern)) {
+        if (static const std::regex versionOnlyPattern(R"(^\d+(?:\.\d+)*$)"); std::regex_match(rangeStr, versionOnlyPattern)) {
             constraints_.push_back({Op::EQUAL, rangeStr});
             return;
         }
@@ -137,6 +137,7 @@ namespace LangCore
         case Op::COMPATIBLE:
             return "~" + version;
         case Op::ANY:
+            return "*";
         case Op::HYPHEN_RANGE:
             return version + "-" + version2;
         default:

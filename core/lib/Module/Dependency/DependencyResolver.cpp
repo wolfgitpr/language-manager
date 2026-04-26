@@ -21,8 +21,8 @@ namespace LangCore
                                                  oss << "[ERROR] Removed module " << module.packageId
                                                      << "::" << module.moduleId << ": level " << module.level
                                                      << " because it depends on itself!" << std::endl;
-                                                 errors_.push_back(oss.str());
-                                                 return false;
+                                                  errors_.push_back(oss.str());
+                                                  return true;
                                              }
                                          }
                                          return false;

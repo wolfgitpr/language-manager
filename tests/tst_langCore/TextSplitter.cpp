@@ -2,29 +2,24 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <re2/re2.h>
 
 #include <LangCore/Support/JSON.h>
 
 namespace TestUtils
 {
-    // 每个 splitter 配置：一组正则模式
+    // 每个 splitter 配置：一组预编译正则模式
     struct SplitterConfig {
         std::string name;
-        std::vector<std::string> regexes;
+        std::vector<std::unique_ptr<RE2>> regexes;
     };
 
     static std::vector<SplitterConfig> g_splitters;
 
-    static std::vector<std::string> splitWithPattern(const std::string &text, const std::string &pattern) {
+    static std::vector<std::string> splitWithPattern(const std::string &text, const RE2 &regex) {
         std::vector<std::string> result;
 
-        RE2::Options options;
-        options.set_encoding(RE2::Options::EncodingUTF8);
-        options.set_log_errors(false);
-        options.set_max_mem(8 << 20);
-
-        RE2 regex(pattern, options);
         if (!regex.ok()) {
             result.push_back(text);
             return result;
@@ -91,8 +86,13 @@ namespace TestUtils
             auto regexesIt = obj.find("regexes");
             if (regexesIt != obj.end() && regexesIt->second.isArray()) {
                 for (const auto &item : regexesIt->second.toArray()) {
-                    if (item.isString())
-                        cfg.regexes.push_back(item.toString());
+                    if (item.isString()) {
+                        RE2::Options options;
+                        options.set_encoding(RE2::Options::EncodingUTF8);
+                        options.set_log_errors(false);
+                        options.set_max_mem(8 << 20);
+                        cfg.regexes.push_back(std::make_unique<RE2>(item.toString(), options));
+                    }
                 }
             }
 
@@ -118,12 +118,12 @@ namespace TestUtils
         std::vector<std::string> current = input;
 
         for (const auto &splitter : g_splitters) {
-            for (const auto &pattern : splitter.regexes) {
+            for (const auto &regex : splitter.regexes) {
                 std::vector<std::string> next;
                 next.reserve(current.size() * 2);
 
                 for (const auto &segment : current) {
-                    auto parts = splitWithPattern(segment, pattern);
+                    auto parts = splitWithPattern(segment, *regex);
                     next.insert(next.end(), parts.begin(), parts.end());
                 }
 

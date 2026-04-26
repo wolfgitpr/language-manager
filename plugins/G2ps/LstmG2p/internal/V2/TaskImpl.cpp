@@ -22,7 +22,7 @@ namespace LangPlugins::LstmG2p::Internal::V2
     {
         // 批量预处理：将多个单词填充到相同长度，形成 (batch_size, max_seq_len) 的输入
         static LangCore::Expected<LangCore::NO<LangCore::ITensor>>
-        preprocessBatch(const std::vector<std::string> &words, std::map<std::string, int> charVocab, const int bosIdx,
+        preprocessBatch(const std::vector<std::string> &words, const std::map<std::string, int> &charVocab, const int bosIdx,
                         const int eosIdx, const int unkIdx, const int padIdx) {
             if (words.empty()) {
                 return LangCore::Error(LangCore::Error::ConfigError, "words list is empty");

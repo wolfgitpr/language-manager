@@ -199,14 +199,15 @@ namespace LangCore
 
         for (const auto &[g2pId, lyricVec] : _lyrics) {
             _input->g2pInput = lyricVec;
-            if (g2ps.find(g2pId) == g2ps.end()) {
+            auto g2pIt = g2ps.find(g2pId);
+            if (g2pIt == g2ps.end()) {
                 MgrLog.langCoreCritical("Error: fail to find g2p: '%1'", g2pId);
                 for (const auto &lyric : lyricVec)
                     result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy"));
                 continue;
             }
 
-            auto resultExp = g2ps[g2pId]->start(_input);
+            auto resultExp = g2pIt->second->start(_input);
             if (!resultExp) {
                 MgrLog.langCoreCritical("inference failed for g2p '%1': %2", 
                                         g2pId, resultExp.error().message());
