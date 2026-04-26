@@ -4,6 +4,6 @@
 
 namespace LangPlugins::DsDict
 {
-    TASK_IMPLEMENT(DsDictTask, VersionedTaskManager<DsDictTask>, Internal::V1, DsDictTaskImpl)
+    TASK_IMPLEMENT(DsDictTask, Internal::V1::DsDictTaskImpl)
 
 } // namespace LangPlugins::DsDict

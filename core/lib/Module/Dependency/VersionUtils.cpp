@@ -7,6 +7,8 @@
 #include <regex>
 #include <sstream>
 
+#include <LangCore/Core/ManagerLogger.h>
+
 namespace LangCore
 {
     bool VersionRange::Constraint::matches(const std::string &testVersion) const {
@@ -265,6 +267,8 @@ namespace LangCore
                     parts.push_back(std::stoi(part));
                 }
                 catch (...) {
+                    // Non-numeric version part treated as 0
+                    DependencyLog.langCoreWarning("Non-numeric version part '%1' in version string, treating as 0", part);
                     parts.push_back(0);
                 }
             }

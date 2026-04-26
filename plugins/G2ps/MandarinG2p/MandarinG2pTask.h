@@ -23,7 +23,7 @@ namespace LangPlugins::MandarinG2p
         std::string getConfig() const override;
 
     private:
-        LangCore::VersionedTaskManager<MandarinG2pTask> _manager;
+        LangCore::VersionedTaskManager _manager;
     };
 
 } // namespace LangPlugins::MandarinG2p

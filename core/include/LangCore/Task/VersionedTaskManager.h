@@ -9,105 +9,55 @@ namespace LangCore
 {
     /// VersionedTaskManager - 多版本任务管理辅助类
     ///
-    /// 这个类为多版本插件提供基本的版本管理功能。
-    /// 它封装了版本存储和实现委托的通用模式。
-    ///
-    /// 设计原则：
-    /// - 只提供数据结构和辅助方法
-    /// - 不包含具体的版本选择逻辑
-    /// - 允许插件自定义版本选择策略
-    template<typename TaskType>
+    /// 持有一个 VersionedTaskImplBase 实现并委托 initialize/start/getConfig。
+    /// 插件在构造函数中根据 spec->apiLevel() 选择实现并调用 setImpl()。
     class VersionedTaskManager {
     public:
-        /// VersionedImpl - 版本化实现的存储结构
-        struct VersionedImpl {
-            const ModuleSpec *spec = nullptr;          ///< 模块规范
-            std::unique_ptr<VersionedTaskImplBase> impl; ///< 任务实现
-            int currentLevel = 1;                      ///< 当前 API Level
-
-            explicit VersionedImpl(const ModuleSpec *s) : spec(s) {}
-        };
-
-        /// 构造函数
-        /// @param spec 模块规范
         explicit VersionedTaskManager(const ModuleSpec *spec)
-            : _impl(std::make_unique<VersionedImpl>(spec)) {}
+            : _spec(spec), _currentLevel(spec ? spec->apiLevel() : 1) {}
 
-        /// 获取当前 API Level
-        /// @return 当前 API Level
-        int currentLevel() const {
-            return _impl->currentLevel;
-        }
+        int currentLevel() const { return _currentLevel; }
+        const ModuleSpec *spec() const { return _spec; }
+        VersionedTaskImplBase *impl() const { return _impl.get(); }
 
-        /// 设置当前 API Level
-        /// @param level API Level
-        void setCurrentLevel(int level) {
-            _impl->currentLevel = level;
-        }
-
-        /// 获取模块规范
-        /// @return 模块规范指针
-        const ModuleSpec *spec() const {
-            return _impl->spec;
-        }
-
-        /// 获取实现
-        /// @return 实现指针
-        VersionedTaskImplBase *impl() const {
-            return _impl->impl.get();
-        }
-
-        /// 设置实现
-        /// @param impl 实现对象
         void setImpl(std::unique_ptr<VersionedTaskImplBase> impl) {
-            _impl->impl = std::move(impl);
+            _impl = std::move(impl);
         }
 
-        /// 初始化任务
-        /// @return 成功返回 Expected<void>::success()，失败返回错误信息
-        Expected<void> initialize() {
-            return _impl->impl->initialize();
+        Expected<void> initialize() { return _impl->initialize(); }
+
+        Expected<NO<TaskResult>> start(const NO<TaskInput> &input) {
+            return _impl->start(input);
         }
 
-        /// 执行任务
-        /// @param input 任务输入数据
-        /// @return 成功返回任务结果，失败返回错误信息
-        Expected<NO<TaskResult>>
-        start(const NO<TaskInput> &input) {
-            return _impl->impl->start(input);
-        }
+        std::string getConfig() const { return _impl->getConfig(); }
 
-        /// 获取配置
-        /// @return JSON 格式的配置字符串
-        std::string getConfig() const {
-            return _impl->impl->getConfig();
-        }
-
-    protected:
-        std::unique_ptr<VersionedImpl> _impl;
+    private:
+        const ModuleSpec *_spec;
+        int _currentLevel;
+        std::unique_ptr<VersionedTaskImplBase> _impl;
     };
 
-    // Macro to simplify plugin task implementation
-    // Usage: TASK_IMPLEMENT(TaskClass, ManagerClass, ImplNamespace, ImplClass)
-    //
-    // This macro implements the standard task methods that delegate to a VersionedTaskManager.
-    // It reduces boilerplate code in plugin task implementations.
-    //
-    // Example:
-    //   namespace MyPlugin {
-    //       class MyTask : public LangCore::Task {
-    //       public:
-    //           TASK_IMPLEMENT(MyTask, VersionedTaskManager<MyTask>, Internal::V1, MyTaskImpl)
-    //       };
-    //   }
-    #define TASK_IMPLEMENT(TaskClass, ManagerClass, ImplNamespace, ImplClass) \
+    /// TASK_IMPLEMENT - 为使用 VersionedTaskManager 的 Task 生成标准委托方法。
+    ///
+    /// 用法（单版本）:
+    ///   TASK_IMPLEMENT(MyTask, Internal::V1::MyTaskImpl)
+    ///
+    /// 生成: 构造函数、析构函数、apiLevel、initialize、start、getConfig
+    /// 构造函数中自动创建指定的 Impl 类。
+    ///
+    /// 对于多版本插件，请手动编写构造函数（使用 switch 选择 Impl），
+    /// 并使用 TASK_IMPLEMENT_METHODS 仅生成委托方法。
+    #define TASK_IMPLEMENT(TaskClass, ImplClass) \
         TaskClass::TaskClass(const LangCore::ModuleSpec *spec) \
             : LangCore::Task(spec), _manager(spec) { \
-            int level = spec->apiLevel(); \
-            _manager.setCurrentLevel(level); \
-            _manager.setImpl(std::make_unique<ImplNamespace::ImplClass>(spec)); \
+            _manager.setImpl(std::make_unique<ImplClass>(spec)); \
         } \
-        \
+        TASK_IMPLEMENT_METHODS(TaskClass)
+
+    /// TASK_IMPLEMENT_METHODS - 仅生成委托方法（不含构造函数）。
+    /// 供多版本插件使用：手动编写构造函数，然后调用此宏。
+    #define TASK_IMPLEMENT_METHODS(TaskClass) \
         TaskClass::~TaskClass() = default; \
         \
         int TaskClass::apiLevel() const { \

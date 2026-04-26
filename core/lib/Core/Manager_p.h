@@ -19,12 +19,11 @@ namespace LangCore
 
         using Decl = Manager;
 
-        bool initialized = false;
-        std::map<std::string, std::map<std::string, NO<Task>>> tasks;
+        // Note: `initialized`, `moduleInfoSet`, `moduleInfos` are inherited from
+        // PackageManager::Impl. Do NOT redeclare them here — that would shadow the
+        // parent fields and cause state inconsistency.
 
-        std::unordered_set<ModuleMetadata, ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>
-            moduleInfoSet;
-        std::vector<ModuleMetadata> moduleInfos;
+        std::map<std::string, std::map<std::string, NO<Task>>> tasks;
     };
 
 } // namespace LangCore

@@ -42,10 +42,6 @@ namespace LangPlugins::ChainG2p
 
                 word.fromFallback = true;
                 word.errorType = LangCore::PhonemeGenerationFailed;
-
-                if (m_markFailed) {
-                    word.metadata["fallback"] = true;
-                }
             }
         }
     }

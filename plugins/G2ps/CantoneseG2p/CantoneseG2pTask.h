@@ -23,7 +23,7 @@ namespace LangPlugins::CantoneseG2p
         std::string getConfig() const override;
 
     private:
-        LangCore::VersionedTaskManager<CantoneseG2pTask> _manager;
+        LangCore::VersionedTaskManager _manager;
     };
 
 } // namespace LangPlugins::CantoneseG2p

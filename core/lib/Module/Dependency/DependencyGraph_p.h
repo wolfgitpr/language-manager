@@ -2,7 +2,6 @@
 #define LANGCORE_DEPENDENCY_P_H
 
 #include <memory>
-#include <stack>
 #include <unordered_map>
 #include <vector>
 
@@ -24,34 +23,26 @@ namespace LangCore
         std::vector<PackageInitializationPlan> getPackageInitializationOrder() const;
 
     private:
-        struct GraphNode;
-
-        struct TarjanState {
-            int index = -1;
-            int lowlink = -1;
-            bool onStack = false;
-        };
-
-        using NodeMap = std::unordered_map<std::string, std::shared_ptr<GraphNode>>;
-        using MainModuleMap = std::unordered_map<ModuleMetadata, std::vector<std::shared_ptr<GraphNode>>,
-                                                 ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>;
-
         struct GraphNode {
             ModuleMetadata module;
             std::vector<std::shared_ptr<GraphNode>> neighbors;
             explicit GraphNode(ModuleMetadata mod) : module(std::move(mod)) {}
         };
 
+        using NodeMap = std::unordered_map<std::string, std::shared_ptr<GraphNode>>;
+        using MainModuleMap = std::unordered_map<ModuleMetadata, std::vector<std::shared_ptr<GraphNode>>,
+                                                 ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>;
+
         std::shared_ptr<GraphNode> getOrCreateNode(const ModuleMetadata &module);
         std::vector<std::shared_ptr<GraphNode>> findNodesByDependency(const ResolvedDependency &dep);
 
-        static void strongConnect(const std::shared_ptr<GraphNode> &node,
-                                  std::unordered_map<std::string, TarjanState> &state,
-                                  std::stack<std::shared_ptr<GraphNode>> &stack, int &index,
-                                  std::vector<std::vector<std::shared_ptr<GraphNode>>> &sccs);
-
         std::vector<std::string> getPackageTopologicalOrder() const;
-        std::vector<ModuleMetadata> getGlobalModuleInitializationOrder() const;
+
+        /// Kahn's topological sort. Returns sorted modules, or empty if cycle detected.
+        /// If a cycle is detected and \p cycleMembers is non-null, the modules in the
+        /// cycle are written there.
+        std::vector<ModuleMetadata> getGlobalModuleInitializationOrder(
+            std::vector<ModuleMetadata> *cycleMembers = nullptr) const;
 
         NodeMap nodeMap;
         MainModuleMap mainModuleMap;

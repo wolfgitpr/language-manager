@@ -1,7 +1,7 @@
 # Language Manager 产品需求文档 v2.0
 
-**版本**：2.4  
-**日期**：2026-04-21  
+**版本**：3.2  
+**日期**：2026-04-26  
 **核心目标**：C++17 插件化 G2p（Grapheme-to-Phoneme）框架，遵循"Write Once, Run Forever"设计理念。
 
 ---
@@ -12,13 +12,19 @@ Language Manager 是一个模块化语言处理框架。核心功能（语音转
 
 > **关于文本分割与语言标注**：Splitter（文本分割）和 Tagger（语言标注）已移至前端实现，不再属于核心框架。当前仓库中仅在测试代码（`tests/tst_langCore/`）中保留了简化的本地实现，供全流程集成测试使用。
 
-**设计原则**：
-- 简洁可靠：遇错直接返回，不设计重试或回滚
-- 接口抽象稳定：Level 锚定 API 结构兼容性，Version 约束内部实现兼容性
-- 长期免维护：插件加载后常驻内存，无复杂生命周期管理
-- 如无必要不过度设计：避免不必要的抽象层
+### 1.1 设计原则
 
-**支持语言**：普通话（cmn）、粤语（yue）、日语（jpn）、英语（eng）、数字（num）、标点（punc）、未知（unknown）
+| 原则 | 含义 |
+|------|------|
+| 简洁可靠 | 遇错直接返回，不设计重试或回滚 |
+| 接口稳定 | Level 锚定 API 结构兼容性；公共头文件即契约 |
+| 长期免维护 | 插件加载后常驻内存，无复杂生命周期管理 |
+| 可接受的不兼容 | Level 超出兼容范围的插件直接拒绝加载并输出清晰的错误日志，不做降级适配 |
+| 异常边界隔离 | 应用层逻辑使用 `Expected<T>` 传播错误；try-catch 仅用于第三方库边界（详见 §5.4） |
+
+### 1.2 支持语言
+
+普通话（cmn）、粤语（yue）、日语（jpn）、英语（eng）、数字（num）、标点（punc）、未知（unknown）
 
 ---
 
@@ -29,10 +35,10 @@ Language Manager 是一个模块化语言处理框架。核心功能（语音转
 | 概念 | 含义 | 格式 | 校验场景 |
 |------|------|------|----------|
 | **Level** | Core API 结构版本（函数签名、结构体布局） | 整数（1, 2, 3...） | 管理器与核心插件间、插件间依赖 |
-| **Version** | 插件内部实现版本 | MAJOR.MINOR.PATCH | 插件间依赖解析 |
+| **Version** | 插件内部实现版本 | MAJOR.MINOR.PATCH | 插件间依赖解析（版本范围过滤） |
 
 - **Level** 决定上层 API 是否兼容——结构体字段、函数参数变更时递增 Level。
-- **Version** 描述同一 Level 下的内部实现差异。例如某 G2p 插件在 Version 1.x 和 2.x 分别兼容不同格式的 ONNX 模型，但上层 API（Level）不变。依赖方可通过版本范围约束（`>=1.0`, `~2.1`, `1.0-2.0`, `*`）选择所需的实现版本。
+- **Version** 描述同一 Level 下的内部实现差异。依赖方可通过版本范围约束（`>=1.0`, `~2.1`, `1.0-2.0`, `*`）选择所需的实现版本。
 
 推荐：Version 首位与 Level 一致（Level=1 → Version=1.x.x）。
 
@@ -43,7 +49,7 @@ Manager Level = M, Plugin Level = P
 兼容条件: M - 1 <= P <= M
 ```
 
-工具插件（Driver 等）不受此规则限制，通过依赖声明中的 Level + Version 自动分析。
+工具插件（Driver 等）不受此规则限制，通过依赖声明中的 Level + Version 自行校验。
 
 **依赖解析中的双重校验**：
 
@@ -54,10 +60,10 @@ Manager Level = M, Plugin Level = P
 
 ### 2.2 插件类型
 
-| 类型 | 使用 Core 结构体 | Level 检查 | 示例 |
-|------|-----------------|-----------|------|
-| **核心插件** | 是（TaskInput/TaskResult） | 是 | G2p, Dict |
-| **工具插件** | 否 | 否 | Driver, 辅助工具 |
+| 类型 | 基类 | 使用 Core 结构体 | Level 检查 | 示例 |
+|------|------|-----------------|-----------|------|
+| **核心插件** | `TaskPlugin` | 是（TaskInput/TaskResult） | 是 | G2p, Dict |
+| **工具插件** | `DriverPlugin` | 否 | 否 | OnnxDriver |
 
 判断规则：使用 Core 结构体或继承 Task 的都是核心插件。
 
@@ -68,7 +74,7 @@ Manager Level = M, Plugin Level = P
 ### 3.1 分层结构
 
 ```
-应用层        Manager (单例，高层 API：convert)
+应用层        Manager (单例，高层 API：convert, task)
                ↓ 继承
 管理层        PackageManager (包发现、依赖解析、模块管理)
                ↓ 继承
@@ -78,12 +84,14 @@ Manager Level = M, Plugin Level = P
                ↓ 创建
 任务层        Task / SessionTask
                ↓ 使用
-支持层        Expected<T>, Error, ConfigAccessor, Logging
+支持层        Expected<T>, Error, ConfigAccessor, Logging, JSON, Tensor
 ```
 
 ### 3.2 核心组件
 
-**Manager** — 单例，顶层入口。
+#### Manager
+
+单例，顶层入口。继承 `PackageManager`。
 
 ```cpp
 class Manager : public PackageManager {
@@ -92,40 +100,64 @@ public:
     bool initialize(std::string &errMsg);
     bool initialized() const;
 
-    // 插件任务查询
     Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
     Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
 
-    // G2p 转换
     std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
 };
 ```
 
-**Task** — 处理逻辑基类。
+#### Plugin
+
+插件基类。通过 DLL 导出 `langCore_plugin_instance()` C 函数暴露单例。
+
+```cpp
+class Plugin {
+public:
+    virtual const char *iid() const = 0;   // 接口 ID
+    virtual const char *key() const = 0;   // 插件 key
+    virtual int apiLevel() const = 0;      // 声明的 API Level
+    std::filesystem::path path() const;    // DLL 所在路径
+};
+```
+
+两种派生：
+
+```cpp
+class TaskPlugin : public Plugin {
+    const char *iid() const override { return "org.openvpi.Task"; }
+    virtual Expected<NO<Task>> createTask(const ModuleSpec *spec) = 0;
+};
+
+class DriverPlugin : public Plugin {
+    const char *iid() const override { return "org.openvpi.Driver"; }
+    virtual Expected<NO<SessionFactory>> create() = 0;
+};
+```
+
+#### Task
+
+处理逻辑基类。
 
 ```cpp
 class Task : public NamedObject {
 public:
     explicit Task(const ModuleSpec *spec);
 
-    // API 兼容性
     virtual int apiLevel() const = 0;
-
-    // 生命周期
     virtual Expected<void> initialize() = 0;
     virtual Expected<NO<TaskResult>> start(const NO<TaskInput> &input) = 0;
 
-    // 元数据访问
     const ModuleSpec *spec() const;
     PackageManager *Mgr() const;
 
-    // 配置 API
-    virtual std::string getConfig() const;
-
-protected:
     // 获取依赖模块并校验 Level
     Expected<NO<NamedObject>> getObject(const std::string &category, const std::string &id) const;
 
+    // 配置 JSON 字符串（供前端查询）
+    virtual std::string getConfig() const;
+
+protected:
     // 配置加载（子类在 initialize() 中调用）
     Expected<void> initializeConfig();
     Expected<std::string> loadConfig() const;
@@ -135,12 +167,12 @@ protected:
 **关于 `apiLevel()` 和依赖 Level 的设计**：
 
 - `apiLevel()` 声明本 Task **提供**的 API Level。调用方通过该方法判断能否调用。
-- 依赖的 Level 要求声明在 `package.json` 的 per-dependency 字段中（每个依赖独立指定 `level` 和 `version`），由 `DependencyResolver` 在加载期静态校验。
-- 运行时 Task 通过 `getObject()` 获取依赖时，框架自动校验对方的 `apiLevel()` 是否满足 package.json 中声明的要求。
+- 依赖的 Level 要求声明在 `package.json` 的 per-dependency 字段中，由 `DependencyResolver` 在加载期静态校验。
+- 运行时 Task 通过 `getObject()` 获取依赖时，框架自动校验对方的 `apiLevel()` 是否满足要求。
 
-> 不在 Task 接口上添加 `minRequiredLevel()` 等方法——一个 Task 可能依赖多个不同 Level 的模块，单一整数无法表达异构需求，且会与 package.json 声明重复。
+#### SessionTask
 
-**SessionTask** — AI 模型驱动任务，管理推理会话。
+AI 模型驱动任务，管理推理会话。
 
 ```cpp
 class SessionTask : public Task {
@@ -152,62 +184,61 @@ public:
 };
 ```
 
-**Plugin** — 插件基类，两种派生：
+#### SessionFactory
+
+为 AI 模型推理提供会话工厂：
 
 ```cpp
-class Plugin {
+class SessionFactory : public NamedObject {
 public:
-    virtual const char *iid() const = 0;
-    virtual const char *key() const = 0;
-    virtual int apiLevel() const = 0;
-    std::filesystem::path path() const;
-};
-
-// 任务插件：创建 Task
-class TaskPlugin : public Plugin {
-    const char *iid() const override { return "org.openvpi.Task"; }
-    virtual Expected<NO<Task>> createTask(const ModuleSpec *spec) = 0;
-};
-
-// 驱动插件：创建 SessionFactory
-class DriverPlugin : public Plugin {
-    const char *iid() const override { return "org.openvpi.Driver"; }
-    virtual Expected<NO<SessionFactory>> create() = 0;
+    virtual std::string arch() const = 0;
+    virtual std::string backend() const = 0;
+    virtual Expected<void> initialize(const NO<TaskInitArgs> &args) = 0;
+    virtual NO<SessionTask> createSession() = 0;
 };
 ```
 
-**简化宏**——快速定义插件导出：
+#### ModuleSpec
+
+模块元数据（id、category、className、apiLevel、manifestConfiguration、configuration、path、所属 Package）。提供本地化支持（`name()`、`configurationDisplayName()`）。
+
+#### ModuleCategory
+
+同类模块的容器（ObjectPool），系统预定义三类：`driver`, `g2p`, `dict`。通过宏注册：
 
 ```cpp
-// 定义并导出 TaskPlugin
+// 头文件
+LANGCORE_DECLARE_MODULE_CATEGORY(G2p, "g2p")
+// 实现文件
+LANGCORE_DEFINE_MODULE_CATEGORY(G2p, "g2p")
+```
+
+#### Package
+
+插件包（id、version、vendor、modules、dependencies）。`ScopedPackageRef` 提供 RAII 生命周期管理。
+
+### 3.3 简化宏
+
+```cpp
+// 定义并导出 TaskPlugin（一行完成插件类定义 + C 导出）
 LANGCORE_DEFINE_TASK_PLUGIN(PluginClass, TaskClass, PluginKey, ApiLevel)
 
 // 定义并导出 DriverPlugin
 LANGCORE_DEFINE_DRIVER_PLUGIN(PluginClass, FactoryClass, PluginKey, ApiLevel)
+
+// 单版本 Task 委托代码生成（构造函数 + 方法）
+TASK_IMPLEMENT(TaskClass, ImplClass)
+
+// 多版本 Task：仅生成委托方法（构造函数手动编写）
+TASK_IMPLEMENT_METHODS(TaskClass)
 ```
 
-**ModuleSpec** — 模块元数据（id、category、className、apiLevel、manifestConfiguration、configuration、path、所属 Package）。
-
-**ModuleCategory** — 同类模块的容器（ObjectPool），系统预定义三类：`driver`, `g2p`, `dict`。通过宏 `LANGCORE_DECLARE_MODULE_CATEGORY` / `LANGCORE_DEFINE_MODULE_CATEGORY` 注册。
-
-**Package** — 插件包（id、version、vendor、modules、dependencies）。
-
-### 3.3 关键数据结构
+### 3.4 关键数据结构
 
 ```cpp
 struct G2pInput {
     std::string lyric;    // 输入文本
     std::string g2pId;    // 使用的 G2p 模块 ID
-};
-
-enum G2pErrorType {
-    NoError = 0,
-    InitError, ModelInitFailed, SessionInitFailed, ConfigError,
-    InvalidInput, EmptyInput, InvalidLyric, UnsupportedCharacter,
-    ResourceError, ModelNotFound, DictNotFound, VocabNotFound,
-    ConversionError, PinyinConversionFailed, ModelInferenceFailed,
-    PhonemeGenerationFailed, DependencyError, RuntimeError,
-    TensorError, SessionError, UnknownError,
 };
 
 struct G2pRes {
@@ -216,7 +247,7 @@ struct G2pRes {
     std::string pronunciation;               // 发音结果（默认为 lyric）
     std::vector<std::string> candidates;     // 候选发音
     std::string mode = "copy";               // "copy" 或 "convert"
-    G2pErrorType errorType = NoError;        // 错误类型
+    G2pErrorType errorType = NoError;        // 领域层错误类型
 };
 
 struct TaggerRes {
@@ -227,21 +258,16 @@ struct TaggerRes {
 };
 ```
 
-> `TaggerRes` 仍保留在核心数据结构中，供前端或测试使用。
+> `TaggerRes` 保留在核心数据结构中，供前端和测试使用。
 
-### 3.4 版本化任务 I/O 类型
+### 3.5 版本化任务 I/O 类型
 
 每个模块类别定义版本化的输入/输出类型，均继承自 `TaskInput` / `TaskResult`：
 
 ```cpp
 // G2p
-class G2pInputV1 : public TaskInput {
-    std::vector<std::string> g2pInput;
-};
-class G2pResultV1 : public TaskResult {
-    std::vector<G2pRes> g2pResult;
-    std::string errorMessage;
-};
+class G2pInputV1 : public TaskInput { std::vector<std::string> g2pInput; };
+class G2pResultV1 : public TaskResult { std::vector<G2pRes> g2pResult; std::string errorMessage; };
 
 // Dict
 class DictInputV1 : public TaskInput {
@@ -261,64 +287,48 @@ class SessionStartInput : public TaskInput {
     std::map<std::string, NO<ITensor>> inputs;
     std::set<std::string> outputs;
 };
-class SessionResult : public TaskResult {
-    std::map<std::string, NO<ITensor>> outputs;
-};
-```
+class SessionResult : public TaskResult { std::map<std::string, NO<ITensor>> outputs; };
 
-### 3.5 多版本任务支持
-
-通过 `VersionedTaskManager<T>` 模板支持同一 Task 的多个 Level 实现：
-
-```cpp
-// 每个版本实现 VersionedTaskImplBase
-class V1::TaskImpl : public VersionedTaskImplBase { ... };
-class V2::TaskImpl : public VersionedTaskImplBase { ... };
-
-// Task 类内部委托给对应版本
-class MyTask : public Task {
-    VersionedTaskManager<MyTask> _manager;
-};
-```
-
-`TASK_IMPLEMENT` 宏可自动生成 Task 的构造函数、`apiLevel()`、`initialize()`、`start()`、`getConfig()` 委托代码：
-
-```cpp
-TASK_IMPLEMENT(MyTask, MyTask, Internal::V1, TaskImpl)
-```
-
-### 3.6 SessionFactory
-
-为 AI 模型推理提供会话工厂：
-
-```cpp
-class SessionFactory : public NamedObject {
-public:
-    virtual std::string arch() const = 0;
-    virtual std::string backend() const = 0;
-    virtual Expected<void> initialize(const NO<TaskInitArgs> &args) = 0;
-    virtual NO<SessionTask> createSession() = 0;
-};
-```
-
-相关初始化参数类型：
-
-```cpp
+// Session 初始化参数
 class DriverInitArgs : public TaskInitArgs {
     bool loadFromProcess = false;
     ExecutionProvider ep = CPUExecutionProvider;
     int deviceIndex = -1;
     std::filesystem::path runtimePath;
 };
-
-class SessionOpenArgs : public TaskInitArgs {
-    bool useCpu = false;
-};
+class SessionOpenArgs : public TaskInitArgs { bool useCpu = false; };
 
 enum ExecutionProvider {
     CPUExecutionProvider, CUDAExecutionProvider,
     DMLExecutionProvider, CoreMLExecutionProvider,
 };
+```
+
+### 3.6 多版本任务支持
+
+通过 `VersionedTaskManager` 持有 `VersionedTaskImplBase` 实现并委托调用：
+
+```cpp
+class V1::TaskImpl : public VersionedTaskImplBase { ... };
+class V2::TaskImpl : public VersionedTaskImplBase { ... };
+
+class MyTask : public Task {
+    VersionedTaskManager _manager;
+};
+```
+
+**单版本插件**使用 `TASK_IMPLEMENT(TaskClass, ImplClass)` 一行生成全部委托代码。
+
+**多版本插件**手动编写构造函数（按 `spec->apiLevel()` 选择实现），然后用 `TASK_IMPLEMENT_METHODS(TaskClass)` 生成剩余委托：
+
+```cpp
+MyTask::MyTask(const ModuleSpec *spec) : Task(spec), _manager(spec) {
+    switch (spec->apiLevel()) {
+        case 2: _manager.setImpl(std::make_unique<V2::TaskImpl>(spec)); break;
+        default: _manager.setImpl(std::make_unique<V1::TaskImpl>(spec)); break;
+    }
+}
+TASK_IMPLEMENT_METHODS(MyTask)
 ```
 
 ---
@@ -344,7 +354,6 @@ my-package.lmpk
   "version": "1.0.1",
   "vendor": "OpenVPI",
   "copyright": "Copyright (C) OpenVPI",
-
   "modules": {
     "g2p": [
       {
@@ -365,11 +374,36 @@ my-package.lmpk
 
 声明文件中的相对路径基于该文件所在目录。
 
+### 4.2 模块 config.json
+
+```json
+{
+  "$version": "1.0.0",
+  "level": 1,
+  "dictPath": "dict",
+  "verify": [
+    { "type": "array", "value": ["SP", "AP"], "mode": "copy" },
+    { "type": "regex", "value": ["[\\p{Han}]"], "mode": "convert" }
+  ]
+}
+```
+
+`$version` 和 `level` 由 `PackageManager` 在依赖解析阶段读取。其余字段由具体插件通过 `ConfigAccessor` 自行解析。
+
 ---
 
 ## 5. 错误处理
 
-### 5.1 Error
+### 5.1 双层错误模型
+
+| 层级 | 类型 | 用途 | 使用者 |
+|------|------|------|--------|
+| **框架层** | `Error` (11 codes) | 插件加载、配置、依赖解析、运行时异常 | 核心框架、`Expected<T>` |
+| **领域层** | `G2pErrorType` (22 codes) | G2p 转换的具体业务错误 | `G2pRes::errorType`、前端 |
+
+两层不合并：`Error` 服务于框架通用错误传播（`Expected<T>`），`G2pErrorType` 服务于 G2p 领域结果报告，各自语义清晰。
+
+### 5.2 Error
 
 ```cpp
 class Error {
@@ -399,23 +433,51 @@ public:
 
     Error &withContext(const std::string &file, int line, const std::string &function);
     Error &withExtra(const std::string &extra);
-    std::string fullMessage() const;
+    std::string fullMessage() const;   // 格式化完整错误消息（含 context + suggestion）
 };
 ```
 
-### 5.2 Expected\<T\>
+### 5.3 Expected\<T\>
 
-替代异常的错误处理包装器：
+替代异常的错误处理包装器（tagged union of `T` or `Error`）：
 
 ```cpp
 Expected<std::string> result = someOperation();
 if (!result) {
     auto err = result.takeError();
-    LOG_ERROR("Failed: {}", err.message());
+    Log.langCoreWarning("Failed: %1", err.message());
     return err;  // 直接传播，不重试，不回滚
 }
 auto value = result.take();
 ```
+
+提供 `Expected<void>` 特化，用于无返回值的操作。
+
+### 5.4 异常边界规则
+
+应用层逻辑**禁止**抛出异常，一律使用 `Expected<T>` 传播错误。try-catch **仅**用于第三方库边界，将外部异常转为 `Error`：
+
+| 边界 | 来源 | 捕获类型 | 位置 |
+|------|------|----------|------|
+| JSON 解析 | nlohmann/json | `std::exception` | `JSON.cpp` |
+| 插件描述解析 | 文件 I/O + JSON | `std::exception` | `PluginFactory.cpp` |
+| 模块配置读取 | 文件 I/O + JSON | `std::exception`, `...` | `PackageManager.cpp` |
+| 版本号解析 | `std::stoi` | `...` | `VersionUtils.cpp` |
+| 正则验证 | `std::regex` | `std::regex_error` | `PluginValidationUtils.cpp` |
+| 类型转换 | `std::any_cast` | `std::bad_any_cast` | `G2pContext.h` |
+| ONNX 推理 | ONNX Runtime | `Ort::Exception` | `Session.cpp`, `SessionImage.cpp` |
+
+**规则**：
+1. 每个 catch 块必须记录日志或返回 `Error`，禁止静默吞掉异常
+2. 禁止在业务逻辑中使用 try-catch 做流程控制
+3. 新增第三方库集成时，在调用入口处统一捕获并转为 `Expected<T>`
+
+### 5.5 插件不兼容处理
+
+当插件 Level 超出兼容范围（`M-1 <= P <= M`）时：
+- 直接拒绝加载，不做降级适配
+- 输出清晰的错误日志，包含：插件 key、插件 Level、管理器 Level、兼容范围
+- `Error::suggestion` 引导用户升级插件或框架
 
 ---
 
@@ -429,7 +491,7 @@ auto cfg = LangCore::config(spec());
 // 必需字段 — 返回 Expected<T>，缺失即报错
 auto path = cfg.getPath("model_path");
 
-// 可选字段 — 提供默认值
+// 可选字段 — 提供默认值，直接返回 T
 auto threshold = cfg.getDouble("threshold", 0.5);
 auto enabled = cfg.getBool("enabled", true);
 
@@ -440,11 +502,26 @@ auto regexes = cfg.getStringArray("regexes");
 if (cfg.has("pattern")) { ... }
 ```
 
-### 6.2 配置加载
+支持的类型：`getString`, `getInt`, `getDouble`, `getBool`, `getPath`（解析为基于模块目录的绝对路径）, `getStringArray`。
+
+### 6.2 ValidationChain
+
+支持链式验证，返回第一个失败的错误：
+
+```cpp
+ValidationChain()
+    .validateIntRange(batchSize, 1, 1000, "batchSize")
+    .validateStringAllowed(mode, {"standard", "fast"}, "mode")
+    .validateArrayNotEmpty(regexes, "regexes")
+    .execute();
+```
+
+### 6.3 配置加载流程
 
 - Task 基类提供 `initializeConfig()` 和 `loadConfig()` 方法
 - 插件在 `initialize()` 中调用 `initializeConfig()` 完成配置加载
 - 配置来源：模块的 `config.json`（由 `ModuleSpec::manifestConfiguration()` 提供）
+- `ConfigAccessor` 构造时接收 `ModuleSpec*`，自动获取配置 JSON 和 basePath
 
 ---
 
@@ -453,13 +530,29 @@ if (cfg.has("pattern")) { ... }
 ```cpp
 #include <LangCore/Support/Logging.h>
 
-LOG_INFO("Task initialized: {}", taskId);
-LOG_ERROR("Config missing key: {}", key);
+// 声明日志分类
+LangCore::LogCategory Log("myPlugin");
+
+// 使用 Qt-style %1 %2 占位符
+Log.langCoreInfo("Task initialized: %1", taskId);
+Log.langCoreWarning("Config missing key: %1", key);
+
+// printf-style 变体
+Log.langCoreInfoF("Loaded %d entries", count);
 ```
 
-级别：Trace, Debug, Info, Success, Warning, Critical, Fatal。
+**日志级别**：Trace, Debug, Success, Information, Warning, Critical, Fatal
 
-日志分类（`ManagerLogger.h`）：`MgrLog`, `PluginLog`, `DependencyLog`, `ConfigLog`。
+**内置分类**（`ManagerLogger.h`）：
+
+| 分类 | 用途 |
+|------|------|
+| `MgrLog` | Manager 层操作（初始化、包加载） |
+| `PluginLog` | 插件扫描、DLL 加载 |
+| `DependencyLog` | 依赖解析、Level/Version 校验 |
+| `ConfigLog` | 配置读取、验证 |
+
+支持全局 `LogCallback` 和 `LogCategoryFilter` 自定义日志路由和过滤。
 
 ---
 
@@ -469,18 +562,31 @@ LOG_ERROR("Config missing key: {}", key);
 Manager::initialize()
   → PackageManager::loadPackagesInOrder()
     → 扫描包目录，解析 package.json
-    → 收集 ModuleMetadata（含 g2p/driver/dict 模块）
-    → 构建依赖图，检查依赖完整性
-    → 按拓扑序加载插件：PluginFactory::loadPlugin() → Plugin::createTask() → Task::initialize()
+    → collectModuleMetadata()：收集所有模块元数据（g2p/driver/dict）
+    → DependencyResolver::resolveAllDependencies()：
+        VersionResolver 按 packageId/moduleId/level/version 过滤
+        迭代解析（最多 2N 轮）
+    → DependencyGraph::buildGraph()：
+        Tarjan SCC 检测循环依赖
+        拓扑排序计算初始化顺序
+    → LevelCompatibilityChecker::checkCorePlugin()：
+        验证核心插件 Level 在 [minimumLevel, maximumLevel] 范围内
+    → 按 PackageInitializationPlan 顺序加载：
+        PluginFactory::plugin() → 懒加载 DLL → Plugin 单例
+        Plugin::createTask(spec) → Task
+        Task::initialize()
 ```
 
 运行时调用：
 
 ```
-Manager::convert(input) → 分发到对应 G2p Task → vector<G2pRes>
+Manager::convert(input)
+  → 按 g2pId 分发到对应 G2p Task
+  → Task::start(G2pInputV1) → G2pResultV1
+  → 聚合为 vector<G2pRes>
 ```
 
-> 文本分割（split）和语言标注（tag）由前端负责，不再由 Manager 提供。测试代码中通过 `TestUtils::split()` / `TestUtils::tag()` 实现全流程验证。
+> 文本分割和语言标注由前端负责。测试代码中通过 `TestUtils::split()` / `TestUtils::tag()` 实现全流程验证。
 
 ---
 
@@ -516,20 +622,16 @@ Manager::convert(input) → 分发到对应 G2p Task → vector<G2pRes>
 
 ### 10.1 测试中的 Splitter 与 Tagger
 
-Splitter 和 Tagger 不再作为核心插件，而是以简化的本地实现形式存在于测试代码中（`tests/tst_langCore/`）。
+Splitter 和 Tagger 不再作为核心插件，以简化的本地实现存在于 `tests/tst_langCore/`。
 
-**配置文件**位于 `tests/tst_langCore/configs/` 下，按 `splitter/` 和 `tagger/` 两个目录组织，每个语种一个 JSON 文件：
+**配置文件**位于 `tests/tst_langCore/configs/` 下，按 `splitter/` 和 `tagger/` 两个目录组织，每个语种一个 JSON 文件。
 
-**Splitter 配置格式**（如 `configs/splitter/cmn.json`）：
-
+**Splitter 配置格式**：
 ```json
-{
-  "regexes": ["([\\p{Han}])"]
-}
+{ "regexes": ["([\\p{Han}])"] }
 ```
 
-**Tagger 配置格式**（如 `configs/tagger/cmn.json`）：
-
+**Tagger 配置格式**：
 ```json
 {
   "language": "cmn",
@@ -540,14 +642,12 @@ Splitter 和 Tagger 不再作为核心插件，而是以简化的本地实现形
 }
 ```
 
-- `type`：匹配规则类型，支持 `"regex"`（RE2 全匹配）、`"array"`（集合精确匹配）、`"dict"`（从制表符分隔文件加载词表）
+- `type`：匹配规则类型——`"regex"`（RE2 全匹配）、`"array"`（集合精确匹配）、`"dict"`（从制表符分隔文件加载词表）
 - `tag`：匹配后赋予的标签
-- `discard`：（可选，默认 `false`）标记为 `true` 的段落在最终结果中可被移除
-- `value` 中的 dict 文件名会在 `res/G2pPackages/` 下递归查找
+- `discard`：（可选，默认 `false`）标记为 `true` 的段落可被移除
+- `value` 中的 dict 文件名在 `res/G2pPackages/` 下递归查找
 
 ### 10.2 测试覆盖
-
-全流程集成测试覆盖以下环节：
 
 | 环节 | 测试内容 |
 |------|---------|
@@ -555,7 +655,7 @@ Splitter 和 Tagger 不再作为核心插件，而是以简化的本地实现形
 | 依赖解析 | Level/Version 校验、循环依赖检测、拓扑排序 |
 | Splitter | 多语言混合文本切分、边界情况（空串、特殊字符）（test-local） |
 | Tagger | 多语言标注、优先级覆盖、discard 过滤（test-local） |
-| G2p | 各语言 G2p 转换正确性、批量处理 |
+| G2p | 各语言 G2p 转换正确性、批量处理、性能测试 |
 | 配置 | getConfig 配置读取 |
 | 错误处理 | 缺失依赖、无效配置、不兼容 Level 的错误报告 |
 
@@ -566,38 +666,34 @@ Splitter 和 Tagger 不再作为核心插件，而是以简化的本地实现形
 ```
 core/
   include/LangCore/        公共头文件
+    LangCoreGlobal.h        导出宏
     Base/                   NamedObject, ObjectPool, LangCommon, AlignedAllocator
-    Support/                Error, Expected, ConfigAccessor, Logging, DisplayText, JSON, PhonemeDict, Tensor
+    Support/                Error, Expected, ConfigAccessor, Logging, DisplayText, JSON,
+                            PhonemeDict, Tensor
     Core/                   Plugin, PluginFactory, PackageManager, Manager, ManagerLogger
-    Task/                   Task, SessionTask, TaskPlugin, TaskFactory, VersionedTaskManager,
-                            VersionedTaskImplBase, G2pTask, DictTask
-    Module/                 Module (ModuleSpec, ModuleCategory), ModuleCategories,
-                            Dependency/ (DependencyGraph, DependencyResolver, LevelCompatibilityChecker, VersionUtils)
-    Package/                Package
+    Task/                   Task, SessionTask, TaskPlugin, TaskFactory,
+                            VersionedTaskManager, VersionedTaskImplBase, G2pTask, DictTask
+    Module/                 Module (ModuleSpec, ModuleCategory, ModuleLocator),
+                            ModuleCategories,
+                            Dependency/ (DependencyGraph, DependencyResolver,
+                                        LevelCompatibilityChecker, VersionUtils)
+    Package/                Package, ScopedPackageRef
   lib/                      实现
 
 plugins/
   G2ps/
     MandarinG2p/            普通话 G2p（cpp-pinyin）
-    CantoneseG2p/           粤语 G2p（cpp-kana）
-    LstmG2p/                LSTM 模型 G2p（ONNX）
-    ChainG2p/               责任链 G2p 框架
+    CantoneseG2p/           粤语 G2p
+    LstmG2p/                LSTM 模型 G2p（ONNX, V1+V2）
+    ChainG2p/               责任链 G2p 框架（见 ChainG2p-Design-Document.md）
   Dicts/
     DsDict/                 字典查询
   Drivers/
     OnnxDriver/             ONNX Runtime 推理驱动
   Utils/                    辅助工具（InferUtil, OnnxUtil, Common）
 
-res/G2pPackages/            语言包资源（含各语言的 g2p 模块配置）
-
-tests/
-  tst_langCore/
-    configs/
-      splitter/             Splitter 配置（每语种一个 JSON）
-      tagger/               Tagger 配置（每语种一个 JSON）
-    TextSplitter.h/.cpp     test-local Splitter 实现（RE2）
-    TextTagger.h/.cpp       test-local Tagger 实现（RE2 + dict）
-    main.cpp                全流程集成测试
+res/G2pPackages/            语言包资源
+tests/tst_langCore/         全流程集成测试
 ```
 
 ---
@@ -610,19 +706,59 @@ tests/
 | 任务类 | `[Name]Task` | `MandarinG2pTask` |
 | 命名空间 | `LangPlugins::[Name]` | `LangPlugins::MandarinG2p` |
 | 插件 key | `category.plugin-name` | `g2p.template.MandarinG2pInference` |
-| 插件导出 | `LANGCORE_EXPORT_PLUGIN(Class)` | `LANGCORE_EXPORT_PLUGIN(MandarinG2pPlugin)` |
-| 简化宏导出 | `LANGCORE_DEFINE_TASK_PLUGIN(...)` | `LANGCORE_DEFINE_TASK_PLUGIN(Plugin, Task, Key, Level)` |
+| 插件导出宏 | `LANGCORE_DEFINE_TASK_PLUGIN(...)` | 见 §3.3 |
 | 模块类别宏 | `LANGCORE_DECLARE_MODULE_CATEGORY(Name, Key)` | `LANGCORE_DECLARE_MODULE_CATEGORY(G2p, "g2p")` |
+| 日志分类 | `LangCore::LogCategory Log("name")` | `LangCore::LogCategory Log("onnxDriver")` |
 
 ---
 
 ## 13. 依赖项
 
-- **构建**：CMake 3.19+, C++17, qmsetup, vcpkg
-- **运行时**：ONNX Runtime, cpp-pinyin, cpp-kana, RE2
-- **测试**：RE2（splitter/tagger 本地实现）
+- **构建**：CMake 3.19+, C++17, qmsetup, vcpkg, stdcorelib
+- **运行时**：ONNX Runtime, cpp-pinyin, cpp-kana, nlohmann-json, blake3
+- **测试**：RE2（splitter/tagger 本地实现）, Qt 6（测试基础设施）
 
 ---
 
-**文档版本**: 2.4  
-**最后更新**: 2026-04-21
+## 14. 设计评审记录
+
+本节记录经代码审计发现的设计问题及其处理状态。
+
+### 14.1 Manager::Impl 成员遮蔽 ✅ 已修复
+
+`Manager::Impl` 重新声明了 `initialized`、`moduleInfoSet`、`moduleInfos`，遮蔽了 `PackageManager::Impl` 的同名成员。已删除 `Manager::Impl` 中的重复声明，改为使用继承的字段。
+
+### 14.2 VersionedTaskManager 简化 ✅ 已修复
+
+- `VersionedTaskManager` 从模板类简化为普通类，自动从 `spec->apiLevel()` 读取 Level
+- `TASK_IMPLEMENT(TaskClass, ImplClass)` 简化为 2 参数，适用于单版本插件
+- 新增 `TASK_IMPLEMENT_METHODS(TaskClass)` 仅生成委托方法，供多版本插件使用（手动编写含 switch 的构造函数）
+- 保留 `VersionedTaskImplBase` 接口作为多版本实现契约
+
+### 14.3 依赖图环检测简化 ✅ 已修复
+
+删除 Tarjan SCC 算法（~70 行），改用 Kahn 拓扑排序的副产物检测环——排序完成后未被访问的节点即为环成员。`findCycles()` 公共接口保持不变。
+
+### 14.4 G2pErrorType 精简 ✅ 已修复
+
+22 个枚举值精简为 6 个：`NoError`、`InvalidLyric`、`ModelInferenceFailed`、`PhonemeGenerationFailed`、`DriverUnavailable`、`UnknownError`。枚举值编号保持不变以避免序列化兼容问题。
+
+### 14.5 ChainG2p std::any 清理 ✅ 已修复
+
+- 删除 `WordInfo::metadata`（`map<string, any>`）——唯一的写入点已有 `bool fromFallback` 字段覆盖
+- 删除 `G2pContext::m_metadata`（零读零写的死代码）和所有 metadata 访问方法
+- 消除了 `std::bad_any_cast` 异常风险和对应的 try-catch
+
+### 14.6 其他 bug 修复 ✅
+
+- `PluginFactory::plugins<T>` 的 static_assert 从错误的 `std::is_base_of_v<std::vector<Plugin>, T>` 修正为 `std::is_base_of_v<Plugin, T>`
+- `VersionUtils.cpp` 的 `catch(...)` 不再静默吞掉异常，改为记录 `DependencyLog.langCoreWarning`
+
+### 14.7 继承链改组合（待定）
+
+`Manager` → `PackageManager` → `PluginFactory` 三层 public 继承仍然存在。改为组合关系需要大范围重构（涉及 stdcorelib pimpl 约定、所有 `__stdc_impl_t` 宏使用点），风险较高。已通过 14.1 修复了最严重的成员遮蔽问题。完全改为组合关系作为长期目标保留。
+
+---
+
+**文档版本**: 3.2  
+**最后更新**: 2026-04-26

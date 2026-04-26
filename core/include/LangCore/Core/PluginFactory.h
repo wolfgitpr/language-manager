@@ -56,8 +56,13 @@ namespace LangCore
 
     template <class T>
     std::vector<T *> PluginFactory::plugins(const char *iid) const {
-        static_assert(std::is_base_of_v<std::vector<Plugin>, T>, "T should inherit from LangPlugins::Plugin");
-        return static_cast<std::vector<T *>>(plugins(iid));
+        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangCore::Plugin");
+        auto all = plugins(iid);
+        std::vector<T *> result;
+        result.reserve(all.size());
+        for (auto *p : all)
+            result.push_back(static_cast<T *>(p));
+        return result;
     }
 
 } // namespace LangCore

@@ -3,7 +3,6 @@
 
 #include <LangCore/Base/LangCommon.h>
 #include <LangCore/Module/Module.h>
-#include <any>
 #include <map>
 #include <string>
 #include <vector>
@@ -39,9 +38,6 @@ namespace LangPlugins::ChainG2p
             bool fromModel = false;               // 是否来自模型
             bool fromFallback = false;            // 是否来自回退
 
-            // 元数据
-            std::map<std::string, std::any> metadata;
-
             // 构造函数
             explicit WordInfo(std::string lyric) : lyric(std::move(lyric)) {}
         };
@@ -68,58 +64,10 @@ namespace LangPlugins::ChainG2p
         bool isStopProcessing() const { return m_stopProcessing; }
         void setStopProcessing(bool stop) { m_stopProcessing = stop; }
 
-        /// 元数据访问
-        void setMetadata(const std::string &key, const std::any &value) {
-            m_metadata[key] = value;
-        }
-
-        std::any getMetadata(const std::string &key) const {
-            auto it = m_metadata.find(key);
-            if (it != m_metadata.end()) {
-                return it->second;
-            }
-            return std::any();
-        }
-
-        template<typename T>
-        T getMetadata(const std::string &key, const T &defaultValue) const {
-            auto it = m_metadata.find(key);
-            if (it != m_metadata.end()) {
-                try {
-                    return std::any_cast<T>(it->second);
-                } catch (const std::bad_any_cast &) {
-                    return defaultValue;
-                }
-            }
-            return defaultValue;
-        }
-
-        /// 统计信息
-        size_t getDiscardCount() const {
-            return std::count_if(m_words.begin(), m_words.end(),
-                                 [](const WordInfo &w) { return w.discard; });
-        }
-
-        size_t getCopyCount() const {
-            return std::count_if(m_words.begin(), m_words.end(),
-                                 [](const WordInfo &w) { return w.mode == "copy"; });
-        }
-
-        size_t getConvertCount() const {
-            return std::count_if(m_words.begin(), m_words.end(),
-                                 [](const WordInfo &w) { return w.mode == "convert"; });
-        }
-
-        size_t getErrorCount() const {
-            return std::count_if(m_words.begin(), m_words.end(),
-                                 [](const WordInfo &w) { return w.errorType != LangCore::NoError; });
-        }
-
     private:
         std::vector<WordInfo> m_words;
         const LangCore::ModuleSpec* m_spec;
         bool m_stopProcessing = false;
-        std::map<std::string, std::any> m_metadata;
     };
 
 } // namespace LangPlugins::ChainG2p

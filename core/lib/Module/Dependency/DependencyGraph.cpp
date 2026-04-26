@@ -136,6 +136,132 @@ namespace LangCore
         mainModuleMap.clear();
     }
 
+    std::vector<std::vector<ModuleMetadata>> DependencyGraph::Impl::getCycles() const {
+        // Use Kahn's algorithm to detect cycle members:
+        // modules remaining after topological sort exhaustion are in cycles.
+        std::unordered_map<std::string, std::set<std::string>> graph;
+        std::unordered_map<std::string, int> inDegree;
+
+        for (const auto &[key, node] : nodeMap) {
+            graph[key] = {};
+            inDegree[key] = 0;
+        }
+
+        for (const auto &[key, node] : nodeMap) {
+            for (const auto &dep : node->module.resolvedDependencies) {
+                for (const auto &[otherKey, otherNode] : nodeMap) {
+                    if (otherNode->module.packageId == dep.packageId && otherNode->module.moduleId == dep.moduleId &&
+                        otherNode->module.version == dep.version && otherNode->module.level == dep.level) {
+                        if (otherKey != key && graph[otherKey].insert(key).second) {
+                            inDegree[key]++;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Kahn's: remove zero-in-degree nodes iteratively
+        std::queue<std::string> q;
+        for (const auto &[key, degree] : inDegree) {
+            if (degree == 0)
+                q.push(key);
+        }
+        std::unordered_set<std::string> visited;
+        while (!q.empty()) {
+            auto key = q.front();
+            q.pop();
+            visited.insert(key);
+            for (const auto &neighbor : graph[key]) {
+                if (--inDegree[neighbor] == 0)
+                    q.push(neighbor);
+            }
+        }
+
+        // Remaining nodes are in cycles
+        if (visited.size() == nodeMap.size())
+            return {};
+
+        // Collect all unvisited modules as a single cycle group
+        std::vector<ModuleMetadata> cycleMembers;
+        for (const auto &[key, node] : nodeMap) {
+            if (visited.find(key) == visited.end()) {
+                cycleMembers.push_back(node->module);
+            }
+        }
+        if (!cycleMembers.empty())
+            return {std::move(cycleMembers)};
+        return {};
+    }
+
+    std::vector<ModuleMetadata> DependencyGraph::Impl::getGlobalModuleInitializationOrder(
+        std::vector<ModuleMetadata> *cycleMembers) const {
+
+        std::unordered_map<std::string, std::set<std::string>> graph;
+        std::unordered_map<std::string, int> inDegree;
+        std::unordered_map<std::string, const GraphNode *> nodeMapById;
+
+        for (const auto &[key, node] : nodeMap) {
+            nodeMapById[key] = node.get();
+            graph[key] = {};
+            inDegree[key] = 0;
+        }
+
+        for (const auto &[key, node] : nodeMap) {
+            for (const auto &dep : node->module.resolvedDependencies) {
+                std::string depKey;
+                for (const auto &[otherKey, otherNode] : nodeMap) {
+                    if (otherNode->module.packageId == dep.packageId && otherNode->module.moduleId == dep.moduleId &&
+                        otherNode->module.version == dep.version && otherNode->module.level == dep.level) {
+                        depKey = otherKey;
+                        break;
+                    }
+                }
+                if (!depKey.empty() && depKey != key) {
+                    if (graph[depKey].insert(key).second) {
+                        inDegree[key]++;
+                    }
+                }
+            }
+        }
+
+        std::vector<ModuleMetadata> order;
+        std::queue<const GraphNode *> zeroInDegreeNodes;
+
+        for (const auto &[key, degree] : inDegree) {
+            if (degree == 0) {
+                zeroInDegreeNodes.push(nodeMapById[key]);
+            }
+        }
+
+        while (!zeroInDegreeNodes.empty()) {
+            const auto node = zeroInDegreeNodes.front();
+            zeroInDegreeNodes.pop();
+            order.push_back(node->module);
+
+            for (const auto &neighborKey : graph[node->module.key()]) {
+                if (--inDegree[neighborKey] == 0) {
+                    zeroInDegreeNodes.push(nodeMapById[neighborKey]);
+                }
+            }
+        }
+
+        if (order.size() != nodeMapById.size()) {
+            // Cycle detected — collect remaining nodes
+            if (cycleMembers) {
+                std::unordered_set<std::string> visited;
+                for (const auto &m : order) visited.insert(m.key());
+                for (const auto &[key, node] : nodeMap) {
+                    if (visited.find(key) == visited.end())
+                        cycleMembers->push_back(node->module);
+                }
+            }
+            return {};
+        }
+
+        return order;
+    }
+
     std::vector<std::string> DependencyGraph::Impl::getPackageTopologicalOrder() const {
         std::unordered_map<std::string, std::set<std::string>> packageGraph;
         std::unordered_map<std::string, int> packageInDegree;
@@ -207,153 +333,6 @@ namespace LangCore
         }
 
         return sortedResult;
-    }
-
-    void DependencyGraph::Impl::strongConnect(const std::shared_ptr<GraphNode> &node,
-                                              std::unordered_map<std::string, TarjanState> &state,
-                                              std::stack<std::shared_ptr<GraphNode>> &stack, int &index,
-                                              std::vector<std::vector<std::shared_ptr<GraphNode>>> &sccs) {
-        const std::string nodeKey = node->module.key();
-        auto &nodeState = state[nodeKey];
-
-        nodeState.index = index;
-        nodeState.lowlink = index;
-        index++;
-        stack.push(node);
-        nodeState.onStack = true;
-
-        for (const auto &neighbor : node->neighbors) {
-            const std::string neighborKey = neighbor->module.key();
-            auto &neighborState = state[neighborKey];
-
-            if (neighborState.index == -1) {
-                strongConnect(neighbor, state, stack, index, sccs);
-                nodeState.lowlink = std::min(nodeState.lowlink, neighborState.lowlink);
-            } else if (neighborState.onStack) {
-                nodeState.lowlink = std::min(nodeState.lowlink, neighborState.index);
-            }
-        }
-
-        if (nodeState.lowlink == nodeState.index) {
-            std::vector<std::shared_ptr<GraphNode>> scc;
-            std::shared_ptr<GraphNode> w;
-
-            do {
-                w = stack.top();
-                stack.pop();
-                state[w->module.key()].onStack = false;
-                scc.push_back(w);
-            }
-            while (w != node);
-
-            if (scc.size() > 1) {
-                sccs.push_back(scc);
-            }
-        }
-    }
-
-    std::vector<std::vector<ModuleMetadata>> DependencyGraph::Impl::getCycles() const {
-        std::vector<std::vector<ModuleMetadata>> allCycles;
-
-        std::unordered_map<std::string, TarjanState> state;
-        std::stack<std::shared_ptr<GraphNode>> stack;
-        int index = 0;
-        std::vector<std::vector<std::shared_ptr<GraphNode>>> sccs;
-
-        for (const auto &[key, node] : nodeMap) {
-            state[key] = TarjanState();
-        }
-
-        for (const auto &[key, node] : nodeMap) {
-            if (state[key].index == -1) {
-                strongConnect(node, state, stack, index, sccs);
-            }
-        }
-
-        for (const auto &scc : sccs) {
-            if (scc.size() > 1) {
-                std::vector<ModuleMetadata> cycle;
-                cycle.reserve(scc.size());
-                for (const auto &node : scc) {
-                    cycle.push_back(node->module);
-                }
-                allCycles.push_back(std::move(cycle));
-            }
-        }
-
-        return allCycles;
-    }
-
-    std::vector<ModuleMetadata> DependencyGraph::Impl::getGlobalModuleInitializationOrder() const {
-        if (auto cycles = getCycles(); !cycles.empty()) {
-            MgrLog.langCoreCritical("Error: Global module dependency cycle detected!");
-
-            for (size_t i = 0; i < cycles.size(); ++i) {
-                const auto &cycle = cycles[i];
-                MgrLog.langCoreCritical("Cycle %1 (%2 modules):", i + 1, cycle.size());
-                for (size_t j = 0; j < cycle.size(); ++j) {
-                    const auto &module = cycle[j];
-                    MgrLog.langCoreCritical("  %1. %2:%3 (v%4, level %5)", j + 1, module.packageId, module.moduleId,
-                                            module.version, module.level);
-                }
-            }
-            return {};
-        }
-
-        std::unordered_map<std::string, std::set<std::string>> graph;
-        std::unordered_map<std::string, int> inDegree;
-        std::unordered_map<std::string, const GraphNode *> nodeMapById;
-
-        for (const auto &[key, node] : nodeMap) {
-            nodeMapById[key] = node.get();
-            graph[key] = {};
-            inDegree[key] = 0;
-        }
-
-        for (const auto &[key, node] : nodeMap) {
-            for (const auto &dep : node->module.resolvedDependencies) {
-                std::string depKey;
-                for (const auto &[otherKey, otherNode] : nodeMap) {
-                    if (otherNode->module.packageId == dep.packageId && otherNode->module.moduleId == dep.moduleId &&
-                        otherNode->module.version == dep.version && otherNode->module.level == dep.level) {
-                        depKey = otherKey;
-                        break;
-                    }
-                }
-                if (!depKey.empty() && depKey != key) {
-                    if (graph[depKey].insert(key).second) {
-                        inDegree[key]++;
-                    }
-                }
-            }
-        }
-
-        std::vector<ModuleMetadata> order;
-        std::queue<const GraphNode *> zeroInDegreeNodes;
-
-        for (const auto &[key, degree] : inDegree) {
-            if (degree == 0) {
-                zeroInDegreeNodes.push(nodeMapById[key]);
-            }
-        }
-
-        while (!zeroInDegreeNodes.empty()) {
-            const auto node = zeroInDegreeNodes.front();
-            zeroInDegreeNodes.pop();
-            order.push_back(node->module);
-
-            for (const auto &neighborKey : graph[node->module.key()]) {
-                if (--inDegree[neighborKey] == 0) {
-                    zeroInDegreeNodes.push(nodeMapById[neighborKey]);
-                }
-            }
-        }
-
-        if (order.size() != nodeMapById.size()) {
-            return {};
-        }
-
-        return order;
     }
 
     std::vector<ModuleMetadata> DependencyGraph::Impl::getAllModules() const {

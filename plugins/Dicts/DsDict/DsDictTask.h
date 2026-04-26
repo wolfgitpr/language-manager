@@ -24,7 +24,7 @@ namespace LangPlugins::DsDict
         std::string getConfig() const override;
 
     private:
-        LangCore::VersionedTaskManager<DsDictTask> _manager;
+        LangCore::VersionedTaskManager _manager;
     };
 
 } // namespace LangPlugins::DsDict

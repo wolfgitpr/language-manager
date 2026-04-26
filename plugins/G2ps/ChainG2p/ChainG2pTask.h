@@ -23,7 +23,7 @@ namespace LangPlugins::ChainG2p
         std::string getConfig() const override;
 
     private:
-        LangCore::VersionedTaskManager<ChainG2pTask> _manager;
+        LangCore::VersionedTaskManager _manager;
     };
 
 } // namespace LangPlugins::ChainG2p

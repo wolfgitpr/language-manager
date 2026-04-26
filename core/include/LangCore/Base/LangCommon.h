@@ -25,43 +25,17 @@ namespace LangCore
     };
 
     enum G2pErrorType {
-        // 无错误
         NoError = 0,
 
-        // 初始化错误
-        InitError = 1,
-        ModelInitFailed = 2,
-        SessionInitFailed = 3,
-
-        // 配置错误
-        ConfigError = 4,
-
         // 输入验证错误
-        InvalidInput = 5,
-        EmptyInput = 6,
         InvalidLyric = 7,
-        UnsupportedCharacter = 8,
-
-        // 资源错误
-        ResourceError = 9,
-        ModelNotFound = 10,
-        DictNotFound = 11,
-        VocabNotFound = 12,
 
         // 转换错误
-        ConversionError = 13,
-        PinyinConversionFailed = 14,
         ModelInferenceFailed = 15,
         PhonemeGenerationFailed = 16,
 
         // 依赖错误
-        DependencyError = 17,
         DriverUnavailable = 22,
-
-        // 运行时错误
-        RuntimeError = 18,
-        TensorError = 19,
-        SessionError = 20,
 
         // 未知错误
         UnknownError = 21,

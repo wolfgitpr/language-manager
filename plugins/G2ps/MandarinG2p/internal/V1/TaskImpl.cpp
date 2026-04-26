@@ -113,7 +113,7 @@ namespace LangPlugins::MandarinG2p::Internal::V1
             for (auto &[hanzi, pinyin, candidates, conversionError] : pinyinRes) {
                 LangCore::G2pErrorType wordErrorType = LangCore::NoError;
                 if (conversionError) {
-                    wordErrorType = LangCore::PinyinConversionFailed;
+                    wordErrorType = LangCore::InvalidLyric;
                 }
                 LangCore::G2pRes newRes;
                 newRes.lyric = std::string(hanzi);

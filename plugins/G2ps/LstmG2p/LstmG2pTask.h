@@ -23,7 +23,7 @@ namespace LangPlugins::LstmG2p
         std::string getConfig() const override;
 
     private:
-        LangCore::VersionedTaskManager<LstmG2pTask> _manager;
+        LangCore::VersionedTaskManager _manager;
     };
 
 } // namespace LangPlugins::LstmG2p

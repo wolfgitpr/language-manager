@@ -9,31 +9,11 @@ namespace LangPlugins::ChainG2p
 {
     ChainG2pTask::ChainG2pTask(const LangCore::ModuleSpec *spec)
         : LangCore::Task(spec), _manager(spec) {
-        int level = spec->apiLevel();
-        _manager.setCurrentLevel(level);
-        // 目前只实现 Level 1
         auto impl = std::make_unique<Internal::V1::ChainG2pTaskImpl>(spec);
-        impl->setTask(this);  // 设置 Task 对象
+        impl->setTask(this);
         _manager.setImpl(std::move(impl));
     }
 
-    ChainG2pTask::~ChainG2pTask() = default;
-
-    int ChainG2pTask::apiLevel() const {
-        return _manager.currentLevel();
-    }
-
-    LangCore::Expected<void> ChainG2pTask::initialize() {
-        return _manager.initialize();
-    }
-
-    LangCore::Expected<LangCore::NO<LangCore::TaskResult>>
-    ChainG2pTask::start(const LangCore::NO<LangCore::TaskInput> &input) {
-        return _manager.start(input);
-    }
-
-    std::string ChainG2pTask::getConfig() const {
-        return _manager.getConfig();
-    }
+    TASK_IMPLEMENT_METHODS(ChainG2pTask)
 
 } // namespace LangPlugins::ChainG2p

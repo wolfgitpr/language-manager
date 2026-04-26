@@ -202,7 +202,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
                 std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
-                LangCore::UnsupportedCharacter}};
+                LangCore::InvalidLyric}};
             return g2pResult;
         }
 
@@ -224,7 +224,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
                 std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
-                LangCore::SessionError}};
+                LangCore::ModelInferenceFailed}};
             return g2pResult;
         } else {
             auto sessionTaskResult = encoderExp.take();
@@ -232,7 +232,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
                 auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
                 g2pResult->g2pResult = {LangCore::G2pRes{
                     std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
-                    LangCore::SessionError}};
+                    LangCore::ModelInferenceFailed}};
                 return g2pResult;
             }
             encoderResult = sessionTaskResult.as<LangCore::SessionResult>();
@@ -247,7 +247,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
                 std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
-                LangCore::TensorError}};
+                LangCore::ModelInferenceFailed}};
             return g2pResult;
         }
 
@@ -258,7 +258,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
                 std::string(lyric), std::string("eng"), std::string(lyric), std::vector<std::string>(), std::string("copy"),
-                LangCore::SessionError}};
+                LangCore::ModelInferenceFailed}};
             return g2pResult;
         }
 
