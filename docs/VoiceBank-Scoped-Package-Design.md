@@ -1,9 +1,9 @@
 # Voice Bank Scoped Package 设计文档
 
-**版本**：2.1  
-**日期**：2026-04-26  
+**版本**：3.0  
+**日期**：2026-04-27  
 **关联 PRD**：PRD-v2.0.md §14  
-**状态**：设计方案，尚未实现。当前代码中 Manager/PackageManager API 不含 context 参数。
+**状态**：v2.1 已实现（context 隔离）。v3.0 已实现（ContextKey 版本维度）。
 
 ---
 
@@ -137,21 +137,21 @@ public:
                                           const std::string &context) const;
 
     /// G2p 批量转换。
-    std::vector<G2pRes> convert(const std::vector<G2pConvertInput> &input);
+    std::vector<G2pRes> convert(const std::vector<G2pInput> &input);
 };
 ```
 
 ### 3.3 数据结构
 
 ```cpp
-/// G2p 转换输入（替代原 G2pInput）
-struct G2pConvertInput {
+/// G2p 转换输入
+struct G2pInput {
     std::string lyric;       // 输入文本
     std::string g2pId;       // 模块 ID
     std::string context;     // 声库名（空 = 默认 context）
 };
 
-/// G2p 转换结果（替代原 G2pRes）
+/// G2p 转换结果
 struct G2pRes {
     std::string lyric;
     std::string g2pId;
@@ -163,7 +163,7 @@ struct G2pRes {
 };
 ```
 
-> `G2pInput` 和 旧 `convert(vector<G2pInput*>)` 接口**删除**，不保留向后兼容。
+> `G2pInput` 已包含 `context` 字段。v3.0 进一步增加了 `contextVersion` 字段。
 
 ---
 
@@ -407,7 +407,7 @@ Manager::initialize()
 ### 6.3 convert() 调度
 
 ```
-Manager::convert(vector<G2pConvertInput> input)
+Manager::convert(vector<G2pInput> input)
   ├─ 过滤：跳过 lyric 为空 (C-2)、g2pId 为空 (C-3)、context 非法 (C-4) 的项
   ├─ 分组：按 (context, g2pId) 相邻分组
   └─ 对每组:
@@ -534,5 +534,494 @@ SingerA v1.0 携带 `g2p-cmn-custom v1.0`，v2.0 携带 `v2.0`。两者都加载
 
 ---
 
-**文档版本**: 2.0  
-**最后更新**: 2026-04-26
+# v3.0 扩展：Context 版本维度（已实现）
+
+---
+
+## 13. 问题陈述
+
+### 13.1 v2.1 遗留问题
+
+v2.1 通过 context（声库名）实现了不同声库间的命名空间隔离。但同一声库的不同版本共享同一个 context，导致：
+
+| 问题 | 场景 | 影响 |
+|------|------|------|
+| **版本覆盖** | SingerA v1.0 携带 `g2p-cmn-custom v1.0`，v2.0 携带 `v2.0`。两者注册到 `context="SingerA"` | `selectBestModules` 只保留 v2.0，v1.0 的 G2p 永远不会被使用 |
+| **无法并存** | 宿主同时打开 SingerA v1.0 和 v2.0 的工程 | 无法为不同版本的声库路由到各自的 G2p |
+| **静默降级** | 用户切换声库版本后，旧版本的发音规则消失 | 导致不可预期的发音变化，用户无感知 |
+
+### 13.2 设计目标
+
+1. 同一声库的不同版本可各自携带独立的 G2p，互不干扰
+2. 调用时可精确指定声库版本，路由到对应 G2p
+3. 版本为空时退化为现有行为（向后兼容）
+4. 默认 context（`""`）不受影响，仍为无版本语义
+5. 版本信息不编码在 context 字符串内，而是作为独立的结构化字段
+
+---
+
+## 14. 核心设计：ContextKey
+
+引入 `ContextKey` 作为复合键，替代所有内部以 `std::string context` 作为 map key 的位置。
+
+### 14.1 定义
+
+```cpp
+// ContextUtils.h
+
+struct ContextKey {
+    std::string context;                // 声库名，空字符串 = 默认 context
+    stdc::VersionNumber version;        // 声库版本，isNull() = 无版本
+
+    bool operator<(const ContextKey &o) const {
+        if (context != o.context) return context < o.context;
+        return version < o.version;
+    }
+
+    bool operator==(const ContextKey &o) const {
+        return context == o.context && version == o.version;
+    }
+
+    bool operator!=(const ContextKey &o) const { return !(*this == o); }
+
+    /// 无版本标识
+    bool isVersioned() const { return !version.isNull(); }
+
+    /// 是否为默认 context
+    bool isDefault() const { return context.empty() && version.isNull(); }
+
+    /// 人可读表示：
+    ///   "" → "(default)"
+    ///   "SingerA" → "SingerA"
+    ///   "SingerA" + 2.0.0 → "SingerA@2.0.0"
+    std::string toString() const {
+        if (context.empty() && version.isNull()) return "(default)";
+        if (version.isNull()) return context;
+        return context + "@" + version.toString();
+    }
+};
+```
+
+**设计决策**：
+- 使用 `stdc::VersionNumber` 与 dsinfer 规范对齐（`Package::version()` 已使用此类型）
+- `@` 作为 version 分隔符，不在 context 合法字符 `[A-Za-z0-9_.-]` 中，天然无歧义
+- `ContextKey` 是值类型，支持 `<` 和 `==`，可直接作为 `std::map` 的 key
+
+### 14.2 FQID 扩展
+
+```
+无版本:    context + ":" + moduleId         → "SingerA:g2p-cmn-custom"
+带版本:    context + "@" + version + ":" + moduleId → "SingerA@2.0.0:g2p-cmn-custom"
+默认ctx:   moduleId                          → "g2p-cmn-official"
+```
+
+```cpp
+// ContextUtils 更新
+static std::string formatFqid(const ContextKey &ctxKey, const std::string_view &moduleId) {
+    if (ctxKey.isDefault())
+        return std::string(moduleId);
+    return ctxKey.toString() + ":" + std::string(moduleId);
+}
+
+static FqidParseResult parseFqid(const std::string_view &fqid) {
+    // 先找 ':'，分出 contextPart 和 moduleId
+    // 再在 contextPart 中找 '@'，分出 context 和 version
+    // "SingerA@2.0.0:g2p-cmn" → {context="SingerA", version=2.0.0, moduleId="g2p-cmn"}
+    // "SingerA:g2p-cmn" → {context="SingerA", version=null, moduleId="g2p-cmn"}
+    // "g2p-cmn" → {context="", version=null, moduleId="g2p-cmn"}
+}
+```
+
+`FqidParseResult` 扩展：
+```cpp
+struct FqidParseResult {
+    std::string context;
+    stdc::VersionNumber version;    // 新增
+    std::string moduleId;
+};
+```
+
+---
+
+## 15. API 变更
+
+### 15.1 PackageManager
+
+```cpp
+class PackageManager {
+public:
+    /// 在指定 context + version 下添加包搜索路径。
+    /// @param context 声库名（空 = 默认 context）
+    /// @param version 声库版本（isNull = 无版本）
+    /// @param path 包搜索目录
+    Expected<void> addPackagePath(const std::string &context,
+                                  const stdc::VersionNumber &version,
+                                  const std::filesystem::path &path);
+
+    /// 向后兼容重载：无版本
+    Expected<void> addPackagePath(const std::string &context,
+                                  const std::filesystem::path &path);
+
+    /// 批量设置（带版本）
+    Expected<void> setPackagePaths(const std::string &context,
+                                   const stdc::VersionNumber &version,
+                                   const std::vector<std::filesystem::path> &paths);
+
+    /// 向后兼容重载
+    Expected<void> setPackagePaths(const std::string &context,
+                                   const std::vector<std::filesystem::path> &paths);
+
+    /// 获取路径
+    std::vector<std::filesystem::path> packagePaths(const std::string &context,
+                                                     const stdc::VersionNumber &version = {}) const;
+
+    /// 获取所有已注册的 ContextKey
+    std::vector<ContextKey> contextKeys() const;
+
+    /// 保留：获取所有不重复的 context 名
+    std::vector<std::string> contexts() const;
+};
+```
+
+**向后兼容策略**：
+
+```cpp
+Expected<void> PackageManager::addPackagePath(const std::string &context,
+                                               const std::filesystem::path &path) {
+    return addPackagePath(context, {}, path);  // 空版本
+}
+```
+
+### 15.2 Manager
+
+```cpp
+class Manager : public PackageManager {
+public:
+    /// 按 ContextKey + moduleId 获取任务（带版本）
+    Expected<NO<Task>> task(const std::string &category,
+                            const std::string &context,
+                            const stdc::VersionNumber &version,
+                            const std::string &id) const;
+
+    /// 向后兼容重载
+    Expected<NO<Task>> task(const std::string &category,
+                            const std::string &context,
+                            const std::string &id) const;
+
+    /// 获取某 ContextKey 下某类别的所有任务
+    Expected<std::vector<NO<Task>>> tasks(const std::string &category,
+                                           const std::string &context,
+                                           const stdc::VersionNumber &version = {}) const;
+
+    /// G2p 批量转换
+    std::vector<G2pRes> convert(const std::vector<G2pInput> &input);
+};
+```
+
+### 15.3 数据结构
+
+```cpp
+// LangCommon.h
+
+struct G2pInput {
+    std::string lyric;
+    std::string g2pId;
+    std::string context;
+    stdc::VersionNumber contextVersion;   // 新增；default-constructed = 无版本
+
+    G2pInput() = default;
+    G2pInput(std::string lyric, std::string g2pId, std::string context = "",
+             stdc::VersionNumber contextVersion = {})
+        : lyric(std::move(lyric)), g2pId(std::move(g2pId)),
+          context(std::move(context)), contextVersion(std::move(contextVersion)) {}
+};
+
+struct G2pRes {
+    std::string lyric;
+    std::string g2pId;
+    std::string context;
+    stdc::VersionNumber contextVersion;   // 新增
+    std::string pronunciation;
+    std::vector<std::string> candidates;
+    std::string mode = "copy";
+    G2pErrorType errorType = NoError;
+
+    // 构造函数同步更新（保持向后兼容的默认参数）
+};
+```
+
+### 15.4 ModuleMetadata 扩展
+
+```cpp
+struct ModuleMetadata {
+    std::string context;
+    stdc::VersionNumber contextVersion;   // 新增
+    std::string packageId;
+    std::string moduleId;
+    // ... 其余不变
+
+    // key() 加入 contextVersion
+    std::string key() const {
+        std::string ctxPart = context;
+        if (!contextVersion.isNull())
+            ctxPart += "@" + contextVersion.toString();
+        return ctxPart + ":" + packageId + ":" + moduleId + ":"
+             + version + ":" + iid + ":" + type + ":" + configuration
+             + ":" + std::to_string(level);
+    }
+
+    // uniqueKey(), isSameMainModule() 同步更新，加入 contextVersion
+};
+```
+
+---
+
+## 16. 内部存储变更
+
+### 16.1 PackageManager_p.h
+
+所有以 `std::string` (context) 为 key 的 map → 改为 `ContextKey`：
+
+```cpp
+// 按 ContextKey 分组的搜索路径
+std::map<ContextKey, llvm::SmallVector<std::filesystem::path>> contextPackagePaths;
+
+// 按 ContextKey 分组的包索引缓存
+std::map<ContextKey, std::map<std::string, std::map<stdc::VersionNumber, PackageBrief>, std::less<>>>
+    contextCachedIndexes;
+
+// 按 ContextKey 分组的模块元数据
+std::map<ContextKey,
+         std::unordered_set<ModuleMetadata, ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>>
+    contextModuleInfoSets;
+std::map<ContextKey, std::vector<ModuleMetadata>> contextModuleInfos;
+
+// 各 ContextKey 初始化状态
+std::map<ContextKey, ContextState> contextStates;
+```
+
+### 16.2 Manager_p.h
+
+```cpp
+// 三层 map 保持三层，但第二层 key 从 string → ContextKey
+std::map<std::string,                           // category
+    std::map<ContextKey,                        // context + version
+        std::map<std::string, NO<Task>>         // moduleId → Task
+    >
+> tasks;
+```
+
+**关键决策**：保持三层 map 而非四层。ContextKey 作为单一复合键，避免 `category → context → version → moduleId` 四层嵌套带来的回退遍历复杂度。
+
+---
+
+## 17. 查找与路由策略
+
+### 17.1 task() / convert() 查找链
+
+```
+输入: category, context, version, moduleId
+
+Step 1: 精确匹配
+  key = ContextKey{context, version}
+  lookup tasks[category][key][moduleId]
+  → 找到: 返回
+
+Step 2: 退化到无版本（仅当 version 非空时）
+  key = ContextKey{context, {}}
+  lookup tasks[category][key][moduleId]
+  → 找到: 返回
+
+Step 3: 失败
+  → 返回 Error / 生成 fallback G2pRes
+  （不回退到默认 context，保持 C-6 不变）
+```
+
+**设计理由**：
+- Step 2 覆盖"声库未注册版本化路径，只注册了不带版本的路径"的兼容场景
+- 不做 "找最高兼容版本" — 版本匹配是宿主(dsinfer)的责任，框架只做精确路由
+- 不做跨 context 回退（已有 C-6 决策）
+
+### 17.2 convert() 分组
+
+```cpp
+// 分组 key 从 (context, g2pId) → (context, contextVersion, g2pId)
+struct Group {
+    std::string context;
+    stdc::VersionNumber contextVersion;
+    std::string g2pId;
+    std::vector<std::string> lyrics;
+    std::vector<size_t> resultIndexes;
+};
+
+// 相邻分组判定
+if (groups.empty()
+    || groups.back().context != item.context
+    || groups.back().contextVersion != item.contextVersion
+    || groups.back().g2pId != item.g2pId) {
+    groups.push_back({item.context, item.contextVersion, item.g2pId, {}, {}});
+}
+```
+
+### 17.3 initialize() 流程
+
+无本质变更，只是遍历 `contextPackagePaths` 时的 key 从 `string` 变为 `ContextKey`：
+
+```
+Phase 1: ContextKey{"", {}} (默认 context，无版本)
+  → 与现有完全一致
+
+Phase 2: 所有非默认 ContextKey
+  for each (ctxKey, _) in contextPackagePaths where !ctxKey.isDefault():
+    → collectModuleMetadata 传入 ctxKey（context + version 都写入 ModuleMetadata）
+    → 依赖解析时，fallback 仍为默认 context 的模块
+    → 其余流程不变
+```
+
+### 17.4 依赖解析
+
+`DependencyResolver::resolveAllDependencies` 已有 `fallbackModules` 参数，无需变更。每个 ContextKey 独立解析，fallback 来自默认 context。
+
+`ModuleMetadata.contextVersion` 参与 `isSameMainModule` 判定（同一 ContextKey 内才去重），但不参与依赖匹配（依赖按 packageId + moduleId + level + versionRange 匹配，与 contextVersion 无关）。
+
+---
+
+## 18. 错误检查增补
+
+在 v2.1 错误清单基础上增加：
+
+### 18.1 注册阶段
+
+| # | 检查 | 处理 |
+|---|------|------|
+| R-7 | version 格式非法（非空但无法解析） | `ValidationError`："Invalid context version 'X': expected format x.y[.z.w]" |
+| R-8 | 默认 context 带版本（`context=""` 但 `version` 非空） | `ValidationError`："Default context cannot have a version" |
+
+### 18.2 运行阶段
+
+| # | 检查 | 处理 |
+|---|------|------|
+| T-8 | 指定 context + version 不存在，但 context 无版本注册存在 | 使用无版本回退（Step 2），日志 `Debug` |
+| T-9 | 指定 context + version 不存在，无版本也不存在 | `RuntimeError`："Context 'SingerA@2.0.0' not found. Available: ['SingerA', 'SingerA@1.0.0', 'SingerA@2.0.0']" |
+| C-9 | convert 项的 contextVersion 格式异常 | 日志 `Warning`，该项产生 fallback |
+
+---
+
+## 19. 边界情况增补
+
+### 19.1 同声库不同版本，相同 g2pId
+
+SingerA v1.0 有 `g2p-cmn-custom v1.0`，v2.0 有 `g2p-cmn-custom v2.0`。
+
+```cpp
+mgr->addPackagePath("SingerA", VersionNumber::fromString("1.0.0"), pathV1);
+mgr->addPackagePath("SingerA", VersionNumber::fromString("2.0.0"), pathV2);
+```
+
+初始化后：
+- `tasks["g2p"][{"SingerA", 1.0.0}]["g2p-cmn-custom"]` → v1.0 Task
+- `tasks["g2p"][{"SingerA", 2.0.0}]["g2p-cmn-custom"]` → v2.0 Task
+
+互不干扰。
+
+### 19.2 声库只注册了无版本路径，调用时带版本
+
+```cpp
+mgr->addPackagePath("SingerA", pathV1);  // 无版本
+// ...
+mgr->convert({{"你好", "g2p-cmn-custom", "SingerA", VersionNumber::fromString("1.0.0")}});
+```
+
+查找链：`{"SingerA", 1.0.0}` 不存在 → 退化 `{"SingerA", {}}` → 命中。
+
+### 19.3 声库注册了带版本路径，调用时不带版本
+
+```cpp
+mgr->addPackagePath("SingerA", VersionNumber::fromString("2.0.0"), pathV2);
+// ...
+mgr->convert({{"你好", "g2p-cmn-custom", "SingerA"}});
+```
+
+查找链：`{"SingerA", {}}` 不存在 → 失败（不会遍历所有版本选最高）。
+
+**设计理由**：如果宿主知道有版本化的包，就应该传版本。不传版本意味着"使用无版本注册的包"，而非"帮我选一个"。这避免了不确定行为。
+
+### 19.4 同声库同版本注册多个路径
+
+与 v2.1 行为一致：同一 ContextKey 下可以有多个搜索路径，模块按现有规则去重和加载。
+
+### 19.5 默认 context 不受影响
+
+```cpp
+mgr->addPackagePath("", officialPath);  // 默认 context，无版本
+// addPackagePath("", someVersion, path) → R-8 错误
+```
+
+---
+
+## 20. 不变量更新
+
+在 v2.1 不变量（§9）基础上增加：
+
+9. **ContextKey 是完整路由键**：`(context, version)` 二元组唯一确定一个命名空间
+10. **版本回退仅限 versioned → unversioned**：不做跨版本选择（`v2.0` 找不到不会退化到 `v1.0`）
+11. **默认 context 永远无版本**：`ContextKey{"", non-null}` 非法
+12. **版本匹配是宿主职责**：框架不实现 `compatVersion` 匹配，只做精确查找 + 无版本退化
+
+---
+
+## 21. 变更影响总结
+
+| 组件 | 变更量 | 说明 |
+|------|--------|------|
+| **ContextUtils.h** | 中 | 新增 `ContextKey`，扩展 `FqidParseResult`，更新 `formatFqid` / `parseFqid` |
+| **LangCommon.h** | 小 | `G2pInput` / `G2pRes` 增加 `contextVersion` 字段 |
+| **PackageManager.h** | 小 | 新增带 version 的 API 重载，`contextKeys()` |
+| **PackageManager_p.h** | 中 | 所有 `map<string, ...>` → `map<ContextKey, ...>` |
+| **PackageManager.cpp** | 中 | `addPackagePath` / `setPackagePaths` / `getModuleMetadatas` / `scanPackageDirectory` 参数传播 ContextKey |
+| **Manager.h** | 小 | 新增带 version 的 `task()` 重载 |
+| **Manager_p.h** | 小 | tasks map 第二层 key → ContextKey |
+| **Manager.cpp** | 中 | `initialize()` 遍历 ContextKey，`convert()` 分组加 version，`task()` 两步查找链 |
+| **DependencyGraph.h** | 小 | `ModuleMetadata` 增加 `contextVersion`，`key()` / `isSameMainModule()` 更新 |
+| **DependencyResolver.cpp** | 无 | 无变更（已按 fallbackModules 工作，不感知 contextVersion） |
+| **Tests (tst_context)** | 中 | 新增版本化 context 测试用例，现有测试不修改（向后兼容） |
+
+---
+
+## 22. 宿主调用示例
+
+```cpp
+#include <LangCore/Core/Manager.h>
+
+auto langMgr = LangCore::Manager::instance();
+
+// 官方包（默认 context，无版本）
+langMgr->addPackagePath("", "/path/to/official/G2pPackages");
+
+// SingerA v1.0 的自定义 G2p
+langMgr->addPackagePath("SingerA",
+    stdc::VersionNumber::fromString("1.0.0"),
+    "/voicebanks/SingerA/v1.0/g2p_packages");
+
+// SingerA v2.0 的自定义 G2p
+langMgr->addPackagePath("SingerA",
+    stdc::VersionNumber::fromString("2.0.0"),
+    "/voicebanks/SingerA/v2.0/g2p_packages");
+
+auto initResult = langMgr->initialize();
+
+// 转换：v1.0 和 v2.0 可以并存使用
+std::vector<LangCore::G2pInput> inputs;
+inputs.emplace_back("你好", "g2p-cmn-custom", "SingerA",
+    stdc::VersionNumber::fromString("1.0.0"));  // 使用 v1.0 的 G2p
+inputs.emplace_back("世界", "g2p-cmn-custom", "SingerA",
+    stdc::VersionNumber::fromString("2.0.0"));  // 使用 v2.0 的 G2p
+inputs.emplace_back("hello", "eng-cmu", "");     // 使用官方 G2p
+
+auto results = langMgr->convert(inputs);
+```
+
+---
+
+**文档版本**: 3.0  
+**最后更新**: 2026-04-27

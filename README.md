@@ -36,12 +36,12 @@ langMgr->addPackagePath("", "/path/to/G2pPackages");
 // Initialize Manager
 auto initResult = langMgr->initialize();
 if (!initResult) {
-    std::cerr << "Failed to initialize: " << initResult.error().message() << std::endl;
+    std::cerr << "Failed: " << initResult.error().message() << std::endl;
     return -1;
 }
 
-// G2p conversion (splitting and tagging are done by the frontend)
-std::vector<LangCore::G2pConvertInput> g2pInput;
+// G2p conversion with context
+std::vector<LangCore::G2pInput> g2pInput;
 g2pInput.emplace_back("hello", "eng-cmu", "");        // default context
 g2pInput.emplace_back("你好", "cmn-pinyin", "");       // default context
 auto results = langMgr->convert(g2pInput);

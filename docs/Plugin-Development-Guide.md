@@ -2,8 +2,8 @@
 
 > 核心概念、接口定义和命名规范见 [PRD-v2.0.md](PRD-v2.0.md)。本文档仅覆盖实操流程。
 
-**版本**：3.1  
-**日期**：2026-04-26
+**版本**：4.0  
+**日期**：2026-04-27
 
 ---
 
@@ -97,6 +97,31 @@ namespace LangPlugins::MyPlugin {
 } // namespace LangPlugins::MyPlugin
 ```
 
+### 调用 Task（含 Context）
+
+`Manager::initialize()` 返回 `Expected<void>`，而非 `bool`。`Manager::task()` 需要传入 `context` 参数来指定上下文：
+
+```cpp
+#include <LangCore/Core/Manager.h>
+
+auto mgr = LangCore::Manager::instance();
+
+// initialize() 返回 Expected<void>
+auto initResult = mgr->initialize();
+if (!initResult) {
+    // 处理错误
+    return;
+}
+
+// task() 的第二个参数是 context（字符串）
+// 空字符串 "" 表示默认 context
+auto taskResult = mgr->task("g2p", "", "g2p-my-custom");
+
+// 指定 context + version
+auto taskResult2 = mgr->task("g2p", "SingerA",
+                              stdc::VersionNumber(2, 0, 0), "g2p-cmn");
+```
+
 ### DriverPlugin（AI 推理驱动）
 
 ```cpp
@@ -116,7 +141,26 @@ LANGCORE_DEFINE_DRIVER_PLUGIN(
 
 ---
 
-## 4. 多版本支持
+## 4. Context 系统与插件的关系
+
+Context 系统用于支持多角色（如不同歌手）使用不同的包和配置。**插件本身无需感知 Context**——框架自动完成路由。
+
+### 工作原理
+
+1. 前端调用 `Manager::task("g2p", "SingerA", "g2p-cmn")` 时指定 context
+2. 框架根据 context 查找对应的 Package 和模块配置
+3. 插件通过 `spec()` 获取的 `ModuleSpec` 已经绑定到正确的 context
+4. 插件的 `initialize()` / `start()` 代码**不需要任何修改**即可支持多 context
+
+### 对插件开发者的影响
+
+- **无需关心 context 参数**：`Task` 接口没有 context 相关方法
+- **配置自动隔离**：不同 context 下同一插件的 `config.json` 可以不同
+- **透明路由**：同一插件类可以在多个 context 中各自实例化，互不干扰
+
+---
+
+## 5. 多版本支持
 
 当 Core API Level 升级时，使用 `VersionedTaskManager` + `TASK_IMPLEMENT` 宏同时支持新旧版本：
 
@@ -167,7 +211,7 @@ TASK_IMPLEMENT_METHODS(MyTask)
 
 ---
 
-## 5. 错误处理
+## 6. 错误处理
 
 使用 `Expected<T>` 传播错误，不抛出异常：
 
@@ -190,7 +234,7 @@ LangCore::Expected<void> initialize() override {
 
 ---
 
-## 6. 打包
+## 7. 打包
 
 Package 格式为 `.lmpk`（ZIP），包含 `package.json`：
 
@@ -216,7 +260,7 @@ Package 格式为 `.lmpk`（ZIP），包含 `package.json`：
 
 ---
 
-## 7. 常见问题
+## 8. 常见问题
 
 **插件加载失败？** 检查：
 1. 是否使用了 `LANGCORE_EXPORT_PLUGIN` 宏（或使用 `LANGCORE_DEFINE_TASK_PLUGIN` 简化宏）
@@ -228,5 +272,5 @@ Package 格式为 `.lmpk`（ZIP），包含 `package.json`：
 
 ---
 
-**文档版本**: 3.1  
-**最后更新**: 2026-04-26
+**文档版本**: 4.0  
+**最后更新**: 2026-04-27

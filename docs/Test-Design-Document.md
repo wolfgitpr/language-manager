@@ -1,7 +1,7 @@
 # Language Manager 测试设计文档
 
-**版本**：1.2  
-**日期**：2026-04-26  
+**版本**：2.0  
+**日期**：2026-04-27  
 **关联 PRD**：PRD-v2.0.md §10
 
 ---
@@ -37,7 +37,7 @@
 - 与 CTest 天然集成（`add_test()` 或 `qt_add_test()`）
 - `QBENCHMARK` 可替代手写性能计时
 
-> **注意**：下文 §2-§13 描述的是规划中的测试架构。当前实际测试代码仅有 `tst_unit/`（L1 单元测试，5 个测试文件，覆盖 Error/Expected、JSON/ConfigAccessor、VersionRange/Dependency、基础类型）和 `tst_langCore/`（L4 端到端集成测试）。
+> **注意**：下文 §2-§13 描述的是规划中的测试架构。当前实际测试代码有 `tst_unit/`（L1 单元测试，5 个测试文件，覆盖 Error/Expected、JSON/ConfigAccessor、VersionRange/Dependency、基础类型）、`tst_context/`（L1/L2 Context 测试，5 个测试文件，覆盖 FQID 解析、context 隔离/版本化/去重/转换验证）和 `tst_langCore/`（L4 端到端集成测试）。
 
 ---
 
@@ -107,13 +107,14 @@ tests/
 │   └── fixtures/
 │       └── *.txt                   # 测试字典文件
 │
-└── tst_context/                    # L2: Voice Bank Context 测试
+└── tst_context/                    # L1/L2: Voice Bank Context 测试（已实现）
     ├── CMakeLists.txt
-    ├── tst_fqid.cpp                # FQID 解析
-    ├── tst_context_registration.cpp # addPackagePath 校验
-    ├── tst_context_isolation.cpp   # Context 隔离与回退
-    ├── tst_context_dedup.cpp       # 同 Context 去重
-    ├── tst_context_convert.cpp     # convert() 带 Context 调度
+    ├── tst_fqid.cpp                # FQID 解析/格式化、context 名校验
+    ├── tst_context_convert.cpp     # G2pInput/G2pRes context 字段验证
+    ├── tst_context_isolation.cpp   # Context 隔离、跨 context 依赖失败、默认 context 回退
+    ├── tst_context_dedup.cpp       # isSameMainModule 模块去重、selectBestModules
+    ├── tst_context_version.cpp     # ContextKey、版本化 FQID、版本化 context 隔离/回退/去重
+    ├── tst_framework.h             # 轻量级测试框架
     └── fixtures/
         └── packages/               # Mock packages（详见 §13）
 ```
@@ -801,40 +802,29 @@ tst_plugin / tst_dict / tst_integration → 依赖全部核心
 
 ---
 
-## 13. Voice Bank Context 测试（tst_context）
+## 13. Voice Bank Context 测试（tst_context）— 已实现
 
 > 对应设计文档：`docs/VoiceBank-Scoped-Package-Design.md`
 
 ### 13.1 测试目标
 
-验证 Context 隔离、去重、回退、FQID 解析等机制的正确性。
+验证 Context 隔离、去重、回退、FQID 解析、ContextKey 版本化等机制的正确性。这些测试均为 L1/L2 级别，不依赖插件 DLL 或外部库。
 
-### 13.2 目录结构
+### 13.2 目录结构（已实现）
 
 ```
 tst_context/
 ├── CMakeLists.txt
-├── tst_context_isolation.cpp       # Context 隔离与回退
-├── tst_context_dedup.cpp           # 同 Context 去重
-├── tst_fqid.cpp                    # FQID 解析
-├── tst_context_convert.cpp         # convert() 带 Context 调度
-└── fixtures/
-    └── packages/
-        ├── official/               # 默认 context 的官方包
-        │   └── pkg-cmn/
-        ├── singerA-v1/             # SingerA v1.0 的自定义包
-        │   └── pkg-custom/
-        ├── singerA-v2-same/        # SingerA v2.0，g2p 版本与 v1 相同
-        │   └── pkg-custom/
-        ├── singerA-v2-diff/        # SingerA v2.0，g2p 版本升级
-        │   └── pkg-custom/
-        ├── singerB/                # SingerB，与 SingerA 同名 g2pId
-        │   └── pkg-custom/
-        └── singerC-dep-official/   # SingerC，依赖默认 context 的官方模块
-            └── pkg-custom/
+├── main.cpp                        # 测试入口
+├── tst_fqid.cpp                    # FQID 解析/格式化、context 名校验
+├── tst_context_convert.cpp         # G2pInput/G2pRes context 字段验证
+├── tst_context_isolation.cpp       # Context 隔离、跨 context 依赖失败、默认 context 回退
+├── tst_context_dedup.cpp           # isSameMainModule 模块去重、selectBestModules
+├── tst_context_version.cpp         # ContextKey、版本化 FQID、版本化 context 隔离/回退/去重
+└── tst_framework.h                 # 轻量级测试框架
 ```
 
-### 13.3 tst_fqid.cpp — FQID 解析
+### 13.3 tst_fqid.cpp — FQID 解析/格式化与 Context 名校验
 
 | 用例 | 输入 | 预期 context | 预期 moduleId |
 |------|------|------------|-------------|
@@ -844,10 +834,21 @@ tst_context/
 | `parse_multipleColons` | `"A:B:C"` | `"A"` | `"B:C"`（首个 `:` 分隔） |
 | `format_plain` | context=`""`, id=`"g2p-cmn"` | FQID = `"g2p-cmn"` |
 | `format_withContext` | context=`"SingerA"`, id=`"g2p-cmn"` | FQID = `"SingerA:g2p-cmn"` |
+| `contextName_valid` | `"SingerA"`, `"singer_01"`, `"a.b-c"` | 校验通过 |
+| `contextName_invalid` | 含空格、`:`、`/`、超长等 | 校验失败 |
 
-### 13.4 tst_context_isolation.cpp — 隔离与回退
+### 13.4 tst_context_convert.cpp — G2pInput/G2pRes Context 验证
 
-使用 mock packages，构造 `ModuleMetadata` 列表并调用 `DependencyResolver`。
+| 用例 | 场景 | 预期 |
+|------|------|------|
+| `g2pInput_defaultContext` | G2pInput{"hello", "eng-cmu", ""} | context 为空，contextVersion 为 null |
+| `g2pInput_withContext` | G2pInput{"你好", "g2p-cmn-custom", "SingerA"} | context 和 g2pId 正确 |
+| `g2pInput_withVersion` | G2pInput 携带 contextVersion | contextVersion 字段正确传播 |
+| `g2pRes_contextField` | G2pRes 包含 context + contextVersion | 字段与输入一致 |
+
+### 13.5 tst_context_isolation.cpp — Context 隔离与回退
+
+使用 mock ModuleMetadata 列表调用 DependencyResolver。
 
 | 用例 | 场景 | 预期 |
 |------|------|------|
@@ -859,21 +860,7 @@ tst_context/
 | `defaultContext_globalVisibility` | 默认 context 的模块可被所有 context 依赖 | 通过 |
 | `otherContext_notVisibleToDefault` | 默认 context 的模块依赖 SingerA 的 packageId | 失败（反向不可见） |
 
-### 13.5 tst_context_registration.cpp — addPackagePath 校验
-
-| 用例 | 场景 | 预期 |
-|------|------|------|
-| `register_valid` | context="SingerA", 合法路径 | 成功 |
-| `register_defaultContext` | context="", 合法路径 | 成功 |
-| `register_invalidChar` | context="Singer A"（含空格） | Error(ValidationError) |
-| `register_colon` | context="A:B" | Error(ValidationError) |
-| `register_tooLong` | context=129字符 | Error(ValidationError) |
-| `register_pathNotExist` | 不存在的路径 | Error(FileSystemError) |
-| `register_pathNotDir` | 指向文件而非目录 | Error(FileSystemError) |
-| `register_duplicatePath` | 同 context 同 path 添加两次 | 第二次静默跳过，返回成功 |
-| `register_moduleIdWithColon` | package 内 moduleId 含 `:` | 初始化时 I-5 错误，跳过该模块 |
-
-### 13.6 tst_context_dedup.cpp — 同 Context 去重
+### 13.6 tst_context_dedup.cpp — 模块去重（isSameMainModule / selectBestModules）
 
 | 用例 | 场景 | 预期 |
 |------|------|------|
@@ -884,22 +871,19 @@ tst_context/
 | `dedup_crossContext_noDedup` | SingerA 和 SingerB 都有相同四元组 | 不去重，各自独立加载 |
 | `dedup_defaultContext` | 默认 context 内重复四元组 | 按同样规则去重 |
 
-### 13.6 tst_context_convert.cpp — convert 调度
+### 13.7 tst_context_version.cpp — ContextKey 版本化
 
 | 用例 | 场景 | 预期 |
 |------|------|------|
-| `convert_withContext` | G2pConvertInput{"你好", "g2p-cmn-custom", "SingerA"} | 使用 SingerA context 的 task |
-| `convert_defaultContext` | G2pConvertInput{"hello", "g2p-eng-official", ""} | 使用默认 context 的 task |
-| `convert_contextNotFound_noFallback` | context="SingerA" 无此 id，默认 context 有 | **不回退**，产生 fallback mode="copy"，日志 Critical |
-| `convert_contextUnknown` | context="NonExist" | fallback，日志 Critical |
-| `convert_mixedContexts` | 多个输入混合不同 context | 各自正确路由 |
-| `convert_emptyGid` | g2pId="" | 该项 fallback，errorType=UnknownError |
-| `convert_invalidContextChar` | context="Singer A"（含空格） | 该项 fallback，日志 Warning |
-| `convert_taskStartFail` | mock task->start() 返回 Error | fallback，errorType 正确 |
-| `convert_resultContext` | 验证 G2pRes.context 字段正确填充 | 与输入一致 |
-| `convert_emptyInput` | 空 vector | 返回空 vector |
+| `contextKey_basic` | ContextKey 构造、比较、isDefault/isVersioned | 值语义正确 |
+| `contextKey_toString` | 默认 → "(default)"，带版本 → "SingerA@2.0.0" | 格式正确 |
+| `versionedFqid_format` | formatFqid({"SingerA", 2.0.0}, "g2p-cmn") | "SingerA@2.0.0:g2p-cmn" |
+| `versionedFqid_parse` | parseFqid("SingerA@2.0.0:g2p-cmn") | context="SingerA", version=2.0.0, moduleId="g2p-cmn" |
+| `versionedIsolation` | 同 context 不同版本的模块隔离 | 各版本独立，互不干扰 |
+| `versionedFallback` | 带版本查找失败，退化到无版本 | 退化成功 |
+| `versionedDedup` | 同 ContextKey 内 isSameMainModule | contextVersion 参与判定 |
 
-### 13.7 Mock Package Fixtures
+### 13.8 Mock Package Fixtures
 
 #### fixtures/packages/official/pkg-cmn/package.json
 ```json
@@ -978,5 +962,5 @@ tst_context/
 
 ---
 
-**文档版本**: 1.2  
-**最后更新**: 2026-04-26
+**文档版本**: 2.0  
+**最后更新**: 2026-04-27

@@ -1,7 +1,7 @@
 # ChainG2p 设计文档
 
-**版本**：2.1  
-**日期**：2026-04-26
+**版本**：3.0  
+**日期**：2026-04-27
 
 ---
 
@@ -39,20 +39,31 @@ ChainG2pTask
 
 ```cpp
 struct WordInfo {
+    // 原始信息
     std::string lyric;           // 原词
     std::string cleanedLyric;    // 清洗后的词
+
+    // 标记信息
     std::string tag;             // 标记类型
     std::string language;        // 语言类型
     bool discard = false;        // 是否丢弃
-    std::string mode;            // "copy" | "convert"
+
+    // 处理模式
+    std::string mode;            // "copy" | "convert" | "skip"
+
+    // 结果信息
     std::string pronunciation;   // 发音结果
-    std::vector<std::string> candidates;
-    bool fromDict = false;
-    bool fromModel = false;
-    bool fromFallback = false;
-    G2pErrorType errorType = NoError;
+    std::vector<std::string> candidates;  // 候选发音
+    G2pErrorType errorType = NoError;     // 错误类型
+
+    // 来源标记
+    bool fromDict = false;       // 是否来自字典
+    bool fromModel = false;      // 是否来自模型
+    bool fromFallback = false;   // 是否来自回退
 };
 ```
+
+`G2pContext` 构造时接收输入字符串数组和 `ModuleSpec` 指针，提供 `words()` 访问词列表，`spec()` / `mgr()` 访问模块信息，`isStopProcessing()` / `setStopProcessing()` 控制流水线提前中断。
 
 ### G2pPipeline
 
@@ -70,12 +81,30 @@ public:
     virtual void handle(G2pContext &context) = 0;
     virtual void cleanup() {}
     virtual std::string name() const = 0;
+
+    void setTask(Task* task);  // 设置关联 Task（用于访问其他 Task）
+
+protected:
+    const ModuleSpec* m_spec = nullptr;
+    PackageManager* m_mgr = nullptr;
+    Task* m_task = nullptr;
+    std::string m_config;
 };
 ```
 
 ### G2pStepFactory
 
-简单工厂，硬编码 5 种步骤类型的创建逻辑。
+简单工厂，硬编码 5 种步骤类型的创建逻辑：
+
+| 类型字符串 | 对应类 |
+|-----------|--------|
+| `"tagAndValidate"` | `TagAndValidateStep` |
+| `"dict"` | `DictStep` |
+| `"model"` | `ModelStep` |
+| `"format"` | `FormatStep` |
+| `"fallback"` | `FallbackStep` |
+
+`supportedTypes()` 返回以上 5 种类型名。未知类型返回 `ConfigError`。
 
 ---
 
@@ -207,5 +236,5 @@ public:
 
 ---
 
-**文档版本**: 2.1  
-**最后更新**: 2026-04-26
+**文档版本**: 3.0  
+**最后更新**: 2026-04-27

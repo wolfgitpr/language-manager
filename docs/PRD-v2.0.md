@@ -1,7 +1,7 @@
 # Language Manager 产品需求文档 v2.0
 
-**版本**：3.5  
-**日期**：2026-04-26  
+**版本**：4.0  
+**日期**：2026-04-27  
 **核心目标**：C++17 插件化 G2p（Grapheme-to-Phoneme）框架，遵循"Write Once, Run Forever"设计理念。
 
 ---
@@ -84,7 +84,7 @@ Manager Level = M, Plugin Level = P
                ↓ 创建
 任务层        Task / SessionTask
                ↓ 使用
-支持层        Expected<T>, Error, ConfigAccessor, Logging, JSON, Tensor
+支持层        Expected<T>, Error, ConfigAccessor, Logging, JSON, Tensor, ContextUtils
 ```
 
 ### 3.2 核心组件
@@ -97,15 +97,28 @@ Manager Level = M, Plugin Level = P
 class Manager : public PackageManager {
 public:
     static Manager *instance();
-    bool initialize(std::string &errMsg);
+    Expected<void> initialize();
     bool initialized() const;
 
-    Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
-    Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
+    // 按 context + id 获取单个 Task
+    Expected<NO<Task>> task(const std::string &category, const std::string &context,
+                            const std::string &id) const;
+    // 按 context + version + id 获取单个 Task（版本化查找）
+    Expected<NO<Task>> task(const std::string &category, const std::string &context,
+                            const stdc::VersionNumber &version, const std::string &id) const;
 
-    std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
+    // 获取某 context 下所有 Task
+    Expected<std::vector<NO<Task>>> tasks(const std::string &category,
+                                          const std::string &context) const;
+    // 获取某 context + version 下所有 Task（版本化查找）
+    Expected<std::vector<NO<Task>>> tasks(const std::string &category, const std::string &context,
+                                          const stdc::VersionNumber &version) const;
+
+    std::vector<G2pRes> convert(const std::vector<G2pInput> &input);
 };
 ```
+
+`task()` 和 `tasks()` 的版本化重载支持 VoiceBank 上下文系统：先按 `ContextKey(context, version)` 精确匹配，若未命中且提供了 version，则回退到 `ContextKey(context)`（无版本）。
 
 #### Plugin
 
@@ -237,17 +250,30 @@ TASK_IMPLEMENT_METHODS(TaskClass)
 
 ```cpp
 struct G2pInput {
-    std::string lyric;    // 输入文本
-    std::string g2pId;    // 使用的 G2p 模块 ID
+    std::string lyric;                       // 输入文本
+    std::string g2pId;                       // 使用的 G2p 模块 ID
+    std::string context;                     // VoiceBank 名称（空 = 默认上下文）
+    stdc::VersionNumber contextVersion;      // VoiceBank 版本（isEmpty() = 无版本约束）
 };
 
 struct G2pRes {
     std::string lyric;                       // 输入文本
     std::string g2pId;                       // G2p 模块 ID
-    std::string pronunciation;               // 发音结果（默认为 lyric）
-    std::vector<std::string> candidates;     // 候选发音
+    std::string context;                     // VoiceBank 名称
+    stdc::VersionNumber contextVersion;      // VoiceBank 版本
+    std::string pronunciation;               // 发音结果（若为空则自动填充为 lyric）
+    std::vector<std::string> candidates;     // 候选发音（若为空则自动填充为 [pronunciation]）
     std::string mode = "copy";               // "copy" 或 "convert"
     G2pErrorType errorType = NoError;        // 领域层错误类型
+};
+
+enum G2pErrorType {
+    NoError = 0,
+    InvalidLyric,
+    ModelInferenceFailed,
+    PhonemeGenerationFailed,
+    DriverUnavailable,
+    UnknownError,
 };
 
 struct TaggerRes {
@@ -558,32 +584,41 @@ Log.langCoreInfoF("Loaded %d entries", count);
 
 ## 8. 初始化流程
 
+`Manager::initialize()` 采用两阶段初始化，按上下文（Context）独立解析模块：
+
 ```
-Manager::initialize()
-  → PackageManager::loadPackagesInOrder()
-    → 扫描包目录，解析 package.json
-    → collectModuleMetadata()：收集所有模块元数据（g2p/driver/dict）
-    → DependencyResolver::resolveAllDependencies()：
-        VersionResolver 按 packageId/moduleId/level/version 过滤
-        迭代解析（最多 2N 轮）
-    → DependencyGraph::buildGraph()：
-        Kahn 拓扑排序（副产物检测循环依赖）
-        计算初始化顺序
-    → LevelCompatibilityChecker::checkCorePlugin()：
-        验证核心插件 Level 在 [minimumLevel, maximumLevel] 范围内
-    → 按 PackageInitializationPlan 顺序加载：
-        PluginFactory::plugin() → 懒加载 DLL → Plugin 单例
-        Plugin::createTask(spec) → Task
-        Task::initialize()
+Manager::initialize() → Expected<void>
+  Phase 1 — 默认上下文（context = ""）
+    → getModuleMetadatas(ContextKey(""))
+    → LevelCompatibilityChecker::checkCorePlugin()
+    → DependencyGraph::clear() + addModule() + buildGraph() + findCycles()
+    → getPackageInitializationOrder()
+    → 按序加载：open(path) → createModuleTask(moduleInfo, pkg) → Task::initialize()
+    → 失败则整体初始化失败，返回 Error
+
+  Phase 2 — 非默认上下文（各 VoiceBank 上下文）
+    → 对每个非默认上下文独立执行与 Phase 1 相同的流程
+    → 非默认上下文的模块可回退到默认上下文中已加载的模块
+    → 单个上下文失败标记为 Failed 并继续，不阻塞其他上下文
+
+  Phase 3 — 加载 Task 实例
+    → loadTasksForCategory("g2p")（必需）
+    → loadTasksForCategory("dict")（可选）
 ```
+
+**上下文解析规则**：
+- 每个上下文独立拥有依赖图和初始化顺序
+- 默认上下文失败会阻塞整体初始化；非默认上下文失败互相独立
+- Task 查找时按 `ContextKey(context, version)` 精确匹配，未命中则回退到 `ContextKey(context)`（无版本）
 
 运行时调用：
 
 ```
 Manager::convert(input)
-  → 按 g2pId 分发到对应 G2p Task
+  → 按 g2pId + context + contextVersion 分发到对应 G2p Task
   → Task::start(G2pInputV1) → G2pResultV1
   → 聚合为 vector<G2pRes>
+  → 自动填充：pronunciation 为空时填充为 lyric，candidates 为空时填充为 [pronunciation]
 ```
 
 > 文本分割和语言标注由前端负责。测试代码中通过 `TestUtils::split()` / `TestUtils::tag()` 实现全流程验证。
@@ -613,7 +648,7 @@ Manager::convert(input)
 
 1. **VersionResolver**：按 packageId/moduleId 过滤 → level 精确匹配 → version 范围过滤 → 选最高版本
 2. **DependencyResolver**：迭代解析所有模块依赖（最多 2N 轮），检测缺失和循环依赖
-3. **DependencyGraph**：构建有向依赖图，Tarjan 算法检测环，计算拓扑初始化顺序
+3. **DependencyGraph**：构建有向依赖图，Kahn 拓扑排序（副产物检测环），计算初始化顺序
 4. **LevelCompatibilityChecker**：系统级校验核心插件 Level 落在 `[minimumLevel, maximumLevel]` 范围内
 
 ---
@@ -668,8 +703,8 @@ core/
   include/LangCore/        公共头文件
     LangCoreGlobal.h        导出宏
     Base/                   NamedObject, ObjectPool, LangCommon, AlignedAllocator
-    Support/                Error, Expected, ConfigAccessor, Logging, DisplayText, JSON,
-                            PhonemeDict, Tensor
+    Support/                Error, Expected, ConfigAccessor, ContextUtils, Logging,
+                            DisplayText, JSON, PhonemeDict, Tensor
     Core/                   Plugin, PluginFactory, PackageManager, Manager, ManagerLogger
     Task/                   Task, SessionTask, TaskPlugin, TaskFactory,
                             VersionedTaskManager, VersionedTaskImplBase, G2pTask, DictTask
@@ -683,7 +718,7 @@ core/
 plugins/
   G2ps/
     MandarinG2p/            普通话 G2p（cpp-pinyin）
-    CantoneseG2p/           粤语 G2p
+    CantoneseG2p/           粤语 G2p（cpp-pinyin）
     LstmG2p/                LSTM 模型 G2p（ONNX, V1+V2）
     ChainG2p/               责任链 G2p 框架（见 ChainG2p-Design-Document.md）
   Dicts/
@@ -709,6 +744,17 @@ tests/tst_langCore/         全流程集成测试
 | 插件导出宏 | `LANGCORE_DEFINE_TASK_PLUGIN(...)` | 见 §3.3 |
 | 模块类别宏 | `LANGCORE_DECLARE_MODULE_CATEGORY(Name, Key)` | `LANGCORE_DECLARE_MODULE_CATEGORY(G2p, "g2p")` |
 | 日志分类 | `LangCore::LogCategory Log("name")` | `LangCore::LogCategory Log("onnxDriver")` |
+
+**已注册插件 key 一览**：
+
+| 插件 | Key |
+|------|-----|
+| MandarinG2p | `g2p.template.MandarinG2pInference` |
+| CantoneseG2p | `g2p.template.CantoneseG2pInference` |
+| LstmG2p | `g2p.model.LstmG2pInference` |
+| ChainG2p | `g2p.chain.ChainG2pInference` |
+| DsDict | `dict.dsdict` |
+| OnnxDriver | `onnx` |
 
 ---
 
@@ -868,5 +914,5 @@ V1 和 V2 的 `start()` 中所有 `G2pRes` 构造现已使用 `m_spec->id()`（�
 
 ---
 
-**文档版本**: 3.5  
-**最后更新**: 2026-04-26
+**文档版本**: 4.0  
+**最后更新**: 2026-04-27
