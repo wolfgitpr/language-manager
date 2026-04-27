@@ -91,7 +91,7 @@ bool initializeManager() {
 
     // 添加包路径
     const std::filesystem::path packagesRootDir = R"(D:\projects\language-manager\res\G2pPackages)";
-    langMgr->addPackagePath(packagesRootDir);
+    langMgr->addPackagePath("", packagesRootDir);
 
     // 初始化 ONNX Driver（降级模式：失败时警告但继续）
     if (const auto onnxDriverInitialized = initializeOnnxDriver(langMgr, "cpu", 0, false); !onnxDriverInitialized) {
@@ -100,10 +100,13 @@ bool initializeManager() {
     }
 
     // 初始化 Manager
-    std::string errorMessage;
-    langMgr->initialize(errorMessage);
+    auto initResult = langMgr->initialize();
+    if (!initResult) {
+        std::cerr << "Failed to initialize langMgr: " << initResult.error().message() << std::endl;
+        return false;
+    }
     if (!langMgr->initialized()) {
-        std::cerr << "Failed to initialize langMgr: " << errorMessage << std::endl;
+        std::cerr << "Failed to initialize langMgr" << std::endl;
         return false;
     }
 
@@ -175,7 +178,7 @@ int main() {
         const auto langMgr = LangCore::Manager::instance();
 
         // 测试配置 API（使用普通 G2p 任务）
-        if (auto g2pTask = langMgr->task("g2p", "g2p-cmn-official")) {
+        if (auto g2pTask = langMgr->task("g2p", "", "g2p-cmn-official")) {
             std::cout << "Testing getConfig()..." << std::endl;
             auto configJson = g2pTask.get()->getConfig();
             std::cout << "Config size: " << configJson.size() << " bytes" << std::endl;
@@ -197,11 +200,11 @@ int main() {
         const auto splitRes = TestUtils::split(text);
         const auto tagExp = TestUtils::tag(splitRes, true, {"cmn"});
 
-        std::vector<LangCore::G2pInput *> g2pInput;
+        std::vector<LangCore::G2pInput> g2pInput;
         std::cout << "Tag result:" << std::endl;
         for (const auto &res : tagExp) {
             const auto g2pId = mapLangToG2pId(res.language);
-            g2pInput.emplace_back(new LangCore::G2pInput(res.lyric, g2pId));
+            g2pInput.emplace_back(res.lyric, g2pId, "");
             std::cout << "  lyric: '" << res.lyric << "' language: '" << res.language << "' g2pId: '" << g2pId
                       << "' tag: '" << res.tag << "'" << std::endl;
         }
@@ -213,11 +216,6 @@ int main() {
         for (const auto &g2pRes : g2pResult) {
             std::cout << "  lyric: '" << g2pRes.lyric << "' g2pId: '" << g2pRes.g2pId << "' pronunciation: '"
                       << g2pRes.pronunciation << "' mode: '" << g2pRes.mode << "'" << std::endl;
-        }
-
-        // 清理
-        for (auto *input : g2pInput) {
-            delete input;
         }
 
         std::cout << "\n========================================" << std::endl;
@@ -289,7 +287,7 @@ int main() {
 
         // 测试 ChainG2p (g2p-eng-official)
         std::cout << "\nTesting ChainG2p (g2p-eng-official)..." << std::endl;
-        if (auto g2pEngTaskExp = langMgr->task("g2p", "g2p-eng-official"); !g2pEngTaskExp) {
+        if (auto g2pEngTaskExp = langMgr->task("g2p", "", "g2p-eng-official"); !g2pEngTaskExp) {
             std::cerr << "Failed to load g2p-eng-official task: " << g2pEngTaskExp.error().message() << std::endl;
         } else {
             auto g2pEngTask = g2pEngTaskExp.take();

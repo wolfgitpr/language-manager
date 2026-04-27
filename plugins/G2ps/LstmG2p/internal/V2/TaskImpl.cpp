@@ -374,11 +374,11 @@ namespace LangPlugins::LstmG2p::Internal::V2
 
             if (phonemes.empty()) {
                 g2pResult->g2pResult.emplace_back(LangCore::G2pRes{
-                    std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(),
+                    std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(),
                     std::string("copy"), LangCore::PhonemeGenerationFailed});
             } else {
                 g2pResult->g2pResult.emplace_back(LangCore::G2pRes{std::string(lyric), std::string(m_spec->id()),
-                                                                   std::string(pronStr), std::vector<std::string>(),
+                                                                   std::string(), std::string(pronStr), std::vector<std::string>(),
                                                                    std::string("convert")});
             }
         }

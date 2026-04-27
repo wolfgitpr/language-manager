@@ -8,6 +8,7 @@
 #include <stdcorelib/support/versionnumber.h>
 
 #include <LangCore/Base/NamedObject.h>
+#include <LangCore/Support/ContextUtils.h>
 
 namespace fs = std::filesystem;
 #include <LangCore/Core/PluginFactory.h>
@@ -37,10 +38,19 @@ namespace LangCore
 
         ModuleCategory *category(const std::string_view &name) const;
 
-        void addPackagePath(const std::filesystem::path &path);
-        void addPackagePaths(stdc::array_view<std::filesystem::path> paths);
-        void setPackagePaths(stdc::array_view<std::filesystem::path> paths);
-        std::vector<std::filesystem::path> packagePaths() const;
+        Expected<void> addPackagePath(const std::string &context, const std::filesystem::path &path);
+        Expected<void> setPackagePaths(const std::string &context,
+                                       const std::vector<std::filesystem::path> &paths);
+        std::vector<std::filesystem::path> packagePaths(const std::string &context) const;
+        std::vector<std::string> contexts() const;
+
+        Expected<void> addPackagePath(const std::string &context, const stdc::VersionNumber &version,
+                                      const std::filesystem::path &path);
+        Expected<void> setPackagePaths(const std::string &context, const stdc::VersionNumber &version,
+                                       const std::vector<std::filesystem::path> &paths);
+        std::vector<std::filesystem::path> packagePaths(const std::string &context,
+                                                         const stdc::VersionNumber &version) const;
+        std::vector<ContextKey> contextKeys() const;
 
         Expected<Package> open(const std::filesystem::path &path);
         Package find(const std::string_view &id, const stdc::VersionNumber &version) const;
@@ -49,7 +59,8 @@ namespace LangCore
         bool loadPackagesInOrder();
         Expected<NO<Task>> createModuleTask(const ModuleMetadata &moduleInfo, const Package &pkg) const;
 
-        std::vector<ModuleMetadata> getModuleMetadatas();
+        std::vector<ModuleMetadata> getModuleMetadatas(const std::string &context);
+        std::vector<ModuleMetadata> getModuleMetadatas(const ContextKey &ctxKey);
 
     protected:
         class Impl;
@@ -58,8 +69,8 @@ namespace LangCore
 
         static void registerCategoryFactory(ModuleCategory *(*fac)(PackageManager *));
 
-        void collectModuleMetadata(const std::string &packageId, const std::filesystem::path &packageDir,
-                                   const JsonObject &modulesObj);
+        void collectModuleMetadata(const ContextKey &ctxKey, const std::string &packageId,
+                                   const std::filesystem::path &packageDir, const JsonObject &modulesObj);
         static void extractModuleMetadataFromJson(const std::string &packageId, const JsonObject &moduleEntry,
                                                   ModuleMetadata &info);
 
@@ -71,12 +82,10 @@ namespace LangCore
         friend class ModuleCategoryRegistrar;
 
     private:
-        void scanPackageDirectory(const std::filesystem::path &basePath);
-        void processPackageJson(const std::filesystem::path &packageDir);
+        void scanPackageDirectory(const ContextKey &ctxKey, const std::filesystem::path &basePath);
+        void processPackageJson(const ContextKey &ctxKey, const std::filesystem::path &packageDir);
         void printDiscoveryInfo(size_t pathCount, size_t moduleCount);
     };
-
-    inline void PackageManager::addPackagePath(const std::filesystem::path &path) { addPackagePaths({path}); }
 
     template <class T>
     class ModuleCategoryRegistrar {

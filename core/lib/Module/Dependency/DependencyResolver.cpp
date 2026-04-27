@@ -4,12 +4,14 @@
 #include <sstream>
 #include <unordered_set>
 
+#include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Module/Dependency/DependencyGraph.h>
 #include <LangCore/Module/Dependency/VersionUtils.h>
 
 namespace LangCore
 {
-    bool DependencyResolver::resolveAllDependencies(std::vector<ModuleMetadata> &modules) {
+    bool DependencyResolver::resolveAllDependencies(std::vector<ModuleMetadata> &modules,
+                                                    const std::vector<ModuleMetadata> &fallbackModules) {
         clear();
 
         modules.erase(std::remove_if(modules.begin(), modules.end(),
@@ -75,19 +77,57 @@ namespace LangCore
                     }
 
                     if (candidates.empty()) {
-                        std::ostringstream oss;
-                        oss << "[ERROR] Direct dependency missing: " << depRaw.packageId << "::" << depRaw.moduleId
-                            << " required by module: " << module.packageId << "::" << module.moduleId << std::endl;
-                        oss << "  Requesting module: " << module.packageId << "::" << module.moduleId << " (v"
-                            << module.version << ", level " << module.level << ")" << std::endl;
-                        oss << "  Required: " << depRaw.packageId << "::" << depRaw.moduleId << " (level "
-                            << (depRaw.level == -1 ? "any" : std::to_string(depRaw.level))
-                            << ", version: " << (depRaw.versionRange.empty() ? "any" : depRaw.versionRange) << ")"
-                            << std::endl;
+                        if (!fallbackModules.empty()) {
+                            // Search fallback (default context) modules
+                            for (const auto &candidate : fallbackModules) {
+                                if (candidate.packageId == depRaw.packageId &&
+                                    candidate.moduleId == depRaw.moduleId) {
+                                    candidates.push_back(candidate);
+                                }
+                            }
 
-                        errors_.push_back(oss.str());
-                        canResolve = false;
-                        break;
+                            if (!candidates.empty()) {
+                                DependencyLog.langCoreDebug(
+                                    "Dependency resolved via default context fallback: %1::%2 for module %3::%4",
+                                    depRaw.packageId, depRaw.moduleId, module.packageId, module.moduleId);
+                            } else {
+                                // Check if dependency exists in a different known context (cross-context)
+                                // fallbackModules are from default context; modules are from current context.
+                                // If not found in either, emit Dep-1 as usual.
+                                std::ostringstream oss;
+                                oss << "[ERROR] Direct dependency missing: " << depRaw.packageId
+                                    << "::" << depRaw.moduleId
+                                    << " required by module: " << module.packageId << "::" << module.moduleId
+                                    << std::endl;
+                                oss << "  Requesting module: " << module.packageId << "::" << module.moduleId
+                                    << " (v" << module.version << ", level " << module.level << ")" << std::endl;
+                                oss << "  Required: " << depRaw.packageId << "::" << depRaw.moduleId << " (level "
+                                    << (depRaw.level == -1 ? "any" : std::to_string(depRaw.level))
+                                    << ", version: "
+                                    << (depRaw.versionRange.empty() ? "any" : depRaw.versionRange) << ")"
+                                    << std::endl;
+
+                                errors_.push_back(oss.str());
+                                canResolve = false;
+                                break;
+                            }
+                        } else {
+                            std::ostringstream oss;
+                            oss << "[ERROR] Direct dependency missing: " << depRaw.packageId
+                                << "::" << depRaw.moduleId
+                                << " required by module: " << module.packageId << "::" << module.moduleId
+                                << std::endl;
+                            oss << "  Requesting module: " << module.packageId << "::" << module.moduleId << " (v"
+                                << module.version << ", level " << module.level << ")" << std::endl;
+                            oss << "  Required: " << depRaw.packageId << "::" << depRaw.moduleId << " (level "
+                                << (depRaw.level == -1 ? "any" : std::to_string(depRaw.level))
+                                << ", version: " << (depRaw.versionRange.empty() ? "any" : depRaw.versionRange)
+                                << ")" << std::endl;
+
+                            errors_.push_back(oss.str());
+                            canResolve = false;
+                            break;
+                        }
                     }
 
                     auto result = VersionResolver::resolveDependency(candidates, depRaw, module);

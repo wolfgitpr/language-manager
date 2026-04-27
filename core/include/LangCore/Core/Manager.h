@@ -23,13 +23,18 @@ namespace LangCore
 
         static Manager *instance();
 
-        bool initialize(std::string &errMsg);
+        Expected<void> initialize();
         bool initialized() const;
 
-        Expected<NO<Task>> task(const std::string &category, const std::string &id) const;
-        Expected<std::vector<NO<Task>>> tasks(const std::string &category) const;
+        Expected<NO<Task>> task(const std::string &category, const std::string &context,
+                                const std::string &id) const;
+        Expected<NO<Task>> task(const std::string &category, const std::string &context,
+                                const stdc::VersionNumber &version, const std::string &id) const;
+        Expected<std::vector<NO<Task>>> tasks(const std::string &category, const std::string &context) const;
+        Expected<std::vector<NO<Task>>> tasks(const std::string &category, const std::string &context,
+                                               const stdc::VersionNumber &version) const;
 
-        std::vector<G2pRes> convert(const std::vector<G2pInput *> &input);
+        std::vector<G2pRes> convert(const std::vector<G2pInput> &input);
 
     private:
         Expected<bool> loadTasksForCategory(const std::string &category);

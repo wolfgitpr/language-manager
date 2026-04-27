@@ -179,7 +179,7 @@ namespace LangPlugins::LstmG2p::Internal
         g2pResult->g2pResult.reserve(lyrics.size());
         for (const auto &lyric : lyrics) {
             g2pResult->g2pResult.emplace_back(LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(lyric),
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric),
                 std::vector<std::string>(), std::string("copy"),
                 LangCore::DriverUnavailable});
         }

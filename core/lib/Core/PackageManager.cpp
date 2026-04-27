@@ -15,6 +15,7 @@
 #include <LangCore/Module/Dependency/DependencyResolver.h>
 #include <LangCore/Module/Dependency/LevelCompatibilityChecker.h>
 #include <LangCore/Package/Package.h>
+#include <LangCore/Support/ContextUtils.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Support/JSON.h>
 
@@ -138,7 +139,8 @@ namespace LangCore
         // Refresh dependency cache if needed
         if (packagePathsDirty) {
             std::unique_lock lock(su_mtx);
-            refreshPackageIndexes();
+            for (const auto &[ctxKey, _] : contextPackagePaths)
+                refreshPackageIndexes(ctxKey);
         }
 
         // Load dependencies
@@ -339,9 +341,13 @@ namespace LangCore
         }
     }
 
-    void PackageManager::Impl::refreshPackageIndexes() {
-        cachedPackageIndexesMap.clear();
-        for (const auto &path : std::as_const(packagePaths)) {
+    void PackageManager::Impl::refreshPackageIndexes(const ContextKey &ctxKey) {
+        auto &cachedIndexes = contextCachedIndexes[ctxKey];
+        cachedIndexes.clear();
+        auto pathsIt = contextPackagePaths.find(ctxKey);
+        if (pathsIt == contextPackagePaths.end())
+            return;
+        for (const auto &path : std::as_const(pathsIt->second)) {
             if (!fs::is_directory(path)) {
                 continue;
             }
@@ -392,7 +398,7 @@ namespace LangCore
                 }
 
                 // Store
-                cachedPackageIndexesMap[id_][version_] = {
+                cachedIndexes[id_][version_] = {
                     fs::canonical(entry.path()),
                     compatVersion_,
                 };
@@ -416,11 +422,14 @@ namespace LangCore
     }
 
     bool PackageManager::checkDependencies() {
+        // Collect all module metadata across all contexts
+        std::vector<ModuleMetadata> allModuleInfos;
+        for (const auto &[ctxKey, _] : _impl->contextPackagePaths) {
+            auto moduleInfos = this->getModuleMetadatas(ctxKey);
+            allModuleInfos.insert(allModuleInfos.end(), moduleInfos.begin(), moduleInfos.end());
+        }
 
-        const auto moduleInfos = this->getModuleMetadatas();
-
-
-        if (moduleInfos.empty()) {
+        if (allModuleInfos.empty()) {
 
             MgrLog.langCoreCritical("Dependency resolution failed: No modules found. Cannot load packages.");
 
@@ -444,7 +453,7 @@ namespace LangCore
 
         // §14.14 fix: collect ALL incompatible modules before returning, not just the first
         bool hasIncompatible = false;
-        for (const auto &info : moduleInfos) {
+        for (const auto &info : allModuleInfos) {
             auto checkResult = LevelCompatibilityChecker::checkCorePlugin(info.level, levelConfig);
 
             if (!checkResult.isCompatible) {
@@ -479,7 +488,7 @@ namespace LangCore
         // repeated calls don't accumulate stale data
         _impl->dependencyGraph.clear();
 
-        for (const auto &info : moduleInfos)
+        for (const auto &info : allModuleInfos)
 
             _impl->dependencyGraph.addModule(info);
 
@@ -533,37 +542,93 @@ namespace LangCore
         return impl.dependencyErrors;
     }
 
-    void PackageManager::addPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
+    Expected<void> PackageManager::addPackagePath(const std::string &context, const std::filesystem::path &path) {
+        return addPackagePath(context, {}, path);
+    }
+
+    Expected<void> PackageManager::addPackagePath(const std::string &context, const stdc::VersionNumber &version,
+                                                   const std::filesystem::path &path) {
+        if (auto exp = ContextUtils::validateContextName(context); !exp)
+            return exp.error();
+
         __stdc_impl_t;
+        if (!fs::exists(path) || !fs::is_directory(path)) {
+            return Error(Error::FileSystemError, stdc::formatN("Package path does not exist or is not a directory: %1", path));
+        }
+
+        auto canonical = fs::canonical(path);
+        ContextKey ctxKey(context, version);
+
         std::unique_lock lock(impl.su_mtx);
+        auto &paths = impl.contextPackagePaths[ctxKey];
+        // Check duplicate
+        for (const auto &existing : paths) {
+            if (existing == canonical) {
+                MgrLog.langCoreDebug("Duplicate package path skipped for context '%1': %2", ctxKey.toString(), canonical);
+                return {};
+            }
+        }
+        paths.push_back(canonical);
+        impl.packagePathsDirty = true;
+        return {};
+    }
+
+    Expected<void> PackageManager::setPackagePaths(const std::string &context,
+                                                   const std::vector<std::filesystem::path> &paths) {
+        return setPackagePaths(context, {}, paths);
+    }
+
+    Expected<void> PackageManager::setPackagePaths(const std::string &context, const stdc::VersionNumber &version,
+                                                   const std::vector<std::filesystem::path> &paths) {
+        if (auto exp = ContextUtils::validateContextName(context); !exp)
+            return exp.error();
+
+        __stdc_impl_t;
+        ContextKey ctxKey(context, version);
+        std::unique_lock lock(impl.su_mtx);
+        auto &ctxPaths = impl.contextPackagePaths[ctxKey];
+        ctxPaths.clear();
         for (const auto &path : paths) {
             if (!fs::is_directory(path)) {
                 continue;
             }
-            impl.packagePaths.push_back(fs::canonical(path));
-            impl.packagePathsDirty = true;
+            ctxPaths.push_back(fs::canonical(path));
         }
+        impl.packagePathsDirty = true;
+        return {};
     }
 
-    void PackageManager::setPackagePaths(const stdc::array_view<std::filesystem::path> paths) {
+    std::vector<std::filesystem::path> PackageManager::packagePaths(const std::string &context) const {
+        return packagePaths(context, {});
+    }
+
+    std::vector<std::filesystem::path> PackageManager::packagePaths(const std::string &context,
+                                                                     const stdc::VersionNumber &version) const {
         __stdc_impl_t;
-        std::unique_lock lock(impl.su_mtx);
-        impl.packagePaths.clear();
-        for (const auto &path : paths) {
-            if (!fs::is_directory(path)) {
-                continue;
-            }
-            impl.packagePaths.push_back(fs::canonical(path));
-            if (!impl.packagePathsDirty) {
-                impl.packagePathsDirty = true;
-            }
-        }
+        ContextKey ctxKey(context, version);
+        std::shared_lock lock(impl.su_mtx);
+        auto it = impl.contextPackagePaths.find(ctxKey);
+        if (it == impl.contextPackagePaths.end())
+            return {};
+        return {it->second.begin(), it->second.end()};
     }
 
-    std::vector<std::filesystem::path> PackageManager::packagePaths() const {
+    std::vector<std::string> PackageManager::contexts() const {
         __stdc_impl_t;
         std::shared_lock lock(impl.su_mtx);
-        return {impl.packagePaths.begin(), impl.packagePaths.end()};
+        std::vector<std::string> result;
+        for (const auto &[ctxKey, _] : impl.contextPackagePaths)
+            result.push_back(ctxKey.context);
+        return result;
+    }
+
+    std::vector<ContextKey> PackageManager::contextKeys() const {
+        __stdc_impl_t;
+        std::shared_lock lock(impl.su_mtx);
+        std::vector<ContextKey> result;
+        for (const auto &[ctxKey, _] : impl.contextPackagePaths)
+            result.push_back(ctxKey);
+        return result;
     }
 
     Expected<Package> PackageManager::open(const std::filesystem::path &path) {
@@ -738,7 +803,8 @@ namespace LangCore
         }
 
         auto &ic = *this->category(moduleSpec->category());
-        ic.addObject(moduleSpec->id(), task);
+        const auto fqid = ContextUtils::formatFqid(ContextKey(moduleInfo.context, moduleInfo.contextVersion), moduleSpec->id());
+        ic.addObject(fqid, task);
         return task;
     }
 
@@ -775,8 +841,9 @@ namespace LangCore
         return root.toObject();
     }
 
-    void PackageManager::collectModuleMetadata(const std::string &packageId, const std::filesystem::path &packageDir,
-                                               const JsonObject &modulesObj) {
+    void PackageManager::collectModuleMetadata(const ContextKey &ctxKey, const std::string &packageId,
+                                                const std::filesystem::path &packageDir,
+                                                const JsonObject &modulesObj) {
         __stdc_impl_t;
         if (!fs::is_directory(packageDir)) {
             MgrLog.langCoreCritical("Invalid package path %1.", packageDir);
@@ -789,12 +856,20 @@ namespace LangCore
             for (const auto &moduleEntry : modules) {
                 const auto &moduleObj = moduleEntry.toObject();
                 ModuleMetadata info;
+                info.context = ctxKey.context;
+                info.contextVersion = ctxKey.version;
                 info.packageId = packageId;
                 info.packagePath = packageDir;
                 info.type = moduleType;
                 info.level = 0;
 
                 extractModuleMetadataFromJson(packageId, moduleObj, info);
+
+                // Validate moduleId doesn't contain ':'
+                if (auto valExp = ContextUtils::validateModuleId(info.moduleId); !valExp) {
+                    MgrLog.langCoreCritical("I-5: %1", valExp.error().message());
+                    continue;
+                }
 
                 if (!info.configuration.empty()) {
                     if (std::filesystem::path configPath = packageDir / info.configuration;
@@ -813,14 +888,14 @@ namespace LangCore
                             }
                         }
                         catch (const std::exception &e) {
-                            std::string errorMsg = std::string("Failed to read module config at ") + 
+                            std::string errorMsg = std::string("Failed to read module config at ") +
                                                   configPath.string() + ": " + e.what();
                             MgrLog.langCoreCritical(errorMsg);
                             std::unique_lock lock(impl.su_mtx);
                             impl.dependencyErrors.push_back(errorMsg);
                         }
                         catch (...) {
-                            std::string errorMsg = std::string("Unknown exception reading module config at ") + 
+                            std::string errorMsg = std::string("Unknown exception reading module config at ") +
                                                   configPath.string();
                             MgrLog.langCoreCritical(errorMsg);
                             std::unique_lock lock(impl.su_mtx);
@@ -834,7 +909,10 @@ namespace LangCore
                     continue;
                 }
 
-                if (auto [it, inserted] = impl.moduleInfoSet.insert(info); !inserted) {
+                auto &moduleInfoSet = impl.contextModuleInfoSets[ctxKey];
+                auto &moduleInfos = impl.contextModuleInfos[ctxKey];
+
+                if (auto [it, inserted] = moduleInfoSet.insert(info); !inserted) {
                     const ModuleMetadata &existing = *it;
                     std::ostringstream oss;
                     oss << "Error: Duplicate main module found!" << std::endl
@@ -845,12 +923,13 @@ namespace LangCore
                         << "  Version: " << info.version << std::endl
                         << "  Configuration: " << (info.configuration.empty() ? "(empty)" : info.configuration)
                         << std::endl
+                        << "  Context: " << (ctxKey.context.empty() ? "(default)" : ctxKey.toString()) << std::endl
                         << "  Existing location: Package=" << existing.packageId << " (v" << existing.version << ")"
                         << std::endl
                         << "  New location: Package=" << info.packageId << " (v" << info.version << ")" << std::endl;
                     MgrLog.langCoreCritical(oss.str());
                 } else {
-                    impl.moduleInfos.push_back(info);
+                    moduleInfos.push_back(info);
                 }
             }
         }
@@ -906,23 +985,31 @@ namespace LangCore
         }
     }
 
-    std::vector<ModuleMetadata> PackageManager::getModuleMetadatas() {
+    std::vector<ModuleMetadata> PackageManager::getModuleMetadatas(const std::string &context) {
+        return getModuleMetadatas(ContextKey(context));
+    }
+
+    std::vector<ModuleMetadata> PackageManager::getModuleMetadatas(const ContextKey &ctxKey) {
         __stdc_impl_t;
         std::unique_lock lock(impl.su_mtx);
 
-        if (impl.dependencyResolutionSuccessful && !impl.moduleInfos.empty()) {
-            return impl.moduleInfos;
+        if (impl.dependencyResolutionSuccessful && !impl.contextModuleInfos[ctxKey].empty()) {
+            return impl.contextModuleInfos[ctxKey];
         }
 
-        impl.moduleInfos.clear();
-        impl.moduleInfoSet.clear();
+        impl.contextModuleInfos[ctxKey].clear();
+        impl.contextModuleInfoSets[ctxKey].clear();
         impl.dependencyErrors.clear();
         impl.dependencyResolutionSuccessful = true;
+
+        auto pathsIt = impl.contextPackagePaths.find(ctxKey);
+        if (pathsIt == impl.contextPackagePaths.end())
+            return {};
 
         std::vector<std::filesystem::path> uniquePaths;
         {
             std::unordered_set<std::string> seenPaths;
-            for (const auto &path : impl.packagePaths) {
+            for (const auto &path : pathsIt->second) {
                 std::error_code ec;
                 auto canonical = fs::canonical(path, ec);
                 if (ec || !fs::exists(canonical) || !fs::is_directory(canonical)) {
@@ -935,33 +1022,45 @@ namespace LangCore
         }
 
         for (const auto &basePath : uniquePaths) {
-            scanPackageDirectory(basePath);
+            scanPackageDirectory(ctxKey, basePath);
         }
 
-        printDiscoveryInfo(uniquePaths.size(), impl.moduleInfos.size());
+        printDiscoveryInfo(uniquePaths.size(), impl.contextModuleInfos[ctxKey].size());
 
-        if (!impl.moduleInfos.empty()) {
-            if (!impl.resolveModuleDependencies())
+        if (!impl.contextModuleInfos[ctxKey].empty()) {
+            // For non-default contexts, pass default context modules as fallback
+            std::vector<ModuleMetadata> fallback;
+            if (!ctxKey.context.empty()) {
+                auto defIt = impl.contextModuleInfos.find(ContextKey(""));
+                if (defIt != impl.contextModuleInfos.end())
+                    fallback = defIt->second;
+            }
+            if (!impl.resolveModuleDependencies(ctxKey, fallback))
                 return {};
         }
 
+        auto &moduleInfos = impl.contextModuleInfos[ctxKey];
         std::vector<ModuleMetadata> result;
-        std::copy_if(impl.moduleInfos.begin(), impl.moduleInfos.end(), std::back_inserter(result),
+        std::copy_if(moduleInfos.begin(), moduleInfos.end(), std::back_inserter(result),
                      [](const ModuleMetadata &info)
                      { return info.requirements.size() == info.resolvedDependencies.size(); });
         return result;
     }
 
-    bool PackageManager::Impl::resolveModuleDependencies() {
+    bool PackageManager::Impl::resolveModuleDependencies(const ContextKey &ctxKey,
+                                                         const std::vector<ModuleMetadata> &fallbackModules) {
         DependencyResolver resolver;
 
         dependencyErrors.clear();
         dependencyResolutionSuccessful = true;
 
-        MgrLog.langCoreInfo("Starting module dependency resolution");
+        auto &moduleInfos = contextModuleInfos[ctxKey];
+
+        MgrLog.langCoreInfo("Starting module dependency resolution for context '%1'",
+                            ctxKey.isDefault() ? "(default)" : ctxKey.toString());
         MgrLog.langCoreInfo("Module count: %1", moduleInfos.size());
 
-        if (!resolver.resolveAllDependencies(moduleInfos)) {
+        if (!resolver.resolveAllDependencies(moduleInfos, fallbackModules)) {
             dependencyResolutionSuccessful = false;
             dependencyErrors = resolver.getErrors();
 
@@ -986,13 +1085,14 @@ namespace LangCore
 
         MgrLog.langCoreInfo("Dependency resolution successful, resolved modules: %1", moduleInfos.size());
 
+        auto &moduleInfoSet = contextModuleInfoSets[ctxKey];
         moduleInfoSet.clear();
         moduleInfoSet.insert(moduleInfos.begin(), moduleInfos.end());
 
         return true;
     }
 
-    void PackageManager::scanPackageDirectory(const std::filesystem::path &basePath) {
+    void PackageManager::scanPackageDirectory(const ContextKey &ctxKey, const std::filesystem::path &basePath) {
         if (!fs::exists(basePath) || !fs::is_directory(basePath)) {
             return;
         }
@@ -1007,11 +1107,11 @@ namespace LangCore
                 continue;
             }
 
-            processPackageJson(entry.path());
+            processPackageJson(ctxKey, entry.path());
         }
     }
 
-    void PackageManager::processPackageJson(const std::filesystem::path &packageDir) {
+    void PackageManager::processPackageJson(const ContextKey &ctxKey, const std::filesystem::path &packageDir) {
         const auto &descPath = packageDir / _TSTR("package.json");
         auto exp = PackageData::readDesc(descPath);
         if (!exp)
@@ -1027,19 +1127,15 @@ namespace LangCore
 
         if (const auto modulesIt = obj.find("modules"); modulesIt != obj.end()) {
             const auto &modulesObj = modulesIt->second.toObject();
-            this->collectModuleMetadata(id_, descPath.parent_path(), modulesObj);
+            this->collectModuleMetadata(ctxKey, id_, descPath.parent_path(), modulesObj);
         }
     }
 
     void PackageManager::printDiscoveryInfo(const size_t pathCount, const size_t moduleCount) {
-        __stdc_impl_t;
         if (moduleCount == 0) {
-            std::string pathStr;
-            for (const auto &path : impl.packagePaths)
-                pathStr += path.string() + ".\n";
             MgrLog.langCoreCritical(
-                "NO MODULES FOUND:\nNo modules were discovered in the package paths.\nPackage paths searched:\n%1",
-                pathStr);
+                "NO MODULES FOUND:\nNo modules were discovered in the package paths.\n"
+                "Scanned %1 package path(s).", pathCount);
         } else {
             MgrLog.langCoreInfo("MODULE DISCOVERY COMPLETE - Scanned %1 package path(s) - Discovered %2 module(s)",
                                 pathCount, moduleCount);

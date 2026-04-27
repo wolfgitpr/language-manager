@@ -30,23 +30,21 @@ library for [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
 
 const auto langMgr = LangCore::Manager::instance();
 
+// Add package paths for default context
+langMgr->addPackagePath("", "/path/to/G2pPackages");
+
 // Initialize Manager
-std::string errorMessage;
-if (!langMgr->initialize(errorMessage)) {
-    std::cerr << "Failed to initialize: " << errorMessage << std::endl;
+auto initResult = langMgr->initialize();
+if (!initResult) {
+    std::cerr << "Failed to initialize: " << initResult.error().message() << std::endl;
     return -1;
 }
 
 // G2p conversion (splitting and tagging are done by the frontend)
-std::vector<LangCore::G2pInput *> g2pInput;
-g2pInput.emplace_back(new LangCore::G2pInput("hello", "eng-cmu"));
-g2pInput.emplace_back(new LangCore::G2pInput("你好", "cmn-pinyin"));
+std::vector<LangCore::G2pConvertInput> g2pInput;
+g2pInput.emplace_back("hello", "eng-cmu", "");        // default context
+g2pInput.emplace_back("你好", "cmn-pinyin", "");       // default context
 auto results = langMgr->convert(g2pInput);
-
-// Cleanup
-for (auto *input : g2pInput) {
-    delete input;
-}
 ```
 
 ## Dependencies

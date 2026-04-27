@@ -7,6 +7,8 @@
 #include <stdcorelib/pimpl.h>
 
 #include <LangCore/Core/ManagerLogger.h>
+#include <LangCore/Module/Dependency/LevelCompatibilityChecker.h>
+#include <LangCore/Support/ContextUtils.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Task/G2pTask.h>
 #include <LangCore/Task/Task.h>
@@ -30,61 +32,223 @@ namespace LangCore
 
     Expected<bool> Manager::loadTasksForCategory(const std::string &category) {
         __stdc_impl_t;
-        auto categoryTasks = this->tasks(category);
-        if (!categoryTasks.hasValue()) {
-            return Error(
-                Error::RuntimeError,
-                stdc::formatN("Failed to load %1 tasks: %2. This indicates that either:\n"
-                               "  1. No %1 modules were found in the loaded packages\n"
-                               "  2. All %1 modules failed to create (check logs above)\n"
-                               "  3. Plugin loading path is incorrect",
-                               category, categoryTasks.error().message()));
+        // Iterate all contexts with Ready state and load tasks
+        for (const auto &[ctxKey, state] : impl.contextStates) {
+            if (state != Impl::ContextState::Ready)
+                continue;
+
+            auto &ctxModuleInfos = impl.contextModuleInfos[ctxKey];
+            for (const auto &moduleInfo : ctxModuleInfos) {
+                if (moduleInfo.type != category)
+                    continue;
+
+                // Look up via FQID in ObjectPool
+                const auto fqid = ContextUtils::formatFqid(ctxKey, moduleInfo.moduleId);
+                const auto inferenceCate = this->category(category);
+                if (!inferenceCate)
+                    continue;
+
+                const auto obj = inferenceCate->getFirstObject(fqid);
+                if (!obj)
+                    continue;
+
+                impl.tasks[category][ctxKey][moduleInfo.moduleId] = obj.as<Task>();
+            }
         }
-        for (const auto &task : categoryTasks.take())
-            impl.tasks[category][task->spec()->id()] = task;
         return true;
     }
 
-    bool Manager::initialize(std::string &errMsg) {
+    Expected<void> Manager::initialize() {
         __stdc_impl_t;
-        if (const auto loadPackages = this->loadPackagesInOrder(); !loadPackages) {
-            // 获取依赖解析器的错误信息
-            const auto &errors = this->getDependencyErrors();
-            if (!errors.empty()) {
-                errMsg = "Failed to load packages in order due to dependency or Level compatibility issues:\n";
-                for (const auto &error : errors) {
-                    errMsg += "  - " + error + "\n";
-                }
-                errMsg += "\nPlease check:\n";
-                errMsg += "  1. Plugin dependencies are correctly declared in package.json\n";
-                errMsg += "  2. Plugin Level values are within the system's supported range\n";
-                errMsg += "  3. Plugin .dll files are present in the plugin directories\n";
-                errMsg += "  4. Configuration files exist and are valid JSON\n";
-            } else {
-                errMsg = "Failed to load packages in order. No specific dependency errors found.\n";
-                errMsg += "Please check:\n";
-                errMsg += "  1. Plugin .dll files are present in the plugin directories\n";
-                errMsg += "  2. package.json files are valid and not corrupted\n";
-                errMsg += "  3. Plugin paths are correctly added to the Manager\n";
-                errMsg += "  4. Check detailed logs for Level compatibility issues\n";
+
+        // Phase 1: Default context ("")
+        {
+            MgrLog.langCoreInfo("Phase 1: Initializing default context");
+
+            ContextKey defaultCtx("");
+            const auto moduleInfos = this->getModuleMetadatas(defaultCtx);
+            if (moduleInfos.empty()) {
+                MgrLog.langCoreCritical("Default context: No modules found");
+                return Error(Error::InitializationError,
+                             "Ord-1: Default context initialization failed: no modules found");
             }
-            return false;
+
+            // Level compatibility
+            LevelCompatibilityChecker::LevelConfig levelConfig;
+            levelConfig.currentLevel = impl.currentLevel;
+            levelConfig.minimumLevel = impl.minimumLevel;
+            levelConfig.maximumLevel = impl.maximumLevel;
+
+            bool hasIncompatible = false;
+            for (const auto &info : moduleInfos) {
+                auto checkResult = LevelCompatibilityChecker::checkCorePlugin(info.level, levelConfig);
+                if (!checkResult.isCompatible) {
+                    MgrLog.langCoreCritical("Level Compatibility Check Failed for %1:%2 (level %3)",
+                                            info.packageId, info.moduleId, std::to_string(info.level));
+                    hasIncompatible = true;
+                }
+            }
+            if (hasIncompatible) {
+                return Error(Error::InitializationError,
+                             "Ord-1: Default context has incompatible modules");
+            }
+
+            // Build dependency graph
+            impl.dependencyGraph.clear();
+            for (const auto &info : moduleInfos)
+                impl.dependencyGraph.addModule(info);
+
+            if (!impl.dependencyGraph.buildGraph()) {
+                return Error(Error::DependencyError,
+                             "Ord-1: Failed to build dependency graph for default context");
+            }
+
+            if (const auto cycles = impl.dependencyGraph.findCycles(); !cycles.empty()) {
+                return Error(Error::DependencyError,
+                             "Ord-1: Circular dependencies detected in default context");
+            }
+
+            // Load packages in order
+            auto packageOrder = impl.dependencyGraph.getPackageInitializationOrder();
+            int failedPkgCount = 0;
+            for (const auto &packageInfo : packageOrder) {
+                MgrLog.langCoreInfo("Loading package: %1 from %2", packageInfo.packageId, packageInfo.packagePath);
+                auto exp = this->open(packageInfo.packagePath);
+                if (!exp) {
+                    MgrLog.langCoreCritical("Failed to open package %1: %2", packageInfo.packageId,
+                                            exp.error().message());
+                    failedPkgCount++;
+                    continue;
+                }
+
+                Package pkg = exp.take();
+                if (!pkg.isLoaded()) {
+                    MgrLog.langCoreCritical("Failed to load package %1: %2", packageInfo.packageId,
+                                            pkg.error().message());
+                    failedPkgCount++;
+                    continue;
+                }
+
+                for (const auto &moduleInfo : packageInfo.initializationOrder) {
+                    if (auto taskExp = createModuleTask(moduleInfo, pkg)) {
+                        MgrLog.langCoreInfo("  Created task for module: %1 (type: %2)", moduleInfo.moduleId,
+                                            moduleInfo.type);
+                    } else {
+                        MgrLog.langCoreCritical("  Failed to create task for module: %1: %2", moduleInfo.moduleId,
+                                                taskExp.error().message());
+                    }
+                }
+            }
+
+            if (failedPkgCount > 0 && packageOrder.size() == static_cast<size_t>(failedPkgCount)) {
+                return Error(Error::InitializationError,
+                             "Ord-1: All packages failed to load in default context");
+            }
+
+            impl.contextStates[defaultCtx] = Impl::ContextState::Ready;
         }
 
-        // 加载各类任务
-        // g2p 是必需的；dict 是可选的（可能没有词典插件）
+        // Phase 2: Non-default contexts
+        for (const auto &[ctxKey, _] : impl.contextPackagePaths) {
+            if (ctxKey.isDefault())
+                continue;
+
+            MgrLog.langCoreInfo("Phase 2: Initializing context '%1'", ctxKey.toString());
+
+            const auto moduleInfos = this->getModuleMetadatas(ctxKey);
+            if (moduleInfos.empty()) {
+                MgrLog.langCoreCritical("Context '%1': No modules found, marking Failed", ctxKey.toString());
+                impl.contextStates[ctxKey] = Impl::ContextState::Failed;
+                continue;
+            }
+
+            // Level compatibility
+            LevelCompatibilityChecker::LevelConfig levelConfig;
+            levelConfig.currentLevel = impl.currentLevel;
+            levelConfig.minimumLevel = impl.minimumLevel;
+            levelConfig.maximumLevel = impl.maximumLevel;
+
+            bool hasIncompatible = false;
+            for (const auto &info : moduleInfos) {
+                auto checkResult = LevelCompatibilityChecker::checkCorePlugin(info.level, levelConfig);
+                if (!checkResult.isCompatible) {
+                    MgrLog.langCoreCritical("Context '%1': Level incompatible module %2:%3",
+                                            ctxKey.toString(), info.packageId, info.moduleId);
+                    hasIncompatible = true;
+                }
+            }
+            if (hasIncompatible) {
+                MgrLog.langCoreCritical("Context '%1': Has incompatible modules, marking Failed", ctxKey.toString());
+                impl.contextStates[ctxKey] = Impl::ContextState::Failed;
+                continue;
+            }
+
+            // Build dependency graph (fresh)
+            impl.dependencyGraph.clear();
+            for (const auto &info : moduleInfos)
+                impl.dependencyGraph.addModule(info);
+
+            if (!impl.dependencyGraph.buildGraph()) {
+                MgrLog.langCoreCritical("Context '%1': Failed to build dependency graph", ctxKey.toString());
+                impl.contextStates[ctxKey] = Impl::ContextState::Failed;
+                continue;
+            }
+
+            if (const auto cycles = impl.dependencyGraph.findCycles(); !cycles.empty()) {
+                MgrLog.langCoreCritical("Context '%1': Circular dependencies detected", ctxKey.toString());
+                impl.contextStates[ctxKey] = Impl::ContextState::Failed;
+                continue;
+            }
+
+            // Load packages
+            auto packageOrder = impl.dependencyGraph.getPackageInitializationOrder();
+            bool allFailed = true;
+            for (const auto &packageInfo : packageOrder) {
+                auto exp = this->open(packageInfo.packagePath);
+                if (!exp) {
+                    MgrLog.langCoreCritical("Context '%1': Failed to open package %2",
+                                            ctxKey.toString(), packageInfo.packageId);
+                    continue;
+                }
+
+                Package pkg = exp.take();
+                if (!pkg.isLoaded()) {
+                    MgrLog.langCoreCritical("Context '%1': Failed to load package %2",
+                                            ctxKey.toString(), packageInfo.packageId);
+                    continue;
+                }
+
+                allFailed = false;
+                for (const auto &moduleInfo : packageInfo.initializationOrder) {
+                    if (auto taskExp = createModuleTask(moduleInfo, pkg)) {
+                        MgrLog.langCoreInfo("  Context '%1': Created task for module: %2",
+                                            ctxKey.toString(), moduleInfo.moduleId);
+                    } else {
+                        MgrLog.langCoreCritical("  Context '%1': Failed to create task for module: %2: %3",
+                                                ctxKey.toString(), moduleInfo.moduleId, taskExp.error().message());
+                    }
+                }
+            }
+
+            if (allFailed && !packageOrder.empty()) {
+                impl.contextStates[ctxKey] = Impl::ContextState::Failed;
+            } else {
+                impl.contextStates[ctxKey] = Impl::ContextState::Ready;
+            }
+        }
+
+        // Phase 3: Load tasks for categories
         if (auto result = loadTasksForCategory("g2p"); !result) {
-            errMsg = result.error().message();
-            return false;
+            return Error(Error::RuntimeError, "Failed to load g2p tasks: " + result.error().message());
         }
 
-        // dict 加载失败不阻止初始化
+        // dict is optional
         if (auto result = loadTasksForCategory("dict"); !result) {
             MgrLog.langCoreInfo("No dict tasks loaded (this is normal if no dict plugins are installed)");
         }
 
         impl.initialized = true;
-        return true;
+        return {};
     }
 
     bool Manager::initialized() const {
@@ -92,144 +256,226 @@ namespace LangCore
         return impl.initialized;
     }
 
-    Expected<NO<Task>> Manager::task(const std::string &category, const std::string &id) const {
-        if (category.empty())
-            return Error(Error::RuntimeError, "category cannot be empty",
-                         "Please provide a valid category name (e.g., 'g2p')");
+    Expected<NO<Task>> Manager::task(const std::string &category, const std::string &context,
+                                     const std::string &id) const {
+        return task(category, context, {}, id);
+    }
 
+    Expected<NO<Task>> Manager::task(const std::string &category, const std::string &context,
+                                     const stdc::VersionNumber &version, const std::string &id) const {
+        // T-1: category validation
+        if (category.empty())
+            return Error(Error::ValidationError, "T-1: category cannot be empty");
+
+        // T-2: context validation
+        if (auto exp = ContextUtils::validateContextName(context); !exp)
+            return Error(Error::ValidationError, "T-2: " + exp.error().message());
+
+        // T-3: id validation
         if (id.empty())
-            return Error(Error::RuntimeError, "id cannot be empty",
-                         "Please provide a valid task id (e.g., 'g2p-cmn-official')");
+            return Error(Error::ValidationError, "T-3: id cannot be empty");
 
-        const auto inferenceCate = this->category(category);
-        if (!inferenceCate)
-            return Error(Error::RuntimeError, "could not find category: " + category,
-                         "Available categories: g2p, driver, dict");
+        // T-4: id must not contain ':'
+        if (auto exp = ContextUtils::validateModuleId(id); !exp)
+            return Error(Error::ValidationError, "T-4: " + exp.error().message());
 
-        const auto inferenceObject = inferenceCate->getFirstObject(id);
-        if (!inferenceObject)
-            return Error(Error::RuntimeError, "could not find id: " + id,
-                         "Please check the available tasks using tasks() method");
+        __stdc_impl_t;
 
-        return inferenceObject.as<Task>();
+        // T-5: category exists
+        auto catIt = impl.tasks.find(category);
+        if (catIt == impl.tasks.end())
+            return Error(Error::RuntimeError, "T-5: could not find category: " + category);
+
+        // T-6: context exists and is Ready (two-step: exact match, then unversioned fallback)
+        ContextKey ctxKey(context, version);
+
+        // Step 1: exact match
+        auto ctxIt = catIt->second.find(ctxKey);
+
+        // Step 2: fallback to unversioned (only if versioned was requested)
+        if (ctxIt == catIt->second.end() && !version.isEmpty()) {
+            ctxKey = ContextKey(context);
+            ctxIt = catIt->second.find(ctxKey);
+        }
+
+        if (ctxIt == catIt->second.end()) {
+            // Check if context is Failed
+            auto stateIt = impl.contextStates.find(ContextKey(context, version));
+            if (stateIt == impl.contextStates.end() && !version.isEmpty())
+                stateIt = impl.contextStates.find(ContextKey(context));
+            if (stateIt != impl.contextStates.end() && stateIt->second == Impl::ContextState::Failed)
+                return Error(Error::RuntimeError,
+                             "T-6: context '" + ContextKey(context, version).toString() + "' failed initialization");
+            return Error(Error::RuntimeError,
+                         "T-6: could not find context: " + ContextKey(context, version).toString());
+        }
+
+        // T-7: id exists
+        auto idIt = ctxIt->second.find(id);
+        if (idIt == ctxIt->second.end())
+            return Error(Error::RuntimeError, "T-7: could not find id: " + id + " in context " + ctxKey.toString());
+
+        return idIt->second;
     }
 
-    Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category) const {
+    Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category, const std::string &context) const {
+        return tasks(category, context, {});
+    }
+
+    Expected<std::vector<NO<Task>>> Manager::tasks(const std::string &category, const std::string &context,
+                                                    const stdc::VersionNumber &version) const {
         if (category.empty())
-            return Error(Error::RuntimeError, "category cannot be empty",
-                         "Please provide a valid category name (e.g., 'g2p')");
+            return Error(Error::ValidationError, "category cannot be empty");
 
-        const auto inferenceCate = this->category(category);
-        if (!inferenceCate)
-            return Error(Error::RuntimeError, "could not find category: " + category,
-                         "Available categories: g2p, driver, dict");
+        if (auto exp = ContextUtils::validateContextName(context); !exp)
+            return exp.error();
 
-        const auto inferenceObject = inferenceCate->allObjects();
-        if (inferenceObject.empty())
-            return Error(Error::RuntimeError, "category: " + category + " is empty.",
-                         "No tasks available in this category");
+        __stdc_impl_t;
 
-        std::vector<NO<Task>> tasks;
-        tasks.reserve(inferenceObject.size());
-        std::transform(inferenceObject.begin(), inferenceObject.end(), std::back_inserter(tasks),
-                       [](const auto &obj) { return obj.template as<Task>(); });
-        if (tasks.empty())
-            return Error(Error::RuntimeError, "category: " + category + " is empty.",
-                         "No tasks available in this category");
-        return tasks;
-    }
+        auto catIt = impl.tasks.find(category);
+        if (catIt == impl.tasks.end())
+            return Error(Error::RuntimeError, "could not find category: " + category);
 
-    /// 过滤空指针，返回有效的输入指针
-    /// @param input 输入指针列表
-    /// @param logWarnings 是否记录警告日志
-    /// @return 过滤后的有效指针列表
-    static std::vector<G2pInput *>
-    filterNullPointers(const std::vector<G2pInput *> &input, bool logWarnings = true) {
-        std::vector<G2pInput *> validInput;
-        validInput.reserve(input.size());
-
-        for (auto *item : input) {
-            if (!item) {
-                if (logWarnings) {
-                    MgrLog.langCoreWarning("convert() received null pointer in input, skipping");
-                }
-                continue;
-            }
-            validInput.push_back(item);
+        // Two-step lookup: exact match, then unversioned fallback
+        ContextKey ctxKey(context, version);
+        auto ctxIt = catIt->second.find(ctxKey);
+        if (ctxIt == catIt->second.end() && !version.isEmpty()) {
+            ctxKey = ContextKey(context);
+            ctxIt = catIt->second.find(ctxKey);
         }
 
-        return validInput;
+        if (ctxIt == catIt->second.end())
+            return Error(Error::RuntimeError, "could not find context: " + ContextKey(context, version).toString());
+
+        std::vector<NO<Task>> result;
+        result.reserve(ctxIt->second.size());
+        for (const auto &[_, t] : ctxIt->second)
+            result.push_back(t);
+
+        if (result.empty())
+            return Error(Error::RuntimeError,
+                         "category: " + category + " is empty in context " + ctxKey.toString());
+        return result;
     }
 
-    static std::vector<std::pair<std::string, std::vector<std::string>>>
-    groupLyrics(const std::vector<G2pInput *> &input) {
-        std::vector<std::pair<std::string, std::vector<std::string>>> groups;
-        std::string lastId;
-
-        for (const auto *item : input) {
-            // 跳过空指针
-            if (!item) {
-                continue;
-            }
-
-            if (groups.empty() || item->g2pId != lastId) {
-                groups.emplace_back();
-                lastId = item->g2pId;
-                groups.back().first = lastId;
-            }
-            groups.back().second.push_back(item->lyric);
-        }
-
-        return groups;
-    }
-
-    std::vector<G2pRes> Manager::convert(const std::vector<G2pInput *> &input) {
+    std::vector<G2pRes> Manager::convert(const std::vector<G2pInput> &input) {
         if (input.empty())
             return {};
 
-        // 验证输入指针，过滤掉空指针
-        const auto validInput = filterNullPointers(input, true);
-
-        // 如果所有指针都是空的，返回空结果
-        if (validInput.empty())
-            return {};
-
         __stdc_impl_t;
-        auto &g2ps = impl.tasks["g2p"];
-        const auto _lyrics = groupLyrics(validInput);
-        const auto _input = NO<G2pInputV1>::create();
         std::vector<G2pRes> result;
+        result.reserve(input.size());
 
-        for (const auto &[g2pId, lyricVec] : _lyrics) {
-            _input->g2pInput = lyricVec;
-            auto g2pIt = g2ps.find(g2pId);
-            if (g2pIt == g2ps.end()) {
-                MgrLog.langCoreCritical("Error: fail to find g2p: '%1'", g2pId);
-                for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", UnknownError));
+        // Group by (context, contextVersion, g2pId) — adjacent grouping
+        struct Group {
+            std::string context;
+            stdc::VersionNumber contextVersion;
+            std::string g2pId;
+            std::vector<std::string> lyrics;
+            std::vector<size_t> resultIndexes;
+        };
+
+        std::vector<Group> groups;
+        result.resize(input.size());
+
+        for (size_t i = 0; i < input.size(); ++i) {
+            const auto &item = input[i];
+
+            // C-2: skip empty lyric
+            if (item.lyric.empty()) {
+                result[i] = G2pRes("", item.g2pId, item.context, item.contextVersion, "", {}, "skip", NoError);
                 continue;
             }
 
-            auto resultExp = g2pIt->second->start(_input);
+            // C-3: skip empty g2pId
+            if (item.g2pId.empty()) {
+                result[i] = G2pRes(item.lyric, "", item.context, item.contextVersion, item.lyric, {item.lyric},
+                                   "copy", UnknownError);
+                MgrLog.langCoreWarning("C-3: empty g2pId for lyric '%1', skipping", item.lyric);
+                continue;
+            }
+
+            // C-4: validate context chars
+            if (auto exp = ContextUtils::validateContextName(item.context); !exp) {
+                result[i] = G2pRes(item.lyric, item.g2pId, item.context, item.contextVersion, item.lyric,
+                                   {item.lyric}, "copy", UnknownError);
+                MgrLog.langCoreWarning("C-4: invalid context '%1' for lyric '%2'", item.context, item.lyric);
+                continue;
+            }
+
+            // Adjacent grouping
+            if (groups.empty() || groups.back().context != item.context ||
+                groups.back().contextVersion != item.contextVersion || groups.back().g2pId != item.g2pId) {
+                groups.push_back({item.context, item.contextVersion, item.g2pId, {}, {}});
+            }
+            groups.back().lyrics.push_back(item.lyric);
+            groups.back().resultIndexes.push_back(i);
+        }
+
+        const auto _input = NO<G2pInputV1>::create();
+
+        for (const auto &group : groups) {
+            // Lookup task: NO fallback to default context (C-6)
+            auto catIt = impl.tasks.find("g2p");
+            NO<Task> taskObj;
+            if (catIt != impl.tasks.end()) {
+                // Two-step ContextKey lookup
+                ContextKey ctxKey(group.context, group.contextVersion);
+                auto ctxIt = catIt->second.find(ctxKey);
+                if (ctxIt == catIt->second.end() && !group.contextVersion.isEmpty()) {
+                    ctxIt = catIt->second.find(ContextKey(group.context));
+                }
+                if (ctxIt != catIt->second.end()) {
+                    auto idIt = ctxIt->second.find(group.g2pId);
+                    if (idIt != ctxIt->second.end())
+                        taskObj = idIt->second;
+                }
+            }
+
+            if (!taskObj) {
+                // C-6: produce fallback
+                MgrLog.langCoreCritical("C-6: fail to find g2p '%1' in context '%2'",
+                                        group.g2pId,
+                                        ContextKey(group.context, group.contextVersion).toString());
+                for (size_t j = 0; j < group.lyrics.size(); ++j) {
+                    result[group.resultIndexes[j]] =
+                        G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],
+                               {group.lyrics[j]}, "copy", UnknownError);
+                }
+                continue;
+            }
+
+            _input->g2pInput = group.lyrics;
+            auto resultExp = taskObj->start(_input);
             if (!resultExp) {
-                MgrLog.langCoreCritical("inference failed for g2p '%1': %2", 
-                                        g2pId, resultExp.error().message());
-                for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", ModelInferenceFailed));
+                MgrLog.langCoreCritical("inference failed for g2p '%1': %2",
+                                        group.g2pId, resultExp.error().message());
+                for (size_t j = 0; j < group.lyrics.size(); ++j) {
+                    result[group.resultIndexes[j]] =
+                        G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],
+                               {group.lyrics[j]}, "copy", ModelInferenceFailed);
+                }
                 continue;
             }
 
             const auto _result = resultExp.take();
             if (const auto g2pRes = _result.as<G2pResultV1>()) {
-                result.insert(result.end(), g2pRes->g2pResult.begin(), g2pRes->g2pResult.end());
-
                 if (!g2pRes->errorMessage.empty())
                     MgrLog.langCoreCritical("Error: %1", g2pRes->errorMessage);
 
+                for (size_t j = 0; j < g2pRes->g2pResult.size() && j < group.resultIndexes.size(); ++j) {
+                    auto res = g2pRes->g2pResult[j];
+                    res.context = group.context;
+                    res.contextVersion = group.contextVersion;
+                    result[group.resultIndexes[j]] = std::move(res);
+                }
             } else {
-                MgrLog.langCoreCritical("unexpected result type for g2p '%1'", g2pId);
-                for (const auto &lyric : lyricVec)
-                    result.emplace_back(G2pRes(lyric, g2pId, lyric, {lyric}, "copy", UnknownError));
+                MgrLog.langCoreCritical("unexpected result type for g2p '%1'", group.g2pId);
+                for (size_t j = 0; j < group.lyrics.size(); ++j) {
+                    result[group.resultIndexes[j]] =
+                        G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],
+                               {group.lyrics[j]}, "copy", UnknownError);
+                }
             }
         }
 

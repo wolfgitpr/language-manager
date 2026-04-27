@@ -130,7 +130,7 @@ TEST_CASE(G2pRes_DefaultConstructor) {
 }
 
 TEST_CASE(G2pRes_FullConstructor) {
-    G2pRes res("hello", "eng", "hh ah l ow", {}, "g2p", NoError);
+    G2pRes res("hello", "eng", "", "hh ah l ow", std::vector<std::string>{}, "g2p", NoError);
     ASSERT_EQ(res.lyric, "hello");
     ASSERT_EQ(res.g2pId, "eng");
     ASSERT_EQ(res.pronunciation, "hh ah l ow");
@@ -142,7 +142,7 @@ TEST_CASE(G2pRes_FullConstructor) {
 }
 
 TEST_CASE(G2pRes_EmptyPronunciation_FallbackToLyric) {
-    G2pRes res("hello", "eng", "", {}, "copy", NoError);
+    G2pRes res("hello", "eng", "", "", std::vector<std::string>{}, "copy", NoError);
     ASSERT_EQ(res.pronunciation, "hello");
 }
 

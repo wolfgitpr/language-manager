@@ -475,14 +475,14 @@ TEST_CASE(ModuleMetadata_Key_ContainsAllFields) {
     auto mod = makeModule("pkg", "mod", "1.0.0", 1, "g2p", "iid1", "cfg1");
     auto k = mod.key();
     // key() = packageId:moduleId:version:iid:type:configuration:level
-    ASSERT_STREQ(k.c_str(), "pkg:mod:1.0.0:iid1:g2p:cfg1:1");
+    ASSERT_STREQ(k.c_str(), ":pkg:mod:1.0.0:iid1:g2p:cfg1:1");
 }
 
 TEST_CASE(ModuleMetadata_UniqueKey_DiffersFromKey) {
     auto mod = makeModule("pkg", "mod", "1.0.0", 1, "g2p", "iid1", "cfg1");
     auto uk = mod.uniqueKey();
     // uniqueKey() = packageId:moduleId:iid:type:level (no version, no config)
-    ASSERT_STREQ(uk.c_str(), "pkg:mod:iid1:g2p:1");
+    ASSERT_STREQ(uk.c_str(), ":pkg:mod:iid1:g2p:1");
     ASSERT_TRUE(mod.key() != mod.uniqueKey());
 }
 

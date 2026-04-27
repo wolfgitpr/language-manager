@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <stdcorelib/support/versionnumber.h>
+
 #include <LangCore/LangCoreGlobal.h>
 
 namespace LangCore
@@ -31,6 +33,8 @@ namespace LangCore
     };
 
     struct LANGCORE_EXPORT ModuleMetadata {
+        std::string context;
+        stdc::VersionNumber contextVersion;
         std::string packageId;
         std::string moduleId;
         std::string type;

@@ -28,31 +28,42 @@ namespace LangCore
     }
 
     bool ModuleMetadata::isSameMainModule(const ModuleMetadata &other) const {
-        return moduleId == other.moduleId && iid == other.iid && type == other.type &&
+        return context == other.context && contextVersion == other.contextVersion &&
+            moduleId == other.moduleId && iid == other.iid && type == other.type &&
             configuration == other.configuration && level == other.level;
     }
 
     bool ModuleMetadata::operator==(const ModuleMetadata &other) const {
-        return packageId == other.packageId && moduleId == other.moduleId && iid == other.iid && type == other.type &&
-            configuration == other.configuration && version == other.version && level == other.level;
+        return context == other.context && contextVersion == other.contextVersion &&
+            packageId == other.packageId && moduleId == other.moduleId &&
+            iid == other.iid && type == other.type && configuration == other.configuration &&
+            version == other.version && level == other.level;
     }
 
     std::string ModuleMetadata::key() const {
-        return packageId + ":" + moduleId + ":" + version + ":" + iid + ":" + type + ":" + configuration + ":" +
-            std::to_string(level);
+        std::string ctxPart = context;
+        if (!contextVersion.isEmpty())
+            ctxPart += "@" + contextVersion.toString();
+        return ctxPart + ":" + packageId + ":" + moduleId + ":" + version + ":" + iid + ":" + type + ":" +
+            configuration + ":" + std::to_string(level);
     }
 
     std::string ModuleMetadata::uniqueKey() const {
-        return packageId + ":" + moduleId + ":" + iid + ":" + type + ":" + std::to_string(level);
+        std::string ctxPart = context;
+        if (!contextVersion.isEmpty())
+            ctxPart += "@" + contextVersion.toString();
+        return ctxPart + ":" + packageId + ":" + moduleId + ":" + iid + ":" + type + ":" + std::to_string(level);
     }
 
     size_t ModuleMetadata::MainModuleHash::operator()(const ModuleMetadata &info) const {
+        const size_t h0 = std::hash<std::string>()(info.context);
+        const size_t hv = std::hash<stdc::VersionNumber>()(info.contextVersion);
         const size_t h1 = std::hash<std::string>()(info.moduleId);
         const size_t h2 = std::hash<std::string>()(info.iid);
         const size_t h3 = std::hash<std::string>()(info.type);
         const size_t h4 = std::hash<std::string>()(info.configuration);
         const size_t h5 = std::hash<int>()(info.level);
-        return h1 ^ h2 << 1 ^ h3 << 2 ^ h4 << 3 ^ h5 << 4;
+        return h0 ^ hv << 1 ^ h1 << 2 ^ h2 << 3 ^ h3 << 4 ^ h4 << 5 ^ h5 << 6;
     }
 
     bool ModuleMetadata::MainModuleEqual::operator()(const ModuleMetadata &a, const ModuleMetadata &b) const {
@@ -133,6 +144,7 @@ namespace LangCore
     void DependencyGraph::Impl::clear() {
         nodeMap.clear();
         mainModuleMap.clear();
+        graphBuilt = false;
     }
 
     std::vector<std::vector<ModuleMetadata>> DependencyGraph::Impl::getCycles() const {

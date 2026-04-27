@@ -12,6 +12,7 @@
 
 #include <LangCore/Core/PackageManager.h>
 #include <LangCore/Module/Module.h>
+#include <LangCore/Support/ContextUtils.h>
 
 #include "PluginFactory_p.h"
 
@@ -32,15 +33,17 @@ namespace LangCore
         bool close(PackageData *spec);
 
         void closeAllLoadedPackages();
-        void refreshPackageIndexes();
-        bool resolveModuleDependencies();
+        void refreshPackageIndexes(const ContextKey &ctxKey);
+        bool resolveModuleDependencies(const ContextKey &ctxKey,
+                                       const std::vector<ModuleMetadata> &fallbackModules = {});
 
         DependencyGraph dependencyGraph;
 
         std::map<std::string, ModuleCategory *, std::less<>> categories;
         std::map<std::string, ModuleCategory *, std::less<>> cateKeyMap;
 
-        llvm::SmallVector<std::filesystem::path> packagePaths;
+        // Per-context package paths
+        std::map<ContextKey, llvm::SmallVector<std::filesystem::path>> contextPackagePaths;
 
         struct LoadedPackageBlock {
             PackageData *spec = nullptr;
@@ -68,16 +71,24 @@ namespace LangCore
         };
 
         bool packagePathsDirty = false;
-        std::map<std::string, std::map<stdc::VersionNumber, PackageBrief>, std::less<>> cachedPackageIndexesMap;
+        // Per-context cached package indexes
+        std::map<ContextKey, std::map<std::string, std::map<stdc::VersionNumber, PackageBrief>, std::less<>>>
+            contextCachedIndexes;
 
         std::map<std::string, std::unordered_map<stdc::VersionNumber, std::filesystem::path>, std::less<>>
             pendingPackages;
 
         bool initialized = false;
 
-        std::unordered_set<ModuleMetadata, ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>
-            moduleInfoSet;
-        std::vector<ModuleMetadata> moduleInfos;
+        // Per-context module metadata
+        std::map<ContextKey,
+                 std::unordered_set<ModuleMetadata, ModuleMetadata::MainModuleHash, ModuleMetadata::MainModuleEqual>>
+            contextModuleInfoSets;
+        std::map<ContextKey, std::vector<ModuleMetadata>> contextModuleInfos;
+
+        // Per-context states
+        enum class ContextState { Pending, Ready, Failed };
+        std::map<ContextKey, ContextState> contextStates;
 
         bool dependencyResolutionSuccessful = true;
         std::vector<std::string> dependencyErrors;

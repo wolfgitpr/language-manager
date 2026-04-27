@@ -12,7 +12,8 @@ namespace LangCore
     public:
         DependencyResolver() = default;
 
-        bool resolveAllDependencies(std::vector<ModuleMetadata> &modules);
+        bool resolveAllDependencies(std::vector<ModuleMetadata> &modules,
+                                    const std::vector<ModuleMetadata> &fallbackModules = {});
         const std::vector<std::string> &getErrors() const { return errors_; }
         const std::vector<ModuleMetadata> &getResolvedModules() const { return resolvedModules_; }
 

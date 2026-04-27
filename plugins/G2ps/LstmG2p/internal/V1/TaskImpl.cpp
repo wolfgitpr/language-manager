@@ -204,7 +204,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             // 预处理失败，返回带错误类型的结果
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(), std::string("copy"),
                 LangCore::InvalidLyric}};
             return g2pResult;
         }
@@ -226,7 +226,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             // 编码器推理失败，返回带错误类型的结果
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(), std::string("copy"),
                 LangCore::ModelInferenceFailed}};
             return g2pResult;
         } else {
@@ -234,7 +234,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
             if (!sessionTaskResult) {
                 auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
                 g2pResult->g2pResult = {LangCore::G2pRes{
-                    std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                    std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(), std::string("copy"),
                     LangCore::ModelInferenceFailed}};
                 return g2pResult;
             }
@@ -249,7 +249,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
         if (!encoderOutputs || !hidden || !cell) {
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(), std::string("copy"),
                 LangCore::ModelInferenceFailed}};
             return g2pResult;
         }
@@ -260,7 +260,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
         if (!phonemeIds) {
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(), std::string("copy"),
                 LangCore::ModelInferenceFailed}};
             return g2pResult;
         }
@@ -271,7 +271,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
         if (phonemes->empty()) {
             auto g2pResult = LangCore::NO<LangCore::G2pResultV1>::create();
             g2pResult->g2pResult = {LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(lyric), std::vector<std::string>(), std::string("copy"),
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(lyric), std::vector<std::string>(), std::string("copy"),
                 LangCore::PhonemeGenerationFailed}};
             return g2pResult;
         }
@@ -284,7 +284,7 @@ namespace LangPlugins::LstmG2p::Internal::V1
         for (auto &phone : phonemes_)
             pronStr += phone + " ";
         g2pResult->g2pResult = {LangCore::G2pRes{
-            std::string(lyric), std::string(m_spec->id()), std::string(pronStr), std::vector<std::string>(), std::string("convert")}};
+            std::string(lyric), std::string(m_spec->id()), std::string(), std::string(pronStr), std::vector<std::string>(), std::string("convert")}};
 
         return g2pResult;
     }

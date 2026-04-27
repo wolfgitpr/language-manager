@@ -97,7 +97,7 @@ namespace LangPlugins::MandarinG2p::Internal::V1
         for (const auto &[lyric, mode, error] : verifyRes) {
             LangCore::G2pErrorType wordErrorType = error ? LangCore::InvalidLyric : LangCore::NoError;
             res.emplace_back(LangCore::G2pRes{
-                std::string(lyric), std::string(m_spec->id()), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
+                std::string(lyric), std::string(m_spec->id()), std::string(), std::string(), std::vector<std::string>(), std::string(mode), wordErrorType});
         }
 
         const auto groupLyric = groupLyrics(res);

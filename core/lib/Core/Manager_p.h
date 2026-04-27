@@ -23,7 +23,8 @@ namespace LangCore
         // PackageManager::Impl. Do NOT redeclare them here — that would shadow the
         // parent fields and cause state inconsistency.
 
-        std::map<std::string, std::map<std::string, NO<Task>>> tasks;
+        // 3-level map: category → ContextKey → moduleId → Task
+        std::map<std::string, std::map<ContextKey, std::map<std::string, NO<Task>>>> tasks;
     };
 
 } // namespace LangCore
