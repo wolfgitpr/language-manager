@@ -379,7 +379,7 @@ namespace LangPlugins::LstmG2p::Internal::V2
             } else {
                 g2pResult->g2pResult.emplace_back(LangCore::G2pRes{std::string(lyric), std::string(m_spec->id()),
                                                                    std::string(pronStr), std::vector<std::string>(),
-                                                                   std::string("copy")});
+                                                                   std::string("convert")});
             }
         }
 
