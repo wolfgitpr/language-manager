@@ -473,7 +473,6 @@ namespace LangPlugins::OnnxDriver::V1
             return Error(Error::RuntimeError, "session is already open");
         }
 
-        // Open
         Log.langCoreDebug("Session - Try open " + path.string());
         if (!fs::is_regular_file(path)) {
             return Error(Error::FileSystemError, "not a regular file");
@@ -482,19 +481,20 @@ namespace LangPlugins::OnnxDriver::V1
         const fs::path canonical_path = fs::canonical(path);
         Log.langCoreDebug("Session - The canonical path is " + canonical_path.string());
 
-        // Ready to load
         auto &[image_list, path_map, hash_size_map, mtx] = SessionSystem::global();
         std::unique_lock lock(mtx);
         SessionImage *image = nullptr;
         std::vector<uint8_t> hash;
-        std::streamsize size;
+        std::streamsize size = 0;
 
         int hints = SH_NoHint;
         if (args->useCpu) {
             hints |= SH_PreferCPUHint;
         }
-        // Search path
+
         SessionSystem::ImageGroup *image_group = nullptr;
+        bool foundExisting = false;
+
         if (const auto it = path_map.find(canonical_path); it != path_map.end()) {
             image_group = &*it->second;
             auto &image_map = image_group->images;
@@ -502,71 +502,61 @@ namespace LangPlugins::OnnxDriver::V1
                 auto &[img, count] = it2->second;
                 image = img;
                 count++;
-                goto out_exists;
+                foundExisting = true;
+            } else {
+                Log.langCoreDebug("Session - No same hint in opened sessions");
             }
-            // hash = it->second->hash;
-            // size = it->second->size;
-
-            Log.langCoreDebug("Session - No same hint in opened sessions");
-            goto out_search_hash;
         }
 
-        // Calculate hash
-        {
+        if (!foundExisting && !image_group) {
             std::string hash_str;
             if (!getFileInfo(canonical_path, hash, hash_str, size)) {
                 return Error(Error::FileSystemError, "failed to read file");
             }
             Log.langCoreDebug("Session - BLAKE3 hash is %1", hash_str);
-        }
 
-        // Search hash
-        if (const auto it = hash_size_map.find({size, hash}); it != hash_size_map.end()) {
-            image_group = &*it->second;
-            auto &image_map = image_group->images;
-            if (const auto it2 = image_map.find(hints); it2 != image_map.end()) {
-                auto &[img, count] = it2->second;
-                image = img;
-                count++;
-                goto out_exists;
+            if (const auto it = hash_size_map.find({size, hash}); it != hash_size_map.end()) {
+                image_group = &*it->second;
+                auto &image_map = image_group->images;
+                if (const auto it2 = image_map.find(hints); it2 != image_map.end()) {
+                    auto &[img, count] = it2->second;
+                    image = img;
+                    count++;
+                    foundExisting = true;
+                }
             }
         }
 
-    out_search_hash:
+        if (!foundExisting) {
+            Log.langCoreDebug("Session - The session image does not exist. Creating a new one...");
 
-        Log.langCoreDebug("Session - The session image does not exist. Creating a new one...");
+            image = new SessionImage();
+            if (std::string error1; !image->open(canonical_path, hints, &error1)) {
+                delete image;
+                return Error{
+                    Error::FileSystemError,
+                    "failed to read file: " + error1,
+                };
+            }
 
-        // Create new one
-        image = new SessionImage();
-        if (std::string error1; !image->open(canonical_path, hints, &error1)) {
-            delete image;
-            return Error{
-                Error::FileSystemError,
-                "failed to read file: " + error1,
-            };
+            if (!image_group) {
+                Log.langCoreDebug("Session - The session image group doesn't exist. Creating a new group.");
+
+                SessionSystem::ImageGroup group;
+                group.path = canonical_path;
+                group.size = size;
+                group.hash = std::move(hash);
+
+                const auto it = image_list.emplace(image_list.end(), std::move(group));
+                path_map[it->path] = it;
+                hash_size_map[{size, it->hash}] = it;
+                image_group = &*it;
+            }
+            image_group->images[hints] = {image, 1};
+        } else {
+            Log.langCoreDebug("Session - The session image already exists. Increasing the reference count...");
         }
 
-        // Insert
-        if (!image_group) {
-            Log.langCoreDebug("Session - The session image group doesn't exist. Creating a new group.");
-
-            SessionSystem::ImageGroup group;
-            group.path = canonical_path;
-            group.size = size;
-            group.hash = std::move(hash);
-
-            const auto it = image_list.emplace(image_list.end(), std::move(group));
-            path_map[it->path] = it;
-            hash_size_map[{size, it->hash}] = it;
-            image_group = &*it;
-        }
-        image_group->images[hints] = {image, 1};
-        goto out_success;
-
-    out_exists:
-        Log.langCoreDebug("Session - The session image already exists. Increasing the reference count...");
-
-    out_success:
         impl.group = image_group;
         impl.image = image;
         impl.hints = hints;
@@ -581,37 +571,36 @@ namespace LangPlugins::OnnxDriver::V1
             return Error(Error::RuntimeError, "session is not open");
 
         const auto &path = impl.realPath;
-        const auto &filename = path.filename();
-        Log.langCoreDebug("Session [%1] - close", filename);
+        Log.langCoreDebug("Session [%1] - close", path.filename());
 
         auto &[image_list, path_map, hash_size_map, mtx] = SessionSystem::global();
         std::unique_lock lock(mtx);
 
         auto &group = *impl.group;
         auto &images = group.images;
-        {
-            const auto it = images.find(impl.hints);
-            assert(it != images.end());
-            if (auto &[image, count] = it->second; --count != 0) {
-                Log.langCoreDebug("SessionImage [%1] - ref(), now ref count = %2", filename, count);
-                goto out_success;
-            }
-            Log.langCoreDebug("SessionImage [%1] - delete", filename);
-            delete it->second.image;
+
+        const auto it = images.find(impl.hints);
+        assert(it != images.end());
+
+        auto &[image, count] = it->second;
+        if (--count != 0) {
+            Log.langCoreDebug("SessionImage [%1] - ref(), now ref count = %2", path.filename(), count);
+        } else {
+            Log.langCoreDebug("SessionImage [%1] - delete", path.filename());
+            delete image;
             images.erase(it);
+
+            if (images.empty()) {
+                Log.langCoreDebug("Session - The session image group is empty. Destroying.");
+                const auto hashIt = hash_size_map.find({group.size, group.hash});
+                const auto listIt = hashIt->second;
+
+                hash_size_map.erase(hashIt);
+                path_map.erase(path);
+                image_list.erase(listIt);
+            }
         }
-        if (images.empty()) {
-            Log.langCoreDebug("Session - The session image group is empty. Destroying.");
-            const auto it = hash_size_map.find({group.size, group.hash});
 
-            const auto list_it = it->second;
-
-            hash_size_map.erase(it);
-            path_map.erase(path);
-            image_list.erase(list_it);
-        }
-
-    out_success:
         impl.group = nullptr;
         impl.image = nullptr;
         impl.hints = 0;
