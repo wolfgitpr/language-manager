@@ -1,10 +1,9 @@
 enable_testing()
 
-# Unit + Component Tests (single executable)
 add_subdirectory(tst_unit)
-
-# Context Isolation Tests (Voice Bank Scoped Package)
 add_subdirectory(tst_context)
-
-# Integration Tests (requires runtime plugins and packages)
-add_subdirectory(tst_langCore)
+add_subdirectory(tst_dependency)
+add_subdirectory(tst_support)
+if(LANGMGR_BUILD_PLUGINS)
+    add_subdirectory(tst_langCore)
+endif()
