@@ -1,7 +1,6 @@
 project(tst_context)
 
 set(_src
-    tst_framework.h
     main.cpp
     tst_fqid.cpp
     tst_context_isolation.cpp
@@ -11,6 +10,7 @@ set(_src
 )
 
 add_executable(${PROJECT_NAME} ${_src})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 target_link_libraries(${PROJECT_NAME} PRIVATE LangCore::LangCore)
 
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
