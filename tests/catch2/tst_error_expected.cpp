@@ -151,7 +151,7 @@ TEST_CASE("Expected Get") {
     REQUIRE(e.get() == "hello");
 }
 
-TEST_CASE("Expected ConstGet") {
+TEST_CASE("Expected ConstGet Compat") {
     const Expected<int> e(99);
     REQUIRE(e.get() == 99);
 }
@@ -184,7 +184,7 @@ TEST_CASE("Expected MoveAssign") {
     REQUIRE(b.value() == 1);
 }
 
-TEST_CASE("Expected ValueOr HasValue") {
+TEST_CASE("Expected ValueOr HasValue Compat") {
     Expected<int> e(7);
     REQUIRE(e.valueOr(0) == 7);
 }
