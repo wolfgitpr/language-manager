@@ -40,6 +40,7 @@ if (LANGMGR_BUILD_PLUGINS)
 endif ()
 
 if (LANGMGR_BUILD_TESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif ()
 

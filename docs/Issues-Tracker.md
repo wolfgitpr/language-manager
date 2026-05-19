@@ -294,22 +294,26 @@ V1 是逐词推理实现（Level 1）。代码第 200-201 行明确注释 `// Fo
 
 ---
 
-### 7.2 🟠 P1 · macOS CI 找不到测试（ctest "No tests were found!!!"）— ✅ 已修复
+### 7.2 🟠 P1 · CI 找不到测试（ctest "No tests were found!!!"）— ✅ 已修复
 
 **来源**：GitHub Actions CI 测试步骤  
-**严重程度**：P1 中等 — macOS CI 测试步骤完全失败  
+**严重程度**：P1 中等 — 所有平台 CI 测试步骤完全失败  
 **修复风险**：⚡ 低风险  
-**状态**：✅ 已修复。macOS/Linux CI 添加 `-G Ninja`，移除 catch2 CMakeLists.txt 中多余的 `include(CTest)`。
+**状态**：✅ 已修复。两轮修复：(1) macOS/Linux CI 添加 `-G Ninja`；(2) 将 `enable_testing()` 移至根 `CMakeLists.txt`。
 
-**问题**：macOS runner 上 CMake 默认使用 **Xcode generator**（multi-config）。虽然 CI 已安装 `ninja`，但未通过 `-G Ninja` 告知 CMake 使用它。Xcode generator 下 `add_test(NAME ... COMMAND ...)` 注册的测试在 `ctest` 中无法正确解析可执行路径（multi-config 需要 `$<TARGET_FILE:...>` 生成器表达式），导致 ctest 输出 `"No tests were found!!!"`。
-
-此外，`tests/catch2/CMakeLists.txt` 中 `include(CTest)` 调用是多余的，因为父级 `tests/CMakeLists.txt` 已调用 `enable_testing()`。
+**问题**：
+1. macOS runner 上 CMake 默认使用 **Xcode generator**（multi-config），虽然 CI 安装了 `ninja` 但未通过 `-G Ninja` 告知 CMake 使用。Xcode generator 下 `add_test(NAME ... COMMAND ...)` 注册的测试在 `ctest` 中无法正确解析可执行路径。
+2. `enable_testing()` 在子目录 `tests/CMakeLists.txt` 而非根 `CMakeLists.txt` 调用。CMake 文档明确建议应在源码根目录调用此命令，因为 ctest 期望在构建根目录找到 `CTestTestfile.cmake`。放在子目录中可能导致根目录的 CTest 配置文件无法正确生成。
+3. `tests/catch2/CMakeLists.txt` 中 `include(CTest)` 调用是多余的，因为 `enable_testing()` 已覆盖测试功能。
 
 **修复方案**：
 1. Linux/macOS CI 配置步骤添加 `-G Ninja`，强制使用单配置生成器
-2. 同步移除 Linux/macOS CI 中 `cmake --build` 的 `--config Release` 和 `ctest` 的 `-C Release`（单配置生成器不需要）
-3. 从 `tests/catch2/CMakeLists.txt` 移除多余的 `include(CTest)`
+2. 同步移除 Linux/macOS CI 中 `cmake --build` 的 `--config Release` 和 `ctest` 的 `-C Release`
+3. 将 `enable_testing()` 从 `tests/CMakeLists.txt` 移至根 `CMakeLists.txt`（在 `LANGMGR_BUILD_TESTS` 条件内）
+4. 从 `tests/catch2/CMakeLists.txt` 移除多余的 `include(CTest)`
 
 **相关文件**：
-- `.github/workflows/ci.yml` — Linux/macOS job 的 Configure/Build/Test 步骤
+- `CMakeLists.txt` — 根文件添加 `enable_testing()`
+- `tests/CMakeLists.txt` — 移除 `enable_testing()`
 - `tests/catch2/CMakeLists.txt` — 移除 `include(CTest)`
+- `.github/workflows/ci.yml` — Linux/macOS job 的 Configure/Build/Test 步骤
