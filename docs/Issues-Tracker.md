@@ -272,7 +272,7 @@ V1 是逐词推理实现（Level 1）。代码第 200-201 行明确注释 `// Fo
 | 🟠 P1 | 2 | FormatStep 命名不符, Session goto |
 | 🟡 P2 | 3 | 传递依赖未实现, 静态插件未实现, V2 EOS 性能 |
 | 🟢 P3 | 1 | 继承链改组合 |
-| ✅ 已修复 | 31 | 含 §14.12 getConfig 缓存、P0 LstmG2p V2 mode 修复、§14.30-§14.35 多版本同名声库 G2P 管理完善 |
+| ✅ 已修复 | 32 | 含 sparsepp 依赖、macOS CI ctest 无测试修复 |
 
 ---
 
@@ -291,3 +291,25 @@ V1 是逐词推理实现（Level 1）。代码第 200-201 行明确注释 `// Fo
 **修复方案**：在 `vcpkg.json` 的 `dependencies` 中添加 `"sparsepp"`。sparsepp 是 header-only 库，vcpkg toolchain 自动处理 include 路径，无需 CMakeLists.txt 变更。
 
 **相关文件**：`vcpkg.json`，`core/lib/Support/PhonemeDict.cpp`
+
+---
+
+### 7.2 🟠 P1 · macOS CI 找不到测试（ctest "No tests were found!!!"）— ✅ 已修复
+
+**来源**：GitHub Actions CI 测试步骤  
+**严重程度**：P1 中等 — macOS CI 测试步骤完全失败  
+**修复风险**：⚡ 低风险  
+**状态**：✅ 已修复。macOS/Linux CI 添加 `-G Ninja`，移除 catch2 CMakeLists.txt 中多余的 `include(CTest)`。
+
+**问题**：macOS runner 上 CMake 默认使用 **Xcode generator**（multi-config）。虽然 CI 已安装 `ninja`，但未通过 `-G Ninja` 告知 CMake 使用它。Xcode generator 下 `add_test(NAME ... COMMAND ...)` 注册的测试在 `ctest` 中无法正确解析可执行路径（multi-config 需要 `$<TARGET_FILE:...>` 生成器表达式），导致 ctest 输出 `"No tests were found!!!"`。
+
+此外，`tests/catch2/CMakeLists.txt` 中 `include(CTest)` 调用是多余的，因为父级 `tests/CMakeLists.txt` 已调用 `enable_testing()`。
+
+**修复方案**：
+1. Linux/macOS CI 配置步骤添加 `-G Ninja`，强制使用单配置生成器
+2. 同步移除 Linux/macOS CI 中 `cmake --build` 的 `--config Release` 和 `ctest` 的 `-C Release`（单配置生成器不需要）
+3. 从 `tests/catch2/CMakeLists.txt` 移除多余的 `include(CTest)`
+
+**相关文件**：
+- `.github/workflows/ci.yml` — Linux/macOS job 的 Configure/Build/Test 步骤
+- `tests/catch2/CMakeLists.txt` — 移除 `include(CTest)`

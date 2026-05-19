@@ -24,15 +24,15 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
       - name: Configure CMake
         run: |
-          cmake -B build \
+          cmake -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DLANGMGR_BUILD_PLUGINS=OFF \
             -DLANGMGR_BUILD_TESTS=ON
       - name: Build
-        run: cmake --build build --config Release -j $(nproc)
+        run: cmake --build build -j $(nproc)
       - name: Test
-        run: ctest --test-dir build -C Release
+        run: ctest --test-dir build
 
   macos:
     runs-on: macos-latest
@@ -46,15 +46,15 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
       - name: Configure CMake
         run: |
-          cmake -B build \
+          cmake -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DLANGMGR_BUILD_PLUGINS=OFF \
             -DLANGMGR_BUILD_TESTS=ON
       - name: Build
-        run: cmake --build build --config Release -j $(sysctl -n hw.logicalcpu)
+        run: cmake --build build -j $(sysctl -n hw.logicalcpu)
       - name: Test
-        run: ctest --test-dir build -C Release
+        run: ctest --test-dir build
 
   windows:
     runs-on: windows-latest
