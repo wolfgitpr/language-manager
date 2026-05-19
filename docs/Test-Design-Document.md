@@ -1,7 +1,7 @@
 # Language Manager 测试设计文档
 
-**版本**：2.0  
-**日期**：2026-04-27  
+**版本**：2.1  
+**日期**：2026-05-19  
 **关联 PRD**：PRD-v2.0.md §10
 
 ---
@@ -52,89 +52,66 @@ L4  端到端测试    完整 G2p 管线（Split→Tag→Convert），需要真�
 
 ### 2.2 目录规划
 
+> **已实施**（2026-05-19）：参考 [cpp-pinyin 测试结构](file:///D:/projects/cpp-pinyin/tests/CMakeLists.txt)，所有 Catch2 测试合并为单一 CMake 目标 `LangMgrTests`。`tst_langCore/` 保留为不使用 Catch2 的最小例程。
+
 ```
 tests/
-├── CMakeLists.txt                  # 注册所有子目录
+├── CMakeLists.txt                  # add_subdirectory(catch2) + tst_langCore
 ├── common/                         # 测试公共设施
-│   ├── TestConfig.h.in             # CMake configure_file 模板（注入路径）
-│   └── TestUtils.h                 # 公共辅助函数
+│   └── catch.hpp                   # Catch2 v2.13.10 amalgamated header
 │
-├── tst_support/                    # L1: Expected, Error, ConfigAccessor, ValidationChain
-│   ├── CMakeLists.txt
-│   ├── tst_error.cpp
-│   ├── tst_expected.cpp
-│   ├── tst_config_accessor.cpp
-│   └── fixtures/
-│       └── *.json                  # 测试用 config JSON
+├── catch2/                         # 全部 Catch2 L1/L2 测试（单一可执行目标 LangMgrTests）
+│   ├── CMakeLists.txt              # file(GLOB *.cpp) → add_executable(LangMgrTests)
+│   ├── main.cpp                    # 唯一的 CATCH_CONFIG_MAIN
+│   ├── tst_base_types.cpp          # (原 tst_unit/)
+│   ├── tst_error_expected.cpp      # (原 tst_unit/)
+│   ├── tst_json_config.cpp         # (原 tst_unit/)
+│   ├── tst_version_dep.cpp         # (原 tst_unit/)
+│   ├── tst_error.cpp               # (原 tst_support/)
+│   ├── tst_expected.cpp            # (原 tst_support/)
+│   ├── tst_dependency_graph.cpp    # (原 tst_dependency/)
+│   ├── tst_dependency_resolver.cpp # (原 tst_dependency/)
+│   ├── tst_fqid.cpp                # (原 tst_context/)
+│   ├── tst_context_convert.cpp     # (原 tst_context/)
+│   ├── tst_context_isolation.cpp   # (原 tst_context/)
+│   ├── tst_context_dedup.cpp       # (原 tst_context/)
+│   └── tst_context_version.cpp     # (原 tst_context/)
 │
-├── tst_version/                    # L1: VersionRange, VersionResolver
-│   ├── CMakeLists.txt
-│   ├── tst_version_range.cpp
-│   └── tst_version_resolver.cpp
-│
-├── tst_dependency/                 # L2: DependencyResolver, DependencyGraph, LevelCompatibilityChecker
-│   ├── CMakeLists.txt
-│   ├── tst_dependency_resolver.cpp
-│   ├── tst_dependency_graph.cpp
-│   ├── tst_level_checker.cpp
-│   └── fixtures/
-│       └── packages/               # mock package 目录（详见 §4）
-│
-├── tst_package/                    # L2: Package 解析、PackageManager
-│   ├── CMakeLists.txt
-│   ├── tst_package_parse.cpp
-│   ├── tst_package_manager.cpp
-│   └── fixtures/
-│       └── packages/               # 各种合法/非法 package.json
-│
-├── tst_plugin/                     # L3: 插件加载、Level 校验、Task 生命周期
-│   ├── CMakeLists.txt
-│   ├── tst_plugin_loading.cpp
-│   └── tst_task_lifecycle.cpp
-│
-├── tst_integration/                # L4: 端到端 G2p 管线（现有测试改造）
-│   ├── CMakeLists.txt
-│   ├── tst_g2p_pipeline.cpp
-│   ├── TextSplitter.h / .cpp       # 沿用现有
-│   ├── TextTagger.h / .cpp         # 沿用现有
-│   └── configs/                    # 沿用现有 splitter/tagger configs
-│
-├── tst_dict/                       # L3: DsDict 插件测试
-│   ├── CMakeLists.txt
-│   ├── tst_dsdict.cpp
-│   └── fixtures/
-│       └── *.txt                   # 测试字典文件
-│
-└── tst_context/                    # L1/L2: Voice Bank Context 测试（已实现）
+└── tst_langCore/                   # L4: 最小使用例程（不使用 Catch2，独立 executable）
     ├── CMakeLists.txt
-    ├── tst_fqid.cpp                # FQID 解析/格式化、context 名校验
-    ├── tst_context_convert.cpp     # G2pInput/G2pRes context 字段验证
-    ├── tst_context_isolation.cpp   # Context 隔离、跨 context 依赖失败、默认 context 回退
-    ├── tst_context_dedup.cpp       # isSameMainModule 模块去重、selectBestModules
-    ├── tst_context_version.cpp     # ContextKey、版本化 FQID、版本化 context 隔离/回退/去重
-    ├── tst_framework.h             # 轻量级测试框架
-    └── fixtures/
-        └── packages/               # Mock packages（详见 §13）
+    ├── main.cpp
+    ├── TextSplitter.h / .cpp
+    ├── TextTagger.h / .cpp
+    └── configs/                    # splitter/tagger 测试 configs
 ```
 
 ### 2.3 CMake 集成模式
 
-每个测试子目录的 `CMakeLists.txt` 遵循统一模式：
+参考 [cpp-pinyin 的测试 CMakeLists.txt](file:///D:/projects/cpp-pinyin/tests/CMakeLists.txt)，所有 Catch2 测试源文件通过 `file(GLOB)` 收集并编译为**单一可执行目标** `LangMgrTests`：
 
 ```cmake
-project(tst_support)
+# tests/catch2/CMakeLists.txt
+file(GLOB _catch2_src ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
-file(GLOB _src *.cpp)
-add_executable(${PROJECT_NAME} ${_src})
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    LangCore::LangCore
-)
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../common
-)
+add_executable(LangMgrTests ${_catch2_src})
+target_include_directories(LangMgrTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+target_link_libraries(LangMgrTests PRIVATE LangCore::LangCore)
 
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+include(CTest)
+add_test(NAME LangMgrTests COMMAND LangMgrTests)
 ```
+
+顶层 `tests/CMakeLists.txt` 仅注册两个子目录：
+
+```cmake
+enable_testing()
+add_subdirectory(catch2)
+if(LANGMGR_BUILD_PLUGINS)
+    add_subdirectory(tst_langCore)
+endif()
+```
+
+**CLion 效果**：单个 `LangMgrTests` 目标替代了之前的 4 个独立目标（`tst_unit`/`tst_context`/`tst_dependency`/`tst_support`），在 CMake 项目面板中显示为一项。
 
 ### 2.4 路径参数化
 
@@ -805,10 +782,11 @@ tst_plugin / tst_dict / tst_integration → 依赖全部核心
 
 ### 13.2 目录结构（已实现）
 
+> **2026-05-19 更新**：已合并至 `tests/catch2/` 统一测试目标。
+
 ```
-tst_context/
-├── CMakeLists.txt
-├── main.cpp                        # Catch2 main (CATCH_CONFIG_MAIN)
+tests/catch2/                       # 单一 LangMgrTests 可执行目标
+├── main.cpp                        # CATCH_CONFIG_MAIN
 ├── tst_fqid.cpp                    # FQID 解析/格式化、context 名校验
 ├── tst_context_convert.cpp         # G2pInput/G2pRes context 字段验证
 ├── tst_context_isolation.cpp       # Context 隔离、跨 context 依赖失败、默认 context 回退
@@ -954,5 +932,5 @@ tst_context/
 
 ---
 
-**文档版本**: 2.0  
-**最后更新**: 2026-04-27
+**文档版本**: 2.1  
+**最后更新**: 2026-05-19
