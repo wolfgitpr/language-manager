@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - plugin
   pull_request:
     branches:
       - main
