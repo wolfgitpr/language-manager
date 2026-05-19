@@ -215,7 +215,10 @@ namespace LangCore
 
         for (size_t i = 0; i < modules.size(); ++i) {
             const auto &module = modules[i];
-            std::string uniqueKey = module.packageId + ":" + module.moduleId + ":" + std::to_string(module.level);
+            std::string uniqueKey = module.packageId + ":" + module.moduleId + ":" + std::to_string(module.level) +
+                                       ":" + module.context;
+            if (!module.contextVersion.isEmpty())
+                uniqueKey += "@" + module.contextVersion.toString();
 
             if (auto it = bestIndexes.find(uniqueKey); it == bestIndexes.end()) {
                 bestIndexes[uniqueKey] = i;
