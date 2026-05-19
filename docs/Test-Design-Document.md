@@ -29,15 +29,13 @@
 
 ### 1.3 测试框架选择
 
-**当前状态**：`tst_unit/` 使用自定义轻量级测试框架（`tst_framework.h`，提供 `TEST_CASE`、`ASSERT_*` 宏和注册表），不依赖 Qt Test。`tst_langCore/` 的集成测试使用裸 `main()` + 手动断言。
+**已实施状态**：所有 L1/L2 测试已迁移至 **Catch2 v2.13.10**（单头文件模式，直接携带 `catch.hpp`），不依赖 Qt Test。`tst_langCore/` 保留为独立 benchmark + 最小使用示例（不使用 Catch2）。
 
-**规划方向**：迁移至 **Qt Test**（`QTest`），理由：
-- 项目已依赖 Qt 6，无需引入新依赖
-- 支持 `QCOMPARE`、`QVERIFY`、数据驱动测试（`_data()` + `QTest::addColumn`）
-- 与 CTest 天然集成（`add_test()` 或 `qt_add_test()`）
-- `QBENCHMARK` 可替代手写性能计时
-
-> **注意**：下文 §2-§13 描述的是规划中的测试架构。当前实际测试代码有 `tst_unit/`（L1 单元测试，5 个测试文件，覆盖 Error/Expected、JSON/ConfigAccessor、VersionRange/Dependency、基础类型）、`tst_context/`（L1/L2 Context 测试，5 个测试文件，覆盖 FQID 解析、context 隔离/版本化/去重/转换验证）和 `tst_langCore/`（L4 端到端集成测试）。
+**选择理由**：
+- Catch2 单头文件部署，零构建依赖
+- `TEST_CASE` + `REQUIRE`/`CHECK` 宏提供现代化断言语义
+- 原生支持 test case 名称、section、表达式模板
+- 与 CTest 天然集成（`add_test()`）
 
 ---
 
@@ -126,18 +124,13 @@ tests/
 ```cmake
 project(tst_support)
 
-find_package(Qt6 REQUIRED COMPONENTS Test)
-
 file(GLOB _src *.cpp)
 add_executable(${PROJECT_NAME} ${_src})
 target_link_libraries(${PROJECT_NAME} PRIVATE
     LangCore::LangCore
-    Qt6::Test
 )
-
-# 注入测试数据路径
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    TEST_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common
 )
 
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
@@ -815,13 +808,12 @@ tst_plugin / tst_dict / tst_integration → 依赖全部核心
 ```
 tst_context/
 ├── CMakeLists.txt
-├── main.cpp                        # 测试入口
+├── main.cpp                        # Catch2 main (CATCH_CONFIG_MAIN)
 ├── tst_fqid.cpp                    # FQID 解析/格式化、context 名校验
 ├── tst_context_convert.cpp         # G2pInput/G2pRes context 字段验证
 ├── tst_context_isolation.cpp       # Context 隔离、跨 context 依赖失败、默认 context 回退
 ├── tst_context_dedup.cpp           # isSameMainModule 模块去重、selectBestModules
-├── tst_context_version.cpp         # ContextKey、版本化 FQID、版本化 context 隔离/回退/去重
-└── tst_framework.h                 # 轻量级测试框架
+└── tst_context_version.cpp         # ContextKey、版本化 FQID、版本化 context 隔离/回退/去重
 ```
 
 ### 13.3 tst_fqid.cpp — FQID 解析/格式化与 Context 名校验

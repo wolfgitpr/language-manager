@@ -1,4 +1,4 @@
-#include "tst_framework.h"
+#include "catch.hpp"
 
 #include <vector>
 
@@ -21,80 +21,80 @@ static LangCore::ModuleMetadata makeModule(const std::string &context, const std
 }
 
 // Same (context, moduleId, iid, type, config, level) from two different packages → isSameMainModule.
-TEST_CASE(dedup_sameQuad) {
+TEST_CASE("dedup_sameQuad") {
     auto a = makeModule("SingerA", "pkgA", "g2p-cmn");
     auto b = makeModule("SingerA", "pkgB", "g2p-cmn");
-    ASSERT_TRUE(a.isSameMainModule(b));
+    REQUIRE(a.isSameMainModule(b));
 }
 
 // Same main module fields but different version → isSameMainModule ignores version → still same.
-TEST_CASE(dedup_diffVersion) {
+TEST_CASE("dedup_diffVersion") {
     auto a = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0");
     auto b = makeModule("SingerA", "pkgA", "g2p-cmn", "2.0.0");
-    ASSERT_TRUE(a.isSameMainModule(b));
+    REQUIRE(a.isSameMainModule(b));
 }
 
 // Same (context, moduleId, version, level) but different iid → NOT same main module.
-TEST_CASE(dedup_diffIid) {
+TEST_CASE("dedup_diffIid") {
     auto a = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0", 1, "g2p", "g2p.impl.A");
     auto b = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0", 1, "g2p", "g2p.impl.B");
-    ASSERT_FALSE(a.isSameMainModule(b));
+    REQUIRE_FALSE(a.isSameMainModule(b));
 }
 
 // Same (context, moduleId, version, iid) but different level → NOT same main module.
-TEST_CASE(dedup_diffLevel) {
+TEST_CASE("dedup_diffLevel") {
     auto a = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0", 1);
     auto b = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0", 2);
-    ASSERT_FALSE(a.isSameMainModule(b));
+    REQUIRE_FALSE(a.isSameMainModule(b));
 }
 
 // Different contexts with identical (moduleId, iid, level, version) → NOT same main module.
-TEST_CASE(dedup_crossContext_noDedup) {
+TEST_CASE("dedup_crossContext_noDedup") {
     auto a = makeModule("SingerA", "pkgA", "g2p-cmn");
     auto b = makeModule("SingerB", "pkgA", "g2p-cmn");
-    ASSERT_FALSE(a.isSameMainModule(b));
+    REQUIRE_FALSE(a.isSameMainModule(b));
 }
 
 // Default context ("") dedup works the same way.
-TEST_CASE(dedup_defaultContext) {
+TEST_CASE("dedup_defaultContext") {
     auto a = makeModule("", "pkgA", "g2p-cmn");
     auto b = makeModule("", "pkgB", "g2p-cmn");
-    ASSERT_TRUE(a.isSameMainModule(b));
+    REQUIRE(a.isSameMainModule(b));
 }
 
 // Verify that different type breaks dedup even if everything else matches.
-TEST_CASE(dedup_diffType) {
+TEST_CASE("dedup_diffType") {
     auto a = makeModule("SingerA", "pkgA", "mod-x", "1.0.0", 1, "g2p", "impl.A");
     auto b = makeModule("SingerA", "pkgA", "mod-x", "1.0.0", 1, "dict", "impl.A");
-    ASSERT_FALSE(a.isSameMainModule(b));
+    REQUIRE_FALSE(a.isSameMainModule(b));
 }
 
 // Verify operator== includes packageId and version (stricter than isSameMainModule).
-TEST_CASE(dedup_operatorEq_includesPackageAndVersion) {
+TEST_CASE("dedup_operatorEq_includesPackageAndVersion") {
     auto a = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0");
     auto b = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0");
-    ASSERT_TRUE(a == b);
+    REQUIRE(a == b);
 
     auto c = makeModule("SingerA", "pkgA", "g2p-cmn", "2.0.0");
-    ASSERT_FALSE(a == c);
+    REQUIRE_FALSE(a == c);
 
     auto d = makeModule("SingerA", "pkgB", "g2p-cmn", "1.0.0");
-    ASSERT_FALSE(a == d);
+    REQUIRE_FALSE(a == d);
 }
 
 // selectBestModules is tested indirectly via resolveAllDependencies:
 // Two modules with same (packageId, moduleId, level) but different versions —
 // the resolver's selectBestModules keeps only the highest version.
-TEST_CASE(dedup_selectBest_viaResolver) {
+TEST_CASE("dedup_selectBest_viaResolver") {
     auto v1 = makeModule("SingerA", "pkgA", "g2p-cmn", "1.0.0");
     auto v2 = makeModule("SingerA", "pkgA", "g2p-cmn", "2.0.0");
 
     std::vector<LangCore::ModuleMetadata> modules = {v1, v2};
     LangCore::DependencyResolver resolver;
-    ASSERT_TRUE(resolver.resolveAllDependencies(modules));
+    REQUIRE(resolver.resolveAllDependencies(modules));
 
     // Only the best version should survive
     const auto &resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 1u);
-    ASSERT_STREQ(resolved[0].version.c_str(), "2.0.0");
+    REQUIRE(resolved.size() == 1u);
+    REQUIRE(resolved[0].version == "2.0.0");
 }
