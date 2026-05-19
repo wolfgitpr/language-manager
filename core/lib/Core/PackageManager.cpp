@@ -61,6 +61,8 @@ namespace LangCore
             if (auto it = pkgMap.pathIndexes.find(canonicalPath); it != pkgMap.pathIndexes.end()) {
                 auto &pkg = *it->second;
                 pkg.ref++;
+                MgrLog.langCoreDebug("Package path '%1' already loaded (ref=%2), sharing existing instance",
+                                     canonicalPath, pkg.ref);
                 return pkg.spec;
             }
         }
@@ -551,6 +553,9 @@ namespace LangCore
         if (auto exp = ContextUtils::validateContextName(context); !exp)
             return exp.error();
 
+        if (context.empty() && !version.isEmpty())
+            return Error(Error::ValidationError, "R-8: Default context cannot have a version");
+
         __stdc_impl_t;
         if (!fs::exists(path) || !fs::is_directory(path)) {
             return Error(Error::FileSystemError, stdc::formatN("Package path does not exist or is not a directory: %1", path));
@@ -582,6 +587,9 @@ namespace LangCore
                                                    const std::vector<std::filesystem::path> &paths) {
         if (auto exp = ContextUtils::validateContextName(context); !exp)
             return exp.error();
+
+        if (context.empty() && !version.isEmpty())
+            return Error(Error::ValidationError, "R-8: Default context cannot have a version");
 
         __stdc_impl_t;
         ContextKey ctxKey(context, version);
