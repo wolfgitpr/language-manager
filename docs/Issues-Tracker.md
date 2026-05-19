@@ -276,5 +276,18 @@ V1 是逐词推理实现（Level 1）。代码第 200-201 行明确注释 `// Fo
 
 ---
 
-**文档版本**: 2.2  
+**文档版本**: 2.3  
 **最后更新**: 2026-05-19
+
+### 7.1 🟠 P1 · CI 编译错误：sparsepp 头文件未找到 — ✅ 已修复
+
+**来源**：GitHub Actions CI 构建  
+**严重程度**：P1 中等 — 阻止所有平台的 CI 构建  
+**修复风险**：⚡ 低风险  
+**状态**：✅ 已修复。`vcpkg.json` 添加 `"sparsepp"` 依赖。
+
+**问题**：`PhonemeDict.cpp` 使用 `<sparsepp/spp.h>` 中的 `spp::sparse_hash_map`，但 `vcpkg.json` 中未声明 `sparsepp` 依赖。本地构建因为使用已有 vcpkg 安装（已通过其他途径安装 sparsepp）而通过，但 CI 从零克隆 vcpkg 时 `#include <sparsepp/spp.h>` 找不到文件。
+
+**修复方案**：在 `vcpkg.json` 的 `dependencies` 中添加 `"sparsepp"`。sparsepp 是 header-only 库，vcpkg toolchain 自动处理 include 路径，无需 CMakeLists.txt 变更。
+
+**相关文件**：`vcpkg.json`，`core/lib/Support/PhonemeDict.cpp`

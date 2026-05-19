@@ -2,7 +2,8 @@
   "dependencies": [
     "qmsetup",
     "stdcorelib",
-    "nlohmann-json"
+    "nlohmann-json",
+    "sparsepp"
   ],
   "vcpkg-configuration": {
     "overlay-ports": [
