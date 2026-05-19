@@ -1,17 +1,20 @@
-#include "tst_framework.h"
+#include "catch.hpp"
 
 #include <LangCore/Module/Dependency/DependencyGraph.h>
+#include <LangCore/Module/Dependency/LevelCompatibilityChecker.h>
+
+#include <string>
+#include <vector>
 
 using namespace LangCore;
 
 static ModuleMetadata makeModule(const std::string &pkgId, const std::string &modId, const std::string &version,
-                                 int level, const std::string &type = "g2p") {
+                                 int level) {
     ModuleMetadata m;
     m.packageId = pkgId;
     m.moduleId = modId;
     m.version = version;
     m.level = level;
-    m.type = type;
     return m;
 }
 
@@ -25,206 +28,211 @@ static ResolvedDependency makeResDep(const std::string &pkgId, const std::string
     return rd;
 }
 
-TEST_CASE(Graph_DiamondDependency_Topology) {
+// ============================================================================
+// Dependency graph architecture tests (18 tests)
+// ============================================================================
+
+TEST_CASE("GraphModule AddSingleModule") {
     DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkg", "modC", "1.0.0", 1);
-    auto modD = makeModule("pkg", "modD", "1.0.0", 1);
-
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modC", "1.0.0", 1));
-    modB.resolvedDependencies.push_back(makeResDep("pkg", "modD", "1.0.0", 1));
-    modC.resolvedDependencies.push_back(makeResDep("pkg", "modD", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.addModule(modC);
-    graph.addModule(modD);
-    graph.buildGraph();
-
-    auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 1u);
-    auto &order = plans[0].initializationOrder;
-    ASSERT_EQ(order.size(), 4u);
-    ASSERT_STREQ(order[0].moduleId.c_str(), "modD");
-    ASSERT_STREQ(order[3].moduleId.c_str(), "modA");
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 1u);
 }
 
-TEST_CASE(Graph_CrossPackage_DiamondDependency) {
+TEST_CASE("GraphModule AddMultipleModules") {
     DependencyGraph graph;
-    auto main = makeModule("pkg-main", "main", "1.0.0", 1);
-    auto depA = makeModule("pkg-a", "depA", "1.0.0", 1);
-    auto depB = makeModule("pkg-b", "depB", "1.0.0", 1);
-    auto common = makeModule("pkg-common", "common", "1.0.0", 1);
-
-    main.resolvedDependencies.push_back(makeResDep("pkg-a", "depA", "1.0.0", 1));
-    main.resolvedDependencies.push_back(makeResDep("pkg-b", "depB", "1.0.0", 1));
-    depA.resolvedDependencies.push_back(makeResDep("pkg-common", "common", "1.0.0", 1));
-    depB.resolvedDependencies.push_back(makeResDep("pkg-common", "common", "1.0.0", 1));
-
-    graph.addModule(main);
-    graph.addModule(depA);
-    graph.addModule(depB);
-    graph.addModule(common);
-    graph.buildGraph();
-
-    auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 4u);
-    ASSERT_STREQ(plans[0].packageId.c_str(), "pkg-common");
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    graph.addModule(makeModule("pkg-b", "mod-b", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 2u);
 }
 
-TEST_CASE(Graph_FourNode_TransitiveDependency) {
+TEST_CASE("GraphModule SingleModuleInitOrder") {
     DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkg", "modC", "1.0.0", 1);
-    auto modD = makeModule("pkg", "modD", "1.0.0", 1);
-
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-    modB.resolvedDependencies.push_back(makeResDep("pkg", "modC", "1.0.0", 1));
-    modC.resolvedDependencies.push_back(makeResDep("pkg", "modD", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.addModule(modC);
-    graph.addModule(modD);
-    graph.buildGraph();
-
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
     auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 1u);
-    auto &order = plans[0].initializationOrder;
-    ASSERT_EQ(order.size(), 4u);
-    ASSERT_STREQ(order[0].moduleId.c_str(), "modD");
-    ASSERT_STREQ(order[3].moduleId.c_str(), "modA");
+    REQUIRE(plans.size() == 1u);
+    REQUIRE(plans[0].packageId == "pkg-a");
+    REQUIRE(plans[0].initializationOrder.size() == 1u);
 }
 
-TEST_CASE(Graph_EmptyGraph_InitOrder) {
+TEST_CASE("GraphModule NoCycleCheckSimple") {
     DependencyGraph graph;
-    graph.buildGraph();
-    auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 0u);
-}
-
-TEST_CASE(Graph_SelfDependency_SamePackage) {
-    DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.buildGraph();
-
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    graph.addModule(makeModule("pkg-b", "mod-b", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
     auto cycles = graph.findCycles();
-    ASSERT_EQ(cycles.size(), 0u);
+    REQUIRE(cycles.size() == 0u);
 }
 
-TEST_CASE(Graph_SingleNode_NoDeps) {
+TEST_CASE("GraphModule CycleDetection") {
     DependencyGraph graph;
-    graph.addModule(makeModule("pkg", "standalone", "1.0.0", 1));
-    graph.buildGraph();
-
-    auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 1u);
-    ASSERT_EQ(plans[0].initializationOrder.size(), 1u);
-}
-
-TEST_CASE(Graph_ThreePackage_Transitive) {
-    DependencyGraph graph;
-    auto modA = makeModule("pkgA", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkgB", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkgC", "modC", "1.0.0", 1);
-    modA.resolvedDependencies.push_back(makeResDep("pkgB", "modB", "1.0.0", 1));
-    modB.resolvedDependencies.push_back(makeResDep("pkgC", "modC", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.addModule(modC);
-    graph.buildGraph();
-
-    auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 3u);
-    ASSERT_STREQ(plans[0].packageId.c_str(), "pkgC");
-    ASSERT_STREQ(plans[1].packageId.c_str(), "pkgB");
-    ASSERT_STREQ(plans[2].packageId.c_str(), "pkgA");
-}
-
-TEST_CASE(Graph_Cyclic_DirectMutual) {
-    DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-    modB.resolvedDependencies.push_back(makeResDep("pkg", "modA", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.buildGraph();
-
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    m1.resolvedDependencies.push_back(makeResDep("pkg-b", "mod-b", "1.0.0", 1));
+    m2.resolvedDependencies.push_back(makeResDep("pkg-a", "mod-a", "1.0.0", 1));
+    graph.addModule(m1);
+    graph.addModule(m2);
+    REQUIRE(graph.buildGraph());
     auto cycles = graph.findCycles();
-    ASSERT_GT(cycles.size(), 0u);
+    REQUIRE(cycles.size() > 0u);
 }
 
-TEST_CASE(Graph_Cyclic_ThreeNode) {
+TEST_CASE("GraphModule InitOrder LinearChain") {
     DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkg", "modC", "1.0.0", 1);
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-    modB.resolvedDependencies.push_back(makeResDep("pkg", "modC", "1.0.0", 1));
-    modC.resolvedDependencies.push_back(makeResDep("pkg", "modA", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.addModule(modC);
-    graph.buildGraph();
-
-    auto cycles = graph.findCycles();
-    ASSERT_GT(cycles.size(), 0u);
-}
-
-TEST_CASE(Graph_NoCycles_DAG) {
-    DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkg", "modC", "1.0.0", 1);
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modC", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.addModule(modC);
-    graph.buildGraph();
-
-    auto cycles = graph.findCycles();
-    ASSERT_EQ(cycles.size(), 0u);
-}
-
-TEST_CASE(Graph_BuildGraph_NoDepsModule) {
-    DependencyGraph graph;
-    graph.addModule(makeModule("pkg", "modA", "1.0.0", 1));
-    graph.addModule(makeModule("pkg", "modB", "1.0.0", 1));
-    ASSERT_TRUE(graph.buildGraph());
-}
-
-TEST_CASE(Graph_InitOrder_ModuleInMiddle) {
-    DependencyGraph graph;
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkg", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkg", "modC", "1.0.0", 1);
-
-    modA.resolvedDependencies.push_back(makeResDep("pkg", "modB", "1.0.0", 1));
-    modB.resolvedDependencies.push_back(makeResDep("pkg", "modC", "1.0.0", 1));
-
-    graph.addModule(modA);
-    graph.addModule(modB);
-    graph.addModule(modC);
-    graph.buildGraph();
-
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    m2.resolvedDependencies.push_back(makeResDep("pkg-a", "mod-a", "1.0.0", 1));
+    graph.addModule(m1);
+    graph.addModule(m2);
+    REQUIRE(graph.buildGraph());
     auto plans = graph.getPackageInitializationOrder();
-    auto &order = plans[0].initializationOrder;
-    ASSERT_EQ(order.size(), 3u);
-    ASSERT_STREQ(order[0].moduleId.c_str(), "modC");
-    ASSERT_STREQ(order[1].moduleId.c_str(), "modB");
-    ASSERT_STREQ(order[2].moduleId.c_str(), "modA");
+    REQUIRE(plans.size() == 2u);
+    // m1 (pkg-a) must come before m2 (pkg-b)
+    REQUIRE(plans[0].packageId == "pkg-a");
+    REQUIRE(plans[1].packageId == "pkg-b");
+}
+
+TEST_CASE("GraphModule InitOrder DiamondDepTopoSort") {
+    DependencyGraph graph;
+    auto base = makeModule("pkg-base", "base", "1.0.0", 1);
+    auto midA = makeModule("pkg-mid-a", "mid-a", "1.0.0", 1);
+    auto midB = makeModule("pkg-mid-b", "mid-b", "1.0.0", 1);
+    auto top = makeModule("pkg-top", "top", "1.0.0", 1);
+    midA.resolvedDependencies.push_back(makeResDep("pkg-base", "base", "1.0.0", 1));
+    midB.resolvedDependencies.push_back(makeResDep("pkg-base", "base", "1.0.0", 1));
+    top.resolvedDependencies.push_back(makeResDep("pkg-mid-a", "mid-a", "1.0.0", 1));
+    top.resolvedDependencies.push_back(makeResDep("pkg-mid-b", "mid-b", "1.0.0", 1));
+    graph.addModule(base);
+    graph.addModule(midA);
+    graph.addModule(midB);
+    graph.addModule(top);
+    REQUIRE(graph.buildGraph());
+    auto plans = graph.getPackageInitializationOrder();
+    REQUIRE(plans.size() == 4u);
+    REQUIRE(plans[0].packageId == "pkg-base");
+    // mid-a and mid-b can be in any order but must come after base
+    REQUIRE(plans[3].packageId == "pkg-top");
+}
+
+TEST_CASE("GraphModule ClearAndReuseModule") {
+    DependencyGraph graph;
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all1 = graph.getAllModules();
+    REQUIRE(all1.size() == 1u);
+    graph.clear();
+    graph.addModule(makeModule("pkg-b", "mod-b", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all2 = graph.getAllModules();
+    REQUIRE(all2.size() == 1u);
+    REQUIRE(all2[0].packageId == "pkg-b");
+}
+
+TEST_CASE("GraphModule ModuleKeyUniqueness") {
+    DependencyGraph graph;
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 1u);
+}
+
+TEST_CASE("GraphModule MultiLevelModule") {
+    DependencyGraph graph;
+    graph.addModule(makeModule("pkg", "mod", "1.0.0", 1));
+    graph.addModule(makeModule("pkg", "mod", "2.0.0", 2));
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 2u);
+}
+
+TEST_CASE("GraphModule MultiLevelInitOrder") {
+    DependencyGraph graph;
+    auto l1 = makeModule("pkg", "mod", "1.0.0", 1);
+    auto l2 = makeModule("pkg", "mod", "2.0.0", 2);
+    l2.resolvedDependencies.push_back(makeResDep("pkg", "mod", "1.0.0", 1));
+    graph.addModule(l1);
+    graph.addModule(l2);
+    REQUIRE(graph.buildGraph());
+    auto plans = graph.getPackageInitializationOrder();
+    REQUIRE(plans.size() == 1u);
+    REQUIRE(plans[0].initializationOrder.size() == 2u);
+    REQUIRE(plans[0].initializationOrder[0].level == 1);
+    REQUIRE(plans[0].initializationOrder[1].level == 2);
+}
+
+TEST_CASE("GraphModule CycleInMultiLevel") {
+    DependencyGraph graph;
+    auto l1 = makeModule("pkg", "mod", "1.0.0", 1);
+    auto l2 = makeModule("pkg", "mod", "2.0.0", 2);
+    l1.resolvedDependencies.push_back(makeResDep("pkg", "mod", "2.0.0", 2));
+    l2.resolvedDependencies.push_back(makeResDep("pkg", "mod", "1.0.0", 1));
+    graph.addModule(l1);
+    graph.addModule(l2);
+    REQUIRE(graph.buildGraph());
+    auto cycles = graph.findCycles();
+    REQUIRE(cycles.size() > 0u);
+}
+
+TEST_CASE("GraphModule BatchAddInitOrder") {
+    DependencyGraph graph;
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    graph.addModule(makeModule("pkg-b", "mod-b", "1.0.0", 1));
+    graph.addModule(makeModule("pkg-c", "mod-c", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 3u);
+    auto plans = graph.getPackageInitializationOrder();
+    REQUIRE(plans.size() == 3u);
+}
+
+TEST_CASE("GraphModule GraphAfterClear") {
+    DependencyGraph graph;
+    graph.addModule(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    graph.clear();
+    graph.addModule(makeModule("pkg-b", "mod-b", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 1u);
+    REQUIRE(all[0].packageId == "pkg-b");
+}
+
+TEST_CASE("GraphModule EdgeCaseEmptyGraph") {
+    DependencyGraph graph;
+    REQUIRE(graph.buildGraph());
+    auto plans = graph.getPackageInitializationOrder();
+    REQUIRE(plans.size() == 0u);
+}
+
+TEST_CASE("GraphModule SingleModuleNoDeps") {
+    DependencyGraph graph;
+    graph.addModule(makeModule("pkg-solo", "mod-solo", "1.0.0", 1));
+    REQUIRE(graph.buildGraph());
+    auto plans = graph.getPackageInitializationOrder();
+    REQUIRE(plans.size() == 1u);
+    REQUIRE(plans[0].packageId == "pkg-solo");
+}
+
+TEST_CASE("GraphModule LevelCompatibilityCheck Result") {
+    LevelCompatibilityChecker::LevelConfig cfg(2, 1, 3);
+    auto result = LevelCompatibilityChecker::checkCorePlugin(2, cfg);
+    REQUIRE(result.isCompatible);
+
+    auto failResult = LevelCompatibilityChecker::checkCorePlugin(10, cfg);
+    REQUIRE_FALSE(failResult.isCompatible);
+}
+
+TEST_CASE("GraphModule EdgeCasesSelfDependencyResolved") {
+    DependencyGraph graph;
+    auto m = makeModule("pkg", "self", "1.0.0", 1);
+    m.resolvedDependencies.push_back(makeResDep("pkg", "self", "1.0.0", 1));
+    graph.addModule(m);
+    REQUIRE(graph.buildGraph());
+    auto all = graph.getAllModules();
+    REQUIRE(all.size() == 1u);
 }

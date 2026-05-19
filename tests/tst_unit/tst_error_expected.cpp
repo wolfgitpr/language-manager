@@ -1,4 +1,4 @@
-#include "tst_framework.h"
+#include "catch.hpp"
 
 #include <LangCore/Support/Error.h>
 #include <LangCore/Support/Expected.h>
@@ -12,82 +12,82 @@ using namespace LangCore;
 // Error tests
 // ============================================================================
 
-TEST_CASE(Error_DefaultConstruct) {
+TEST_CASE("Error DefaultConstruct") {
     Error err;
-    ASSERT_TRUE(err.ok());
-    ASSERT_EQ(err.type(), Error::Success);
+    REQUIRE(err.ok());
+    REQUIRE(err.type() == Error::Success);
 }
 
-TEST_CASE(Error_SuccessFactory) {
+TEST_CASE("Error SuccessFactory") {
     auto err = Error::success();
-    ASSERT_TRUE(err.ok());
-    ASSERT_EQ(err.type(), Error::Success);
+    REQUIRE(err.ok());
+    REQUIRE(err.type() == Error::Success);
 }
 
-TEST_CASE(Error_TypeOnly) {
+TEST_CASE("Error TypeOnly") {
     Error err(Error::ConfigError);
-    ASSERT_FALSE(err.ok());
-    ASSERT_EQ(err.type(), Error::ConfigError);
+    REQUIRE_FALSE(err.ok());
+    REQUIRE(err.type() == Error::ConfigError);
 }
 
-TEST_CASE(Error_TypeWithStringMessage) {
+TEST_CASE("Error TypeWithStringMessage") {
     Error err(Error::RuntimeError, std::string("runtime failure"));
-    ASSERT_FALSE(err.ok());
-    ASSERT_EQ(err.type(), Error::RuntimeError);
-    ASSERT_STREQ(err.message().c_str(), "runtime failure");
-    ASSERT_STREQ(err.what(), "runtime failure");
+    REQUIRE_FALSE(err.ok());
+    REQUIRE(err.type() == Error::RuntimeError);
+    REQUIRE(err.message() == "runtime failure");
+    REQUIRE(std::string(err.what()) == "runtime failure");
 }
 
-TEST_CASE(Error_TypeWithCStringMessage) {
+TEST_CASE("Error TypeWithCStringMessage") {
     Error err(Error::FileSystemError, "file not found");
-    ASSERT_FALSE(err.ok());
-    ASSERT_EQ(err.type(), Error::FileSystemError);
-    ASSERT_STREQ(err.message().c_str(), "file not found");
+    REQUIRE_FALSE(err.ok());
+    REQUIRE(err.type() == Error::FileSystemError);
+    REQUIRE(err.message() == "file not found");
 }
 
-TEST_CASE(Error_WithSuggestion_Strings) {
+TEST_CASE("Error WithSuggestion Strings") {
     Error err(Error::DependencyError, std::string("missing dep"), std::string("install it"));
-    ASSERT_TRUE(err.hasSuggestion());
-    ASSERT_STREQ(err.suggestion().c_str(), "install it");
+    REQUIRE(err.hasSuggestion());
+    REQUIRE(err.suggestion() == "install it");
 }
 
-TEST_CASE(Error_WithSuggestion_CStrings) {
+TEST_CASE("Error WithSuggestion CStrings") {
     Error err(Error::DependencyError, "missing dep", "install it");
-    ASSERT_TRUE(err.hasSuggestion());
-    ASSERT_STREQ(err.suggestion().c_str(), "install it");
+    REQUIRE(err.hasSuggestion());
+    REQUIRE(err.suggestion() == "install it");
 }
 
-TEST_CASE(Error_NoSuggestion) {
+TEST_CASE("Error NoSuggestion") {
     Error err(Error::RuntimeError, "oops");
-    ASSERT_FALSE(err.hasSuggestion());
-    ASSERT_TRUE(err.suggestion().empty());
+    REQUIRE_FALSE(err.hasSuggestion());
+    REQUIRE(err.suggestion().empty());
 }
 
-TEST_CASE(Error_Context) {
+TEST_CASE("Error Context") {
     Error err(Error::RuntimeError, "ctx test");
-    ASSERT_FALSE(err.hasContext());
+    REQUIRE_FALSE(err.hasContext());
     err.withContext("file.cpp", 42, "doStuff");
-    ASSERT_TRUE(err.hasContext());
-    ASSERT_STREQ(err.context().file.c_str(), "file.cpp");
-    ASSERT_EQ(err.context().line, 42);
-    ASSERT_STREQ(err.context().function.c_str(), "doStuff");
+    REQUIRE(err.hasContext());
+    REQUIRE(err.context().file == "file.cpp");
+    REQUIRE(err.context().line == 42);
+    REQUIRE(err.context().function == "doStuff");
 }
 
-TEST_CASE(Error_FullMessage) {
+TEST_CASE("Error FullMessage") {
     Error err(Error::RuntimeError, "bad thing", "try again");
     err.withContext("src.cpp", 10, "run").withExtra("details");
     std::string full = err.fullMessage();
-    ASSERT_TRUE(full.find("bad thing") != std::string::npos);
-    ASSERT_TRUE(full.find("src.cpp") != std::string::npos);
-    ASSERT_TRUE(full.find("10") != std::string::npos);
-    ASSERT_TRUE(full.find("run") != std::string::npos);
-    ASSERT_TRUE(full.find("details") != std::string::npos);
-    ASSERT_TRUE(full.find("try again") != std::string::npos);
+    REQUIRE(full.find("bad thing") != std::string::npos);
+    REQUIRE(full.find("src.cpp") != std::string::npos);
+    REQUIRE(full.find("10") != std::string::npos);
+    REQUIRE(full.find("run") != std::string::npos);
+    REQUIRE(full.find("details") != std::string::npos);
+    REQUIRE(full.find("try again") != std::string::npos);
 }
 
 // --- Error additional tests ---
 
-TEST_CASE(Error_AllTypes_HaveDefaultMessages) {
+TEST_CASE("Error AllTypes HaveDefaultMessages") {
     Error::Type types[] = {
         Error::Success,
         Error::ConfigError,
@@ -103,163 +103,163 @@ TEST_CASE(Error_AllTypes_HaveDefaultMessages) {
     };
     for (auto t : types) {
         Error err(t);
-        ASSERT_TRUE(err.what() != nullptr);
+        REQUIRE(err.what() != nullptr);
     }
 }
 
-TEST_CASE(Error_CopySemantics) {
+TEST_CASE("Error CopySemantics") {
     Error original(Error::ValidationError, "validate fail");
-    Error copy = original; // NOLINT
-    ASSERT_STREQ(copy.message().c_str(), "validate fail");
-    ASSERT_STREQ(original.message().c_str(), "validate fail");
-    ASSERT_EQ(copy.type(), original.type());
+    Error copy = original;
+    REQUIRE(copy.message() == "validate fail");
+    REQUIRE(original.message() == "validate fail");
+    REQUIRE(copy.type() == original.type());
 }
 
-TEST_CASE(Error_ConstCharConstructors) {
+TEST_CASE("Error ConstCharConstructors") {
     Error e1(Error::IndexError, "out of range");
-    ASSERT_STREQ(e1.what(), "out of range");
+    REQUIRE(std::string(e1.what()) == "out of range");
 
     Error e2(Error::IndexError, "out of range", "check bounds");
-    ASSERT_STREQ(e2.what(), "out of range");
-    ASSERT_STREQ(e2.suggestion().c_str(), "check bounds");
+    REQUIRE(std::string(e2.what()) == "out of range");
+    REQUIRE(e2.suggestion() == "check bounds");
 }
 
 // ============================================================================
 // Expected<T> tests
 // ============================================================================
 
-TEST_CASE(Expected_DefaultConstruct) {
+TEST_CASE("Expected DefaultConstruct") {
     Expected<int> e;
-    ASSERT_TRUE(e.hasValue());
-    ASSERT_TRUE(static_cast<bool>(e));
+    REQUIRE(e.hasValue());
+    REQUIRE(static_cast<bool>(e));
 }
 
-TEST_CASE(Expected_ValueConstruct) {
+TEST_CASE("Expected ValueConstruct") {
     Expected<int> e(42);
-    ASSERT_TRUE(e.hasValue());
-    ASSERT_EQ(e.value(), 42);
+    REQUIRE(e.hasValue());
+    REQUIRE(e.value() == 42);
 }
 
-TEST_CASE(Expected_ErrorConstruct) {
+TEST_CASE("Expected ErrorConstruct") {
     Expected<int> e(Error(Error::RuntimeError, "fail"));
-    ASSERT_FALSE(e.hasValue());
-    ASSERT_FALSE(static_cast<bool>(e));
+    REQUIRE_FALSE(e.hasValue());
+    REQUIRE_FALSE(static_cast<bool>(e));
 }
 
-TEST_CASE(Expected_Get) {
+TEST_CASE("Expected Get") {
     Expected<std::string> e(std::string("hello"));
-    ASSERT_STREQ(e.get().c_str(), "hello");
+    REQUIRE(e.get() == "hello");
 }
 
-TEST_CASE(Expected_ConstGet) {
+TEST_CASE("Expected ConstGet") {
     const Expected<int> e(99);
-    ASSERT_EQ(e.get(), 99);
+    REQUIRE(e.get() == 99);
 }
 
-TEST_CASE(Expected_TakeError_OnSuccess) {
+TEST_CASE("Expected TakeError OnSuccess") {
     Expected<int> e(10);
     Error err = e.takeError();
-    ASSERT_TRUE(err.ok());
+    REQUIRE(err.ok());
 }
 
-TEST_CASE(Expected_TakeError_OnError) {
+TEST_CASE("Expected TakeError OnError") {
     Expected<int> e(Error(Error::ConfigError, "bad config"));
     Error err = e.takeError();
-    ASSERT_FALSE(err.ok());
-    ASSERT_EQ(err.type(), Error::ConfigError);
+    REQUIRE_FALSE(err.ok());
+    REQUIRE(err.type() == Error::ConfigError);
 }
 
-TEST_CASE(Expected_MoveConstruct) {
+TEST_CASE("Expected MoveConstruct") {
     Expected<std::string> a(std::string("moved"));
     Expected<std::string> b(std::move(a));
-    ASSERT_TRUE(b.hasValue());
-    ASSERT_STREQ(b.value().c_str(), "moved");
+    REQUIRE(b.hasValue());
+    REQUIRE(b.value() == "moved");
 }
 
-TEST_CASE(Expected_MoveAssign) {
+TEST_CASE("Expected MoveAssign") {
     Expected<int> a(1);
     Expected<int> b(2);
     b = std::move(a);
-    ASSERT_TRUE(b.hasValue());
-    ASSERT_EQ(b.value(), 1);
+    REQUIRE(b.hasValue());
+    REQUIRE(b.value() == 1);
 }
 
-TEST_CASE(Expected_ValueOr_HasValue) {
+TEST_CASE("Expected ValueOr HasValue") {
     Expected<int> e(7);
-    ASSERT_EQ(e.valueOr(0), 7);
+    REQUIRE(e.valueOr(0) == 7);
 }
 
-TEST_CASE(Expected_ValueOr_HasError) {
+TEST_CASE("Expected ValueOr HasError") {
     Expected<int> e(Error(Error::RuntimeError, "err"));
-    ASSERT_EQ(e.valueOr(42), 42);
+    REQUIRE(e.valueOr(42) == 42);
 }
 
-TEST_CASE(Expected_Take) {
+TEST_CASE("Expected Take") {
     Expected<std::string> e(std::string("taken"));
     std::string s = e.take();
-    ASSERT_STREQ(s.c_str(), "taken");
+    REQUIRE(s == "taken");
 }
 
 // --- Expected<void> tests ---
 
-TEST_CASE(ExpectedVoid_DefaultConstruct) {
+TEST_CASE("ExpectedVoid DefaultConstruct") {
     Expected<void> e;
-    ASSERT_TRUE(e.hasValue());
-    ASSERT_TRUE(static_cast<bool>(e));
+    REQUIRE(e.hasValue());
+    REQUIRE(static_cast<bool>(e));
 }
 
-TEST_CASE(ExpectedVoid_ErrorConstruct) {
+TEST_CASE("ExpectedVoid ErrorConstruct") {
     Expected<void> e(Error(Error::FileSystemError, "no file"));
-    ASSERT_FALSE(e.hasValue());
+    REQUIRE_FALSE(e.hasValue());
 }
 
-TEST_CASE(ExpectedVoid_TakeError_OnSuccess) {
+TEST_CASE("ExpectedVoid TakeError OnSuccess") {
     Expected<void> e;
     Error err = e.takeError();
-    ASSERT_TRUE(err.ok());
+    REQUIRE(err.ok());
 }
 
-TEST_CASE(ExpectedVoid_TakeError_OnError) {
+TEST_CASE("ExpectedVoid TakeError OnError") {
     Expected<void> e(Error(Error::InitializationError, "init fail"));
     Error err = e.takeError();
-    ASSERT_FALSE(err.ok());
-    ASSERT_EQ(err.type(), Error::InitializationError);
+    REQUIRE_FALSE(err.ok());
+    REQUIRE(err.type() == Error::InitializationError);
 }
 
 // --- Expected additional tests ---
 
-TEST_CASE(Expected_OperatorArrow) {
+TEST_CASE("Expected OperatorArrow") {
     Expected<std::string> e(std::string("arrow"));
-    ASSERT_EQ(e->size(), 5u);
+    REQUIRE(e->size() == 5u);
 }
 
-TEST_CASE(Expected_OperatorStar) {
+TEST_CASE("Expected OperatorStar") {
     Expected<int> e(123);
-    ASSERT_EQ(*e, 123);
+    REQUIRE(*e == 123);
 }
 
-TEST_CASE(Expected_ErrorAccess) {
+TEST_CASE("Expected ErrorAccess") {
     Expected<int> e(Error(Error::TimeoutError, "timed out"));
     const Error &err = e.error();
-    ASSERT_EQ(err.type(), Error::TimeoutError);
-    ASSERT_STREQ(err.message().c_str(), "timed out");
+    REQUIRE(err.type() == Error::TimeoutError);
+    REQUIRE(err.message() == "timed out");
 }
 
-TEST_CASE(Expected_ConvertibleTypes) {
+TEST_CASE("Expected ConvertibleTypes") {
     short s = 42;
     Expected<int> e(s);
-    ASSERT_TRUE(e.hasValue());
-    ASSERT_EQ(e.value(), 42);
+    REQUIRE(e.hasValue());
+    REQUIRE(e.value() == 42);
 }
 
-TEST_CASE(ExpectedVoid_MoveSemantics) {
+TEST_CASE("ExpectedVoid MoveSemantics") {
     Expected<void> a;
     Expected<void> b(std::move(a));
-    ASSERT_TRUE(b.hasValue());
+    REQUIRE(b.hasValue());
 
     Expected<void> c(Error(Error::RuntimeError, "err"));
     Expected<void> d(std::move(c));
-    ASSERT_FALSE(d.hasValue());
+    REQUIRE_FALSE(d.hasValue());
 }
 
 // ============================================================================
@@ -273,43 +273,43 @@ struct NonDefaultConstructible {
     // No default constructor
 };
 
-TEST_CASE(Expected_NonDefaultConstructible_ValueConstruct) {
+TEST_CASE("Expected NonDefaultConstructible ValueConstruct") {
     // Verify Expected<NonDefaultConstructible> works with explicit value
     Expected<NonDefaultConstructible> e(NonDefaultConstructible(42));
-    ASSERT_TRUE(e.hasValue());
-    ASSERT_EQ(e.value().value, 42);
+    REQUIRE(e.hasValue());
+    REQUIRE(e.value().value == 42);
 }
 
-TEST_CASE(Expected_NonDefaultConstructible_ErrorConstruct) {
+TEST_CASE("Expected NonDefaultConstructible ErrorConstruct") {
     Expected<NonDefaultConstructible> e(Error(Error::RuntimeError, "fail"));
-    ASSERT_FALSE(e.hasValue());
-    ASSERT_EQ(e.error().type(), Error::RuntimeError);
+    REQUIRE_FALSE(e.hasValue());
+    REQUIRE(e.error().type() == Error::RuntimeError);
 }
 
 // Compile-time check: Expected<NonDefaultConstructible>() should NOT compile.
 // We verify this indirectly by checking the SFINAE constraint works:
-TEST_CASE(Expected_DefaultConstructible_Works) {
+TEST_CASE("Expected DefaultConstructible Works") {
     // std::string is default-constructible, so Expected<string>() should work
     Expected<std::string> e;
-    ASSERT_TRUE(e.hasValue());
-    ASSERT_STREQ(e.value().c_str(), "");
+    REQUIRE(e.hasValue());
+    REQUIRE(e.value() == "");
 }
 
 // ============================================================================
 // §14.21 regression: Error::defaultMessage thread safety
 // ============================================================================
 
-TEST_CASE(Error_AllTypesHaveDefaultMessage) {
+TEST_CASE("Error AllTypesHaveDefaultMessage") {
     // Verify every Error::Type from 0..10 has a non-null default message
     // and that only Success returns ok() == true
     for (int i = 0; i <= 10; ++i) {
         Error err(static_cast<Error::Type>(i));
         if (i == 0) {
-            ASSERT_TRUE(err.ok());
+            REQUIRE(err.ok());
         } else {
-            ASSERT_FALSE(err.ok());
+            REQUIRE_FALSE(err.ok());
         }
         // All types should have a non-empty what() (except Success which is "")
-        ASSERT_TRUE(err.what() != nullptr);
+        REQUIRE(err.what() != nullptr);
     }
 }

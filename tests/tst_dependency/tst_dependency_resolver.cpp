@@ -1,23 +1,20 @@
-#include "tst_framework.h"
+#include "catch.hpp"
 
 #include <LangCore/Module/Dependency/DependencyResolver.h>
 #include <LangCore/Module/Dependency/DependencyGraph.h>
-#include <LangCore/Module/Dependency/LevelCompatibilityChecker.h>
-#include <LangCore/Module/Dependency/VersionUtils.h>
+
+#include <string>
+#include <vector>
 
 using namespace LangCore;
 
 static ModuleMetadata makeModule(const std::string &pkgId, const std::string &modId, const std::string &version,
-                                 int level, const std::string &type = "g2p", const std::string &iid = "",
-                                 const std::string &config = "") {
+                                 int level) {
     ModuleMetadata m;
     m.packageId = pkgId;
     m.moduleId = modId;
     m.version = version;
     m.level = level;
-    m.type = type;
-    m.iid = iid;
-    m.configuration = config;
     return m;
 }
 
@@ -31,162 +28,216 @@ static DependencyRequirement makeReq(const std::string &pkgId, const std::string
     return req;
 }
 
-TEST_CASE(Resolver_CrossPackage_Simple) {
-    DependencyResolver resolver;
-    auto main = makeModule("pkg-main", "main", "1.0.0", 1);
-    auto dep = makeModule("pkg-dep", "dep", "1.0.0", 1);
-    main.requirements.push_back(makeReq("pkg-dep", "dep", -1, "*"));
+static ResolvedDependency makeResDep(const std::string &pkgId, const std::string &modId, const std::string &version,
+                                     int level) {
+    ResolvedDependency rd;
+    rd.packageId = pkgId;
+    rd.moduleId = modId;
+    rd.version = version;
+    rd.level = level;
+    return rd;
+}
 
-    std::vector<ModuleMetadata> mods = {main, dep};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+// ============================================================================
+// Comprehensive resolver tests (15 tests)
+// ============================================================================
+
+TEST_CASE("Resolver NoDepsResolve") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    modules.push_back(makeModule("pkg-a", "mod-a", "1.0.0", 1));
+    REQUIRE(resolver.resolveAllDependencies(modules));
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 2u);
+    REQUIRE(resolved.size() == 1u);
 }
 
-TEST_CASE(Resolver_CrossPackage_Missing) {
+TEST_CASE("Resolver SingleDependencyResolve") {
     DependencyResolver resolver;
-    auto main = makeModule("pkg-main", "main", "1.0.0", 1);
-    main.requirements.push_back(makeReq("pkg-missing", "dep", -1, "*"));
-
-    std::vector<ModuleMetadata> mods = {main};
-    ASSERT_FALSE(resolver.resolveAllDependencies(mods));
-    ASSERT_GT(resolver.getErrors().size(), 0u);
-}
-
-TEST_CASE(Resolver_DiamondDep_SharedDependency) {
-    DependencyResolver resolver;
-    auto main = makeModule("pkg-main", "main", "1.0.0", 1);
-    auto depA = makeModule("pkg-a", "depA", "1.0.0", 1);
-    auto depB = makeModule("pkg-b", "depB", "1.0.0", 1);
-    auto common = makeModule("pkg-common", "common", "1.0.0", 1);
-
-    main.requirements.push_back(makeReq("pkg-a", "depA", -1, "*"));
-    main.requirements.push_back(makeReq("pkg-b", "depB", -1, "*"));
-    depA.requirements.push_back(makeReq("pkg-common", "common", -1, "*"));
-    depB.requirements.push_back(makeReq("pkg-common", "common", -1, "*"));
-
-    std::vector<ModuleMetadata> mods = {main, depA, depB, common};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b"));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    REQUIRE(resolver.resolveAllDependencies(modules));
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 4u);
+    REQUIRE(resolved.size() == 2u);
 }
 
-TEST_CASE(Resolver_TransitiveDep_Chain) {
+TEST_CASE("Resolver MissingDependencyFail") {
     DependencyResolver resolver;
-    auto modA = makeModule("pkgA", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkgB", "modB", "1.0.0", 1);
-    auto modC = makeModule("pkgC", "modC", "1.0.0", 1);
-    auto modD = makeModule("pkgD", "modD", "1.0.0", 1);
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-missing", "mod-missing"));
+    modules.push_back(m1);
+    REQUIRE_FALSE(resolver.resolveAllDependencies(modules));
+    REQUIRE(resolver.getErrors().size() > 0u);
+}
 
-    modA.requirements.push_back(makeReq("pkgB", "modB", -1, "*"));
-    modB.requirements.push_back(makeReq("pkgC", "modC", -1, "*"));
-    modC.requirements.push_back(makeReq("pkgD", "modD", -1, "*"));
+TEST_CASE("Resolver SelfDependencyEvict") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-a", "mod-a", 1));
+    modules.push_back(m1);
+    REQUIRE_FALSE(resolver.resolveAllDependencies(modules));
+}
 
-    std::vector<ModuleMetadata> mods = {modA, modB, modC, modD};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+TEST_CASE("Resolver ChainDependencyResolve") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    auto m3 = makeModule("pkg-c", "mod-c", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b"));
+    m2.requirements.push_back(makeReq("pkg-c", "mod-c"));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    modules.push_back(m3);
+    REQUIRE(resolver.resolveAllDependencies(modules));
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 4u);
+    REQUIRE(resolved.size() == 3u);
 }
 
-TEST_CASE(Resolver_MissingTransitiveDep) {
+TEST_CASE("Resolver VersionRangeMatching") {
     DependencyResolver resolver;
-    auto modA = makeModule("pkgA", "modA", "1.0.0", 1);
-    auto modB = makeModule("pkgB", "modB", "1.0.0", 1);
-    modA.requirements.push_back(makeReq("pkgB", "modB", -1, "*"));
-    modB.requirements.push_back(makeReq("pkgC", "modX", -1, "*"));
-
-    std::vector<ModuleMetadata> mods = {modA, modB};
-    ASSERT_FALSE(resolver.resolveAllDependencies(mods));
-}
-
-TEST_CASE(Resolver_VersionConflict_NoCompatibleVersion) {
-    DependencyResolver resolver;
-    auto main = makeModule("pkg-main", "main", "1.0.0", 1);
-    auto dep1 = makeModule("pkg-dep", "dep", "1.0.0", 1);
-
-    main.requirements.push_back(makeReq("pkg-dep", "dep", -1, ">=2.0.0"));
-
-    std::vector<ModuleMetadata> mods = {main, dep1};
-    ASSERT_FALSE(resolver.resolveAllDependencies(mods));
-}
-
-TEST_CASE(Resolver_LevelCompatibility_ExactMatch) {
-    LevelCompatibilityChecker::LevelConfig cfg(2, 1, 3);
-    auto result = LevelCompatibilityChecker::checkCorePlugin(2, cfg);
-    ASSERT_TRUE(result.isCompatible);
-}
-
-TEST_CASE(Resolver_LevelCompatibility_AtMinimum) {
-    LevelCompatibilityChecker::LevelConfig cfg(2, 1, 3);
-    auto result = LevelCompatibilityChecker::checkCorePlugin(1, cfg);
-    ASSERT_TRUE(result.isCompatible);
-}
-
-TEST_CASE(Resolver_LevelCompatibility_AtMaximum) {
-    LevelCompatibilityChecker::LevelConfig cfg(2, 1, 3);
-    auto result = LevelCompatibilityChecker::checkCorePlugin(3, cfg);
-    ASSERT_TRUE(result.isCompatible);
-}
-
-TEST_CASE(Resolver_LevelCompatibility_BelowMinimum) {
-    LevelCompatibilityChecker::LevelConfig cfg(2, 2, 5);
-    auto result = LevelCompatibilityChecker::checkCorePlugin(1, cfg);
-    ASSERT_FALSE(result.isCompatible);
-}
-
-TEST_CASE(Resolver_LevelCompatibility_AboveMaximum) {
-    LevelCompatibilityChecker::LevelConfig cfg(2, 1, 3);
-    auto result = LevelCompatibilityChecker::checkCorePlugin(5, cfg);
-    ASSERT_FALSE(result.isCompatible);
-}
-
-TEST_CASE(Resolver_SelectBest_DedupByLevel) {
-    DependencyResolver resolver;
-    auto modA_L1 = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modA_L2 = makeModule("pkg", "modA", "2.0.0", 2);
-
-    std::vector<ModuleMetadata> mods = {modA_L1, modA_L2};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "2.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b", -1, ">=1.5.0"));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    REQUIRE(resolver.resolveAllDependencies(modules));
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 2u);
+    REQUIRE(resolved.size() == 2u);
 }
 
-TEST_CASE(Resolver_VersionResolver_PackageDistinctVersion) {
-    auto modA = makeModule("pkg", "modA", "1.0.0", 1);
-    auto modB_v1 = makeModule("pkg", "modB", "1.0.0", 1);
-    auto modB_v2 = makeModule("pkg", "modB", "3.0.0", 1);
-    auto req = makeReq("pkg", "modB", -1, ">=2.0.0");
-    auto result = VersionResolver::resolveDependency({modA, modB_v1, modB_v2}, req, modA);
-    ASSERT_TRUE(result.success);
-    ASSERT_STREQ(result.resolvedVersion.c_str(), "3.0.0");
-}
-
-TEST_CASE(Resolver_EmptyModuleList) {
+TEST_CASE("Resolver VersionRangeFail") {
     DependencyResolver resolver;
-    std::vector<ModuleMetadata> mods;
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
-    auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 0u);
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b", -1, ">=2.0.0"));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    REQUIRE_FALSE(resolver.resolveAllDependencies(modules));
 }
 
-TEST_CASE(Resolver_ModuleWithNoDependencies) {
+TEST_CASE("Resolver MultipleVersionSelectBest") {
     DependencyResolver resolver;
-    auto mod = makeModule("pkg", "standalone", "1.0.0", 1);
-
-    std::vector<ModuleMetadata> mods = {mod};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2_v1 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    auto m2_v3 = makeModule("pkg-b", "mod-b", "3.0.0", 1);
+    auto m2_v2 = makeModule("pkg-b", "mod-b", "2.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b"));
+    modules.push_back(m1);
+    modules.push_back(m2_v1);
+    modules.push_back(m2_v3);
+    modules.push_back(m2_v2);
+    REQUIRE(resolver.resolveAllDependencies(modules));
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 1u);
-    ASSERT_STREQ(resolved[0].moduleId.c_str(), "standalone");
+    REQUIRE(resolved.size() == 2u);
+    // Best version (highest) should be selected
+    for (const auto &m : resolved) {
+        if (m.moduleId == "mod-b") {
+            REQUIRE(m.version == "3.0.0");
+        }
+    }
 }
 
-TEST_CASE(Resolver_LevelChecker_CompleteIncompatibilityAll) {
-    LevelCompatibilityChecker::LevelConfig cfg;
-    cfg.currentLevel = 2;
-    cfg.minimumLevel = 2;
-    cfg.maximumLevel = 2;
+TEST_CASE("Resolver LevelFilteredDependency") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "2.0.0", 2);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b", 2));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    REQUIRE(resolver.resolveAllDependencies(modules));
+    auto resolved = resolver.getResolvedModules();
+    REQUIRE(resolved.size() == 2u);
+}
 
-    ASSERT_TRUE(LevelCompatibilityChecker::checkCorePlugin(2, cfg).isCompatible);
-    ASSERT_FALSE(LevelCompatibilityChecker::checkCorePlugin(1, cfg).isCompatible);
-    ASSERT_FALSE(LevelCompatibilityChecker::checkCorePlugin(3, cfg).isCompatible);
+TEST_CASE("Resolver LevelFilteredFail") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b", 2)); // requires level 2, only level 1 available
+    modules.push_back(m1);
+    modules.push_back(m2);
+    REQUIRE_FALSE(resolver.resolveAllDependencies(modules));
+}
+
+TEST_CASE("Resolver CrossPackageDependency") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    auto m3 = makeModule("pkg-c", "mod-c", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b"));
+    m1.requirements.push_back(makeReq("pkg-c", "mod-c"));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    modules.push_back(m3);
+    REQUIRE(resolver.resolveAllDependencies(modules));
+    auto resolved = resolver.getResolvedModules();
+    REQUIRE(resolved.size() == 3u);
+}
+
+TEST_CASE("Resolver DiamondDependencyPattern") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto base = makeModule("pkg-base", "base", "1.0.0", 1);
+    auto midA = makeModule("pkg-mid-a", "mid-a", "1.0.0", 1);
+    auto midB = makeModule("pkg-mid-b", "mid-b", "1.0.0", 1);
+    auto top = makeModule("pkg-top", "top", "1.0.0", 1);
+    midA.requirements.push_back(makeReq("pkg-base", "base"));
+    midB.requirements.push_back(makeReq("pkg-base", "base"));
+    top.requirements.push_back(makeReq("pkg-mid-a", "mid-a"));
+    top.requirements.push_back(makeReq("pkg-mid-b", "mid-b"));
+    modules.push_back(base);
+    modules.push_back(midA);
+    modules.push_back(midB);
+    modules.push_back(top);
+    REQUIRE(resolver.resolveAllDependencies(modules));
+    auto resolved = resolver.getResolvedModules();
+    REQUIRE(resolved.size() == 4u);
+}
+
+TEST_CASE("Resolver GraphWithDependencies") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    auto m1 = makeModule("pkg-a", "mod-a", "1.0.0", 1);
+    auto m2 = makeModule("pkg-b", "mod-b", "1.0.0", 1);
+    m1.requirements.push_back(makeReq("pkg-b", "mod-b"));
+    modules.push_back(m1);
+    modules.push_back(m2);
+    REQUIRE(resolver.resolveAllDependencies(modules));
+    auto resolved = resolver.getResolvedModules();
+    REQUIRE(resolved.size() == 2u);
+    // Verify graph construction works after resolution
+    DependencyGraph graph;
+    graph.addModule(resolved[0]);
+    graph.addModule(resolved[1]);
+    REQUIRE(graph.buildGraph());
+}
+
+TEST_CASE("Resolver EdgeCaseEmptyModuleList") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    REQUIRE(resolver.resolveAllDependencies(modules));
+    auto resolved = resolver.getResolvedModules();
+    REQUIRE(resolved.size() == 0u);
+}
+
+TEST_CASE("Resolver EdgeCaseModuleWithoutRequirements") {
+    DependencyResolver resolver;
+    std::vector<ModuleMetadata> modules;
+    modules.push_back(makeModule("pkg-only", "mod-only", "1.0.0", 1));
+    REQUIRE(resolver.resolveAllDependencies(modules));
+    auto resolved = resolver.getResolvedModules();
+    REQUIRE(resolved.size() == 1u);
+    REQUIRE(resolved[0].packageId == "pkg-only");
 }

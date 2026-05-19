@@ -1,4 +1,4 @@
-#include "tst_framework.h"
+#include "catch.hpp"
 
 #include <LangCore/Module/Dependency/DependencyGraph.h>
 #include <LangCore/Module/Dependency/DependencyResolver.h>
@@ -49,261 +49,261 @@ static ResolvedDependency makeResDep(const std::string &pkgId, const std::string
 // VersionRange — normalizeVersion (33 original version tests)
 // ============================================================================
 
-TEST_CASE(VersionRange_NormalizeEmpty) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("").c_str(), "0.0.0");
+TEST_CASE("VersionRange NormalizeEmpty") {
+    REQUIRE(VersionRange::normalizeVersion("") == "0.0.0");
 }
 
-TEST_CASE(VersionRange_NormalizeSimple) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("1.2.3").c_str(), "1.2.3");
+TEST_CASE("VersionRange NormalizeSimple") {
+    REQUIRE(VersionRange::normalizeVersion("1.2.3") == "1.2.3");
 }
 
-TEST_CASE(VersionRange_NormalizeTwoParts) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("1.2").c_str(), "1.2.0");
+TEST_CASE("VersionRange NormalizeTwoParts") {
+    REQUIRE(VersionRange::normalizeVersion("1.2") == "1.2.0");
 }
 
-TEST_CASE(VersionRange_NormalizeOnePart) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("5").c_str(), "5.0.0");
+TEST_CASE("VersionRange NormalizeOnePart") {
+    REQUIRE(VersionRange::normalizeVersion("5") == "5.0.0");
 }
 
-TEST_CASE(VersionRange_NormalizeVPrefix) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("v2.3.4").c_str(), "2.3.4");
+TEST_CASE("VersionRange NormalizeVPrefix") {
+    REQUIRE(VersionRange::normalizeVersion("v2.3.4") == "2.3.4");
 }
 
-TEST_CASE(VersionRange_NormalizeVUpperCase) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("V1.0.0").c_str(), "1.0.0");
+TEST_CASE("VersionRange NormalizeVUpperCase") {
+    REQUIRE(VersionRange::normalizeVersion("V1.0.0") == "1.0.0");
 }
 
-TEST_CASE(VersionRange_CompareEqual) {
-    ASSERT_EQ(VersionRange::compareVersions("1.2.3", "1.2.3"), 0);
+TEST_CASE("VersionRange CompareEqual") {
+    REQUIRE(VersionRange::compareVersions("1.2.3", "1.2.3") == 0);
 }
 
-TEST_CASE(VersionRange_CompareLess) {
-    ASSERT_LT(VersionRange::compareVersions("1.2.3", "1.2.4"), 0);
+TEST_CASE("VersionRange CompareLess") {
+    REQUIRE(VersionRange::compareVersions("1.2.3", "1.2.4") < 0);
 }
 
-TEST_CASE(VersionRange_CompareGreater) {
-    ASSERT_GT(VersionRange::compareVersions("2.0.0", "1.9.9"), 0);
+TEST_CASE("VersionRange CompareGreater") {
+    REQUIRE(VersionRange::compareVersions("2.0.0", "1.9.9") > 0);
 }
 
-TEST_CASE(VersionRange_CompareMajorDiff) {
-    ASSERT_LT(VersionRange::compareVersions("1.0.0", "2.0.0"), 0);
+TEST_CASE("VersionRange CompareMajorDiff") {
+    REQUIRE(VersionRange::compareVersions("1.0.0", "2.0.0") < 0);
 }
 
-TEST_CASE(VersionRange_CompareMinorDiff) {
-    ASSERT_LT(VersionRange::compareVersions("1.0.0", "1.1.0"), 0);
+TEST_CASE("VersionRange CompareMinorDiff") {
+    REQUIRE(VersionRange::compareVersions("1.0.0", "1.1.0") < 0);
 }
 
-TEST_CASE(VersionRange_ComparePatchDiff) {
-    ASSERT_LT(VersionRange::compareVersions("1.0.0", "1.0.1"), 0);
+TEST_CASE("VersionRange ComparePatchDiff") {
+    REQUIRE(VersionRange::compareVersions("1.0.0", "1.0.1") < 0);
 }
 
-TEST_CASE(VersionRange_MatchAny) {
+TEST_CASE("VersionRange MatchAny") {
     VersionRange range("*");
     auto result = range.getVersionsInRange({"1.0.0", "2.0.0", "3.0.0"});
-    ASSERT_EQ(result.size(), 3u);
+    REQUIRE(result.size() == 3u);
 }
 
-TEST_CASE(VersionRange_MatchGreaterThan) {
+TEST_CASE("VersionRange MatchGreaterThan") {
     VersionRange range(">1.0.0");
     auto result = range.getVersionsInRange({"0.9.0", "1.0.0", "1.1.0", "2.0.0"});
-    ASSERT_EQ(result.size(), 2u);
+    REQUIRE(result.size() == 2u);
 }
 
-TEST_CASE(VersionRange_MatchGreaterEqual) {
+TEST_CASE("VersionRange MatchGreaterEqual") {
     VersionRange range(">=1.0.0");
     auto result = range.getVersionsInRange({"0.9.0", "1.0.0", "1.1.0"});
-    ASSERT_EQ(result.size(), 2u);
+    REQUIRE(result.size() == 2u);
 }
 
-TEST_CASE(VersionRange_MatchLessThan) {
+TEST_CASE("VersionRange MatchLessThan") {
     VersionRange range("<2.0.0");
     auto result = range.getVersionsInRange({"1.0.0", "1.5.0", "2.0.0", "3.0.0"});
-    ASSERT_EQ(result.size(), 2u);
+    REQUIRE(result.size() == 2u);
 }
 
-TEST_CASE(VersionRange_MatchLessEqual) {
+TEST_CASE("VersionRange MatchLessEqual") {
     VersionRange range("<=2.0.0");
     auto result = range.getVersionsInRange({"1.0.0", "2.0.0", "3.0.0"});
-    ASSERT_EQ(result.size(), 2u);
+    REQUIRE(result.size() == 2u);
 }
 
-TEST_CASE(VersionRange_MatchExact) {
+TEST_CASE("VersionRange MatchExact") {
     VersionRange range("==1.0.0");
     auto result = range.getVersionsInRange({"0.9.0", "1.0.0", "1.1.0"});
-    ASSERT_EQ(result.size(), 1u);
-    ASSERT_STREQ(result[0].c_str(), "1.0.0");
+    REQUIRE(result.size() == 1u);
+    REQUIRE(result[0] == "1.0.0");
 }
 
-TEST_CASE(VersionRange_MatchExactBareVersion) {
+TEST_CASE("VersionRange MatchExactBareVersion") {
     VersionRange range("1.0.0");
     auto result = range.getVersionsInRange({"0.9.0", "1.0.0", "1.1.0"});
-    ASSERT_EQ(result.size(), 1u);
-    ASSERT_STREQ(result[0].c_str(), "1.0.0");
+    REQUIRE(result.size() == 1u);
+    REQUIRE(result[0] == "1.0.0");
 }
 
-TEST_CASE(VersionRange_CompatibleTilde) {
+TEST_CASE("VersionRange CompatibleTilde") {
     VersionRange range("~1.2.0");
     auto result = range.getVersionsInRange({"1.1.9", "1.2.0", "1.2.5", "1.3.0"});
-    ASSERT_EQ(result.size(), 2u);
+    REQUIRE(result.size() == 2u);
 }
 
-TEST_CASE(VersionRange_HyphenRange) {
+TEST_CASE("VersionRange HyphenRange") {
     VersionRange range("1.0.0 - 2.0.0");
     auto result = range.getVersionsInRange({"0.5.0", "1.0.0", "1.5.0", "2.0.0", "2.1.0"});
-    ASSERT_EQ(result.size(), 3u);
+    REQUIRE(result.size() == 3u);
 }
 
-TEST_CASE(VersionRange_NoMatchesInRange) {
+TEST_CASE("VersionRange NoMatchesInRange") {
     VersionRange range(">5.0.0");
     auto result = range.getVersionsInRange({"1.0.0", "2.0.0", "3.0.0"});
-    ASSERT_EQ(result.size(), 0u);
+    REQUIRE(result.size() == 0u);
 }
 
-TEST_CASE(VersionRange_ToString_Any) {
+TEST_CASE("VersionRange ToString Any") {
     VersionRange range("*");
-    ASSERT_STREQ(range.toString().c_str(), "*");
+    REQUIRE(range.toString() == "*");
 }
 
-TEST_CASE(VersionRange_ToString_GreaterEqual) {
+TEST_CASE("VersionRange ToString GreaterEqual") {
     VersionRange range(">=1.0.0");
-    ASSERT_STREQ(range.toString().c_str(), ">=1.0.0");
+    REQUIRE(range.toString() == ">=1.0.0");
 }
 
-TEST_CASE(VersionRange_ToString_Less) {
+TEST_CASE("VersionRange ToString Less") {
     VersionRange range("<2.0.0");
-    ASSERT_STREQ(range.toString().c_str(), "<2.0.0");
+    REQUIRE(range.toString() == "<2.0.0");
 }
 
-TEST_CASE(VersionRange_ToString_Compatible) {
+TEST_CASE("VersionRange ToString Compatible") {
     VersionRange range("~1.2.3");
-    ASSERT_STREQ(range.toString().c_str(), "~1.2.3");
+    REQUIRE(range.toString() == "~1.2.3");
 }
 
-TEST_CASE(VersionRange_SortedDescending) {
+TEST_CASE("VersionRange SortedDescending") {
     VersionRange range(">=1.0.0");
     auto result = range.getVersionsInRange({"1.0.0", "3.0.0", "2.0.0"});
-    ASSERT_EQ(result.size(), 3u);
-    ASSERT_STREQ(result[0].c_str(), "3.0.0");
-    ASSERT_STREQ(result[1].c_str(), "2.0.0");
-    ASSERT_STREQ(result[2].c_str(), "1.0.0");
+    REQUIRE(result.size() == 3u);
+    REQUIRE(result[0] == "3.0.0");
+    REQUIRE(result[1] == "2.0.0");
+    REQUIRE(result[2] == "1.0.0");
 }
 
-TEST_CASE(VersionResolver_SelectHighest) {
+TEST_CASE("VersionResolver SelectHighest") {
     auto highest = VersionResolver::selectHighestVersion({"1.0.0", "2.0.0", "1.5.0"});
-    ASSERT_STREQ(highest.c_str(), "2.0.0");
+    REQUIRE(highest == "2.0.0");
 }
 
-TEST_CASE(VersionResolver_SelectHighest_Single) {
+TEST_CASE("VersionResolver SelectHighest Single") {
     auto highest = VersionResolver::selectHighestVersion({"3.0.0"});
-    ASSERT_STREQ(highest.c_str(), "3.0.0");
+    REQUIRE(highest == "3.0.0");
 }
 
-TEST_CASE(VersionResolver_SelectHighest_Empty) {
+TEST_CASE("VersionResolver SelectHighest Empty") {
     auto highest = VersionResolver::selectHighestVersion({});
-    ASSERT_STREQ(highest.c_str(), "");
+    REQUIRE(highest == "");
 }
 
-TEST_CASE(VersionResolver_ResolveDependency_Simple) {
+TEST_CASE("VersionResolver ResolveDependency Simple") {
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB = makeModule("pkg", "modB", "1.0.0", 1);
     auto req = makeReq("pkg", "modB", -1, "*");
     auto result = VersionResolver::resolveDependency({modA, modB}, req, modA);
-    ASSERT_TRUE(result.success);
-    ASSERT_STREQ(result.resolvedVersion.c_str(), "1.0.0");
+    REQUIRE(result.success);
+    REQUIRE(result.resolvedVersion == "1.0.0");
 }
 
-TEST_CASE(VersionResolver_ResolveDependency_NotFound) {
+TEST_CASE("VersionResolver ResolveDependency NotFound") {
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto req = makeReq("pkg", "modX", -1, "*");
     auto result = VersionResolver::resolveDependency({modA}, req, modA);
-    ASSERT_FALSE(result.success);
+    REQUIRE_FALSE(result.success);
 }
 
-TEST_CASE(VersionResolver_ResolveDependency_VersionRange) {
+TEST_CASE("VersionResolver ResolveDependency VersionRange") {
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB1 = makeModule("pkg", "modB", "1.0.0", 1);
     auto modB2 = makeModule("pkg", "modB", "2.0.0", 1);
     auto req = makeReq("pkg", "modB", -1, ">=1.5.0");
     auto result = VersionResolver::resolveDependency({modA, modB1, modB2}, req, modA);
-    ASSERT_TRUE(result.success);
-    ASSERT_STREQ(result.resolvedVersion.c_str(), "2.0.0");
+    REQUIRE(result.success);
+    REQUIRE(result.resolvedVersion == "2.0.0");
 }
 
-TEST_CASE(VersionResolver_ResolveDependency_LevelFilter) {
+TEST_CASE("VersionResolver ResolveDependency LevelFilter") {
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB_L1 = makeModule("pkg", "modB", "1.0.0", 1);
     auto modB_L2 = makeModule("pkg", "modB", "2.0.0", 2);
     auto req = makeReq("pkg", "modB", 2, "*");
     auto result = VersionResolver::resolveDependency({modA, modB_L1, modB_L2}, req, modA);
-    ASSERT_TRUE(result.success);
-    ASSERT_STREQ(result.resolvedVersion.c_str(), "2.0.0");
+    REQUIRE(result.success);
+    REQUIRE(result.resolvedVersion == "2.0.0");
 }
 
 // ============================================================================
 // Dependency tests (19 original dependency tests)
 // ============================================================================
 
-TEST_CASE(DependencyRequirement_Equality) {
+TEST_CASE("DependencyRequirement Equality") {
     auto a = makeReq("pkg", "mod", 1, ">=1.0.0");
     auto b = makeReq("pkg", "mod", 1, ">=1.0.0");
-    ASSERT_TRUE(a == b);
+    REQUIRE(a == b);
 }
 
-TEST_CASE(DependencyRequirement_Inequality) {
+TEST_CASE("DependencyRequirement Inequality") {
     auto a = makeReq("pkg", "modA", 1);
     auto b = makeReq("pkg", "modB", 1);
-    ASSERT_FALSE(a == b);
+    REQUIRE_FALSE(a == b);
 }
 
-TEST_CASE(DependencyRequirement_Key) {
+TEST_CASE("DependencyRequirement Key") {
     auto req = makeReq("pkg", "mod", 1);
-    ASSERT_STREQ(req.key().c_str(), "pkg:mod:1");
+    REQUIRE(req.key() == "pkg:mod:1");
 }
 
-TEST_CASE(ResolvedDependency_Equality) {
+TEST_CASE("ResolvedDependency Equality") {
     auto a = makeResDep("pkg", "mod", "1.0.0", 1);
     auto b = makeResDep("pkg", "mod", "1.0.0", 1);
-    ASSERT_TRUE(a == b);
+    REQUIRE(a == b);
 }
 
-TEST_CASE(ResolvedDependency_Inequality) {
+TEST_CASE("ResolvedDependency Inequality") {
     auto a = makeResDep("pkg", "mod", "1.0.0", 1);
     auto b = makeResDep("pkg", "mod", "2.0.0", 1);
-    ASSERT_FALSE(a == b);
+    REQUIRE_FALSE(a == b);
 }
 
-TEST_CASE(ResolvedDependency_Key) {
+TEST_CASE("ResolvedDependency Key") {
     auto rd = makeResDep("pkg", "mod", "1.0.0", 1);
-    ASSERT_STREQ(rd.key().c_str(), "pkg:mod:1.0.0:1");
+    REQUIRE(rd.key() == "pkg:mod:1.0.0:1");
 }
 
-TEST_CASE(DependencyGraph_AddAndGetModules) {
+TEST_CASE("DependencyGraph AddAndGetModules") {
     DependencyGraph graph;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB = makeModule("pkg", "modB", "1.0.0", 1);
     graph.addModule(modA);
     graph.addModule(modB);
     auto all = graph.getAllModules();
-    ASSERT_EQ(all.size(), 2u);
+    REQUIRE(all.size() == 2u);
 }
 
-TEST_CASE(DependencyGraph_BuildGraph_NoDeps) {
+TEST_CASE("DependencyGraph BuildGraph NoDeps") {
     DependencyGraph graph;
     graph.addModule(makeModule("pkg", "modA", "1.0.0", 1));
     graph.addModule(makeModule("pkg", "modB", "1.0.0", 1));
-    ASSERT_TRUE(graph.buildGraph());
+    REQUIRE(graph.buildGraph());
 }
 
-TEST_CASE(DependencyGraph_NoCycles_Independent) {
+TEST_CASE("DependencyGraph NoCycles Independent") {
     DependencyGraph graph;
     graph.addModule(makeModule("pkg", "modA", "1.0.0", 1));
     graph.addModule(makeModule("pkg", "modB", "1.0.0", 1));
     graph.buildGraph();
     auto cycles = graph.findCycles();
-    ASSERT_EQ(cycles.size(), 0u);
+    REQUIRE(cycles.size() == 0u);
 }
 
-TEST_CASE(DependencyGraph_DetectCycle) {
+TEST_CASE("DependencyGraph DetectCycle") {
     DependencyGraph graph;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB = makeModule("pkg", "modB", "1.0.0", 1);
@@ -313,19 +313,19 @@ TEST_CASE(DependencyGraph_DetectCycle) {
     graph.addModule(modB);
     graph.buildGraph();
     auto cycles = graph.findCycles();
-    ASSERT_GT(cycles.size(), 0u);
+    REQUIRE(cycles.size() > 0u);
 }
 
-TEST_CASE(DependencyGraph_InitOrder_NoDeps) {
+TEST_CASE("DependencyGraph InitOrder NoDeps") {
     DependencyGraph graph;
     graph.addModule(makeModule("pkg", "modA", "1.0.0", 1));
     graph.buildGraph();
     auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 1u);
-    ASSERT_EQ(plans[0].initializationOrder.size(), 1u);
+    REQUIRE(plans.size() == 1u);
+    REQUIRE(plans[0].initializationOrder.size() == 1u);
 }
 
-TEST_CASE(DependencyGraph_InitOrder_WithDeps) {
+TEST_CASE("DependencyGraph InitOrder WithDeps") {
     DependencyGraph graph;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB = makeModule("pkg", "modB", "1.0.0", 1);
@@ -334,104 +334,104 @@ TEST_CASE(DependencyGraph_InitOrder_WithDeps) {
     graph.addModule(modB);
     graph.buildGraph();
     auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 1u);
-    ASSERT_EQ(plans[0].initializationOrder.size(), 2u);
-    ASSERT_STREQ(plans[0].initializationOrder[0].moduleId.c_str(), "modB");
-    ASSERT_STREQ(plans[0].initializationOrder[1].moduleId.c_str(), "modA");
+    REQUIRE(plans.size() == 1u);
+    REQUIRE(plans[0].initializationOrder.size() == 2u);
+    REQUIRE(plans[0].initializationOrder[0].moduleId == "modB");
+    REQUIRE(plans[0].initializationOrder[1].moduleId == "modA");
 }
 
-TEST_CASE(DependencyResolver_SimpleResolve) {
+TEST_CASE("DependencyResolver SimpleResolve") {
     DependencyResolver resolver;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB = makeModule("pkg", "modB", "1.0.0", 1);
     modA.requirements.push_back(makeReq("pkg", "modB", -1, "*"));
     std::vector<ModuleMetadata> mods = {modA, modB};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+    REQUIRE(resolver.resolveAllDependencies(mods));
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 2u);
+    REQUIRE(resolved.size() == 2u);
 }
 
-TEST_CASE(DependencyResolver_MissingDependency) {
+TEST_CASE("DependencyResolver MissingDependency") {
     DependencyResolver resolver;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     modA.requirements.push_back(makeReq("pkg", "modX", -1, "*"));
     std::vector<ModuleMetadata> mods = {modA};
-    ASSERT_FALSE(resolver.resolveAllDependencies(mods));
-    ASSERT_GT(resolver.getErrors().size(), 0u);
+    REQUIRE_FALSE(resolver.resolveAllDependencies(mods));
+    REQUIRE(resolver.getErrors().size() > 0u);
 }
 
-TEST_CASE(DependencyResolver_SelfDependency_Removed) {
+TEST_CASE("DependencyResolver SelfDependency Removed") {
     DependencyResolver resolver;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     modA.requirements.push_back(makeReq("pkg", "modA", 1, "*"));
     std::vector<ModuleMetadata> mods = {modA};
-    ASSERT_FALSE(resolver.resolveAllDependencies(mods));
+    REQUIRE_FALSE(resolver.resolveAllDependencies(mods));
 }
 
-TEST_CASE(DependencyResolver_SelectBestVersion) {
+TEST_CASE("DependencyResolver SelectBestVersion") {
     DependencyResolver resolver;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB1 = makeModule("pkg", "modB", "1.0.0", 1);
     auto modB2 = makeModule("pkg", "modB", "2.0.0", 1);
     modA.requirements.push_back(makeReq("pkg", "modB", -1, "*"));
     std::vector<ModuleMetadata> mods = {modA, modB1, modB2};
-    ASSERT_TRUE(resolver.resolveAllDependencies(mods));
+    REQUIRE(resolver.resolveAllDependencies(mods));
     // selectBestModules keeps only the highest version per unique key
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), 2u);
+    REQUIRE(resolved.size() == 2u);
 }
 
-TEST_CASE(LevelChecker_Compatible) {
+TEST_CASE("LevelChecker Compatible") {
     LevelCompatibilityChecker::LevelConfig cfg(3, 1, 5);
     auto result = LevelCompatibilityChecker::checkCorePlugin(3, cfg);
-    ASSERT_TRUE(result.isCompatible);
+    REQUIRE(result.isCompatible);
 }
 
-TEST_CASE(LevelChecker_TooLow) {
+TEST_CASE("LevelChecker TooLow") {
     LevelCompatibilityChecker::LevelConfig cfg(3, 2, 5);
     auto result = LevelCompatibilityChecker::checkCorePlugin(1, cfg);
-    ASSERT_FALSE(result.isCompatible);
+    REQUIRE_FALSE(result.isCompatible);
 }
 
-TEST_CASE(LevelChecker_TooHigh) {
+TEST_CASE("LevelChecker TooHigh") {
     LevelCompatibilityChecker::LevelConfig cfg(3, 1, 3);
     auto result = LevelCompatibilityChecker::checkCorePlugin(5, cfg);
-    ASSERT_FALSE(result.isCompatible);
+    REQUIRE_FALSE(result.isCompatible);
 }
 
 // ============================================================================
 // NEW: VersionRange additional tests
 // ============================================================================
 
-TEST_CASE(VersionRange_EmptyVersion_Normalizes) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("").c_str(), "0.0.0");
+TEST_CASE("VersionRange EmptyVersion Normalizes") {
+    REQUIRE(VersionRange::normalizeVersion("") == "0.0.0");
 }
 
-TEST_CASE(VersionRange_PreRelease_Stripped) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("1.2.3-beta").c_str(), "1.2.3");
+TEST_CASE("VersionRange PreRelease Stripped") {
+    REQUIRE(VersionRange::normalizeVersion("1.2.3-beta") == "1.2.3");
 }
 
-TEST_CASE(VersionRange_ExtraComponents_Truncated) {
-    ASSERT_STREQ(VersionRange::normalizeVersion("1.2.3.4.5").c_str(), "1.2.3");
+TEST_CASE("VersionRange ExtraComponents Truncated") {
+    REQUIRE(VersionRange::normalizeVersion("1.2.3.4.5") == "1.2.3");
 }
 
-TEST_CASE(VersionRange_DefaultConstructor) {
+TEST_CASE("VersionRange DefaultConstructor") {
     VersionRange range;
-    ASSERT_STREQ(range.toString().c_str(), "*");
+    REQUIRE(range.toString() == "*");
 }
 
 // ============================================================================
 // NEW: DependencyGraph additional tests
 // ============================================================================
 
-TEST_CASE(Graph_EmptyGraph_NoCycles) {
+TEST_CASE("Graph EmptyGraph NoCycles") {
     DependencyGraph graph;
     graph.buildGraph();
     auto cycles = graph.findCycles();
-    ASSERT_EQ(cycles.size(), 0u);
+    REQUIRE(cycles.size() == 0u);
 }
 
-TEST_CASE(Graph_ThreeNodeChain) {
+TEST_CASE("Graph ThreeNodeChain") {
     DependencyGraph graph;
     auto modA = makeModule("pkg", "modA", "1.0.0", 1);
     auto modB = makeModule("pkg", "modB", "1.0.0", 1);
@@ -443,15 +443,15 @@ TEST_CASE(Graph_ThreeNodeChain) {
     graph.addModule(modC);
     graph.buildGraph();
     auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 1u);
+    REQUIRE(plans.size() == 1u);
     auto &order = plans[0].initializationOrder;
-    ASSERT_EQ(order.size(), 3u);
-    ASSERT_STREQ(order[0].moduleId.c_str(), "modC");
-    ASSERT_STREQ(order[1].moduleId.c_str(), "modB");
-    ASSERT_STREQ(order[2].moduleId.c_str(), "modA");
+    REQUIRE(order.size() == 3u);
+    REQUIRE(order[0].moduleId == "modC");
+    REQUIRE(order[1].moduleId == "modB");
+    REQUIRE(order[2].moduleId == "modA");
 }
 
-TEST_CASE(Graph_MultiplePackages_SortedByDependency) {
+TEST_CASE("Graph MultiplePackages SortedByDependency") {
     DependencyGraph graph;
     auto modA = makeModule("pkgA", "modA", "1.0.0", 1);
     auto modB = makeModule("pkgB", "modB", "1.0.0", 1);
@@ -461,54 +461,52 @@ TEST_CASE(Graph_MultiplePackages_SortedByDependency) {
     graph.addModule(modB);
     graph.buildGraph();
     auto plans = graph.getPackageInitializationOrder();
-    ASSERT_EQ(plans.size(), 2u);
+    REQUIRE(plans.size() == 2u);
     // pkgB should come before pkgA since pkgA depends on pkgB
-    ASSERT_STREQ(plans[0].packageId.c_str(), "pkgB");
-    ASSERT_STREQ(plans[1].packageId.c_str(), "pkgA");
+    REQUIRE(plans[0].packageId == "pkgB");
+    REQUIRE(plans[1].packageId == "pkgA");
 }
 
 // ============================================================================
 // NEW: ModuleMetadata tests
 // ============================================================================
 
-TEST_CASE(ModuleMetadata_Key_ContainsAllFields) {
+TEST_CASE("ModuleMetadata Key ContainsAllFields") {
     auto mod = makeModule("pkg", "mod", "1.0.0", 1, "g2p", "iid1", "cfg1");
     auto k = mod.key();
     // key() = packageId:moduleId:version:iid:type:configuration:level
-    ASSERT_STREQ(k.c_str(), ":pkg:mod:1.0.0:iid1:g2p:cfg1:1");
+    REQUIRE(k == ":pkg:mod:1.0.0:iid1:g2p:cfg1:1");
 }
 
-TEST_CASE(ModuleMetadata_UniqueKey_DiffersFromKey) {
+TEST_CASE("ModuleMetadata UniqueKey DiffersFromKey") {
     auto mod = makeModule("pkg", "mod", "1.0.0", 1, "g2p", "iid1", "cfg1");
     auto uk = mod.uniqueKey();
     // uniqueKey() = packageId:moduleId:iid:type:level (no version, no config)
-    ASSERT_STREQ(uk.c_str(), ":pkg:mod:iid1:g2p:1");
-    ASSERT_TRUE(mod.key() != mod.uniqueKey());
+    REQUIRE(uk == ":pkg:mod:iid1:g2p:1");
+    REQUIRE(mod.key() != mod.uniqueKey());
 }
 
-TEST_CASE(ModuleMetadata_IsSameMainModule) {
+TEST_CASE("ModuleMetadata IsSameMainModule") {
     auto a = makeModule("pkgA", "mod", "1.0.0", 1, "g2p", "iid", "cfg");
     auto b = makeModule("pkgB", "mod", "2.0.0", 1, "g2p", "iid", "cfg");
     // isSameMainModule checks moduleId, iid, type, configuration, level (not packageId or version)
-    ASSERT_TRUE(a.isSameMainModule(b));
+    REQUIRE(a.isSameMainModule(b));
 }
 
-TEST_CASE(ModuleMetadata_Equality) {
+TEST_CASE("ModuleMetadata Equality") {
     auto a = makeModule("pkg", "mod", "1.0.0", 1, "g2p", "iid", "cfg");
     auto b = makeModule("pkg", "mod", "1.0.0", 1, "g2p", "iid", "cfg");
-    ASSERT_TRUE(a == b);
+    REQUIRE(a == b);
 
     auto c = makeModule("pkg", "mod", "2.0.0", 1, "g2p", "iid", "cfg");
-    ASSERT_FALSE(a == c);
+    REQUIRE_FALSE(a == c);
 }
-
-// ModuleMetadata_Hash test removed: MainModuleHash::operator() is not exported from DLL
 
 // ============================================================================
 // §14.18 regression: selectBestModules pointer invalidation fix
 // ============================================================================
 
-TEST_CASE(DependencyResolver_SelectBest_ThreeVersions) {
+TEST_CASE("DependencyResolver SelectBest ThreeVersions") {
     // Three versions of the same module — only the highest should remain
     std::vector<ModuleMetadata> modules;
     auto m1 = makeModule("pkg", "mod", "1.0.0", 1);
@@ -523,11 +521,11 @@ TEST_CASE(DependencyResolver_SelectBest_ThreeVersions) {
 
     // After resolution, only v3.0.0 should remain (selectBestModules is called internally)
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), static_cast<size_t>(1));
-    ASSERT_STREQ(resolved[0].version.c_str(), "3.0.0");
+    REQUIRE(resolved.size() == static_cast<size_t>(1));
+    REQUIRE(resolved[0].version == "3.0.0");
 }
 
-TEST_CASE(DependencyResolver_SelectBest_DifferentLevels) {
+TEST_CASE("DependencyResolver SelectBest DifferentLevels") {
     // Same module at different levels should both be kept
     std::vector<ModuleMetadata> modules;
     auto m1 = makeModule("pkg", "mod", "1.0.0", 1);
@@ -539,10 +537,10 @@ TEST_CASE(DependencyResolver_SelectBest_DifferentLevels) {
     resolver.resolveAllDependencies(modules);
 
     auto resolved = resolver.getResolvedModules();
-    ASSERT_EQ(resolved.size(), static_cast<size_t>(2));
+    REQUIRE(resolved.size() == static_cast<size_t>(2));
 }
 
-TEST_CASE(DependencyResolver_SelectBest_ManyModulesMixed) {
+TEST_CASE("DependencyResolver SelectBest ManyModulesMixed") {
     // Mix of different modules and versions — stress test for pointer stability
     std::vector<ModuleMetadata> modules;
     for (int i = 0; i < 10; ++i) {
@@ -555,9 +553,9 @@ TEST_CASE(DependencyResolver_SelectBest_ManyModulesMixed) {
 
     auto resolved = resolver.getResolvedModules();
     // Should have exactly 2 modules: best of mod-a (9.0.0) and best of mod-b (9.0.0)
-    ASSERT_EQ(resolved.size(), static_cast<size_t>(2));
+    REQUIRE(resolved.size() == static_cast<size_t>(2));
     for (const auto &m : resolved) {
-        ASSERT_STREQ(m.version.c_str(), "9.0.0");
+        REQUIRE(m.version == "9.0.0");
     }
 }
 
@@ -566,7 +564,7 @@ TEST_CASE(DependencyResolver_SelectBest_ManyModulesMixed) {
 // (tested indirectly via DependencyResolver and LevelCompatibilityChecker)
 // ============================================================================
 
-TEST_CASE(LevelChecker_MultipleIncompatible) {
+TEST_CASE("LevelChecker MultipleIncompatible") {
     // Verify we can check multiple modules and get results for all of them
     LevelCompatibilityChecker::LevelConfig config;
     config.currentLevel = 2;
@@ -574,13 +572,13 @@ TEST_CASE(LevelChecker_MultipleIncompatible) {
     config.maximumLevel = 3;
 
     auto r1 = LevelCompatibilityChecker::checkCorePlugin(0, config);
-    ASSERT_FALSE(r1.isCompatible);
+    REQUIRE_FALSE(r1.isCompatible);
 
     auto r2 = LevelCompatibilityChecker::checkCorePlugin(2, config);
-    ASSERT_TRUE(r2.isCompatible);
+    REQUIRE(r2.isCompatible);
 
     auto r3 = LevelCompatibilityChecker::checkCorePlugin(5, config);
-    ASSERT_FALSE(r3.isCompatible);
+    REQUIRE_FALSE(r3.isCompatible);
 
     // All three checks work independently — framework can now collect all errors
 }
@@ -589,23 +587,23 @@ TEST_CASE(LevelChecker_MultipleIncompatible) {
 // §14.22 regression: DependencyGraph::clear before reuse
 // ============================================================================
 
-TEST_CASE(DependencyGraph_ClearAndReuse) {
+TEST_CASE("DependencyGraph ClearAndReuse") {
     DependencyGraph graph;
     auto modA = makeModule("pkg", "mod-a", "1.0.0", 1);
     graph.addModule(modA);
-    ASSERT_TRUE(graph.buildGraph());
+    REQUIRE(graph.buildGraph());
 
     auto modules1 = graph.getAllModules();
-    ASSERT_EQ(modules1.size(), static_cast<size_t>(1));
+    REQUIRE(modules1.size() == static_cast<size_t>(1));
 
     // Clear and add different module
     graph.clear();
     auto modB = makeModule("pkg", "mod-b", "2.0.0", 1);
     graph.addModule(modB);
-    ASSERT_TRUE(graph.buildGraph());
+    REQUIRE(graph.buildGraph());
 
     auto modules2 = graph.getAllModules();
     // Should have only mod-b, not mod-a + mod-b
-    ASSERT_EQ(modules2.size(), static_cast<size_t>(1));
-    ASSERT_STREQ(modules2[0].moduleId.c_str(), "mod-b");
+    REQUIRE(modules2.size() == static_cast<size_t>(1));
+    REQUIRE(modules2[0].moduleId == "mod-b");
 }

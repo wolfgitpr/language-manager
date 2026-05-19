@@ -1,5 +1,2 @@
-#include "tst_framework.h"
-
-int main() {
-    return runAllTests();
-}
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
