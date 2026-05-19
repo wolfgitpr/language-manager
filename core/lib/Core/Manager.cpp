@@ -433,10 +433,27 @@ namespace LangCore
             }
 
             if (!taskObj) {
-                // C-6: produce fallback
-                MgrLog.langCoreCritical("C-6: fail to find g2p '%1' in context '%2'",
-                                        group.g2pId,
-                                        ContextKey(group.context, group.contextVersion).toString());
+                // Diagnose why the lookup failed
+                bool contextEverRegistered = false;
+                for (const auto &[regKey, _] : impl.contextPackagePaths) {
+                    if (regKey.context == group.context) {
+                        contextEverRegistered = true;
+                        break;
+                    }
+                }
+
+                if (!contextEverRegistered && !group.context.empty()) {
+                    MgrLog.langCoreCritical("C-5: context '%1' was never registered via addPackagePath", group.context);
+                } else if (contextEverRegistered) {
+                    // Context was registered but g2pId or version not found
+                    auto ctxDisplay = ContextKey(group.context, group.contextVersion).toString();
+                    MgrLog.langCoreCritical("C-6: g2p '%1' not found in context '%2' (check g2pId spelling or version)",
+                                            group.g2pId, ctxDisplay);
+                } else {
+                    MgrLog.langCoreCritical("C-6: fail to find g2p '%1' in context '%2'",
+                                            group.g2pId,
+                                            ContextKey(group.context, group.contextVersion).toString());
+                }
                 for (size_t j = 0; j < group.lyrics.size(); ++j) {
                     result[group.resultIndexes[j]] =
                         G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],

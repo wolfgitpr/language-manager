@@ -32,7 +32,11 @@ namespace LangCore
         PackageManager();
         ~PackageManager() override;
 
+        /// @deprecated Legacy: flattens all contexts into a single graph. Prefer Manager::initialize()
+        /// which processes each ContextKey independently.
         bool checkDependencies();
+        /// @deprecated Legacy: returns a flat initialization order across all contexts.
+        /// Prefer Manager::initialize() for per-context ordering.
         std::vector<PackageInitializationPlan> getPackageInitializationOrder();
         std::vector<std::string> getDependencyErrors() const;
 
@@ -56,6 +60,8 @@ namespace LangCore
         Package find(const std::string_view &id, const stdc::VersionNumber &version) const;
         std::vector<Package> find(const std::string_view &id) const;
         std::vector<Package> packages() const;
+        /// @deprecated Legacy: loads packages from a flat, cross-context initialization order.
+        /// Prefer Manager::initialize() which loads packages per-ContextKey.
         bool loadPackagesInOrder();
         Expected<NO<Task>> createModuleTask(const ModuleMetadata &moduleInfo, const Package &pkg) const;
 
