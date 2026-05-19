@@ -1,0 +1,12 @@
+{
+  "dependencies": [
+    "qmsetup",
+    "stdcorelib",
+    "nlohmann-json"
+  ],
+  "vcpkg-configuration": {
+    "overlay-ports": [
+      "scripts/vcpkg/ports"
+    ]
+  }
+}

@@ -9,6 +9,7 @@
 #include <LangCore/Support/JSON.h>
 #include <fstream>
 #include <filesystem>
+#include <mutex>
 
 namespace LangCore
 {

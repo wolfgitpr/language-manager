@@ -3,6 +3,7 @@
 #include <LangCore/Support/Logging.h>
 #include <fstream>
 #include <filesystem>
+#include <mutex>
 
 namespace LangPlugins::DsDict::Internal::V1
 {
