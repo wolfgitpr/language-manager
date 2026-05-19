@@ -255,6 +255,12 @@ V1 是逐词推理实现（Level 1）。代码第 200-201 行明确注释 `// Fo
 | §14.27 ✅ | OnnxDriver `sessionRun()` 补充 `std::exception` catch | `plugins/Drivers/OnnxDriver/internal/Session.cpp` 第 347-356 行 |
 | §14.28 ✅ | DsDict V1 改用 `input.as<DictInputV1>()` | `plugins/Dicts/DsDict/internal/V1/` |
 | §14.29 ✅ | InferUtil `out = regexes` 移至循环后，修正 include guard | `plugins/Utils/InferUtil/` |
+| §14.30 ✅ | **R-8 校验缺失** — `addPackagePath("", version, path)` 未拒绝默认 context 带版本号 | `core/lib/Core/PackageManager.cpp` |
+| §14.31 ✅ | **selectBestModules uniqueKey 不含 context/contextVersion** — 防御性加入，防止跨版本同名模块被错误去重 | `core/lib/Module/Dependency/DependencyResolver.cpp` |
+| §14.32 ✅ | **convert() 错误信息不区分 context未注册 vs g2pId不存在** — 两步诊断输出 C-5/C-6 差异化日志 | `core/lib/Core/Manager.cpp` |
+| §14.33 ✅ | **checkDependencies/loadPackagesInOrder 标注 @deprecated** — 说明其跨 context 扁平化行为与 context 隔离设计不一致 | `core/include/LangCore/Core/PackageManager.h` |
+| §14.34 ✅ | **PackageManager::open() 同路径 ref-count 共享无日志** — 添加 Debug 日志记录 ref 递增 | `core/lib/Core/PackageManager.cpp` |
+| §14.35 ✅ | **预存在编译错误修复** — `Task.cpp` 缺 `<mutex>`, `Tensor.h` 缺 `<cstdint>`, `DsDict/TaskImpl.cpp` 缺 `<mutex>` | `core/lib/Task/Task.cpp`, `core/include/LangCore/Support/Tensor.h`, `plugins/Dicts/DsDict/internal/V1/TaskImpl.cpp` |
 
 ---
 
@@ -266,9 +272,9 @@ V1 是逐词推理实现（Level 1）。代码第 200-201 行明确注释 `// Fo
 | 🟠 P1 | 2 | FormatStep 命名不符, Session goto |
 | 🟡 P2 | 3 | 传递依赖未实现, 静态插件未实现, V2 EOS 性能 |
 | 🟢 P3 | 1 | 继承链改组合 |
-| ✅ 已修复 | 25 | 含 §14.12 getConfig 缓存、P0 LstmG2p V2 mode 修复 |
+| ✅ 已修复 | 31 | 含 §14.12 getConfig 缓存、P0 LstmG2p V2 mode 修复、§14.30-§14.35 多版本同名声库 G2P 管理完善 |
 
 ---
 
-**文档版本**: 2.1  
-**最后更新**: 2026-04-27
+**文档版本**: 2.2  
+**最后更新**: 2026-05-19
