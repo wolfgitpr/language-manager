@@ -389,6 +389,11 @@ namespace LangCore
                         continue;
                     }
                     version_ = stdc::VersionNumber::fromString(it->second.toString());
+                    if (version_.isEmpty()) {
+                        MgrLog.langCoreWarning("Package '%1' at %2 has an empty/zero version, skipping",
+                                                id_, entry.path());
+                        continue;
+                    }
                 }
                 // compatVersion
                 {
@@ -545,7 +550,28 @@ namespace LangCore
     }
 
     Expected<void> PackageManager::addPackagePath(const std::string &context, const std::filesystem::path &path) {
-        return addPackagePath(context, {}, path);
+        if (auto exp = ContextUtils::validateContextName(context); !exp)
+            return exp.error();
+
+        __stdc_impl_t;
+        if (!fs::exists(path) || !fs::is_directory(path)) {
+            return Error(Error::FileSystemError, stdc::formatN("Package path does not exist or is not a directory: %1", path));
+        }
+
+        auto canonical = fs::canonical(path);
+        ContextKey ctxKey(context);  // unversioned
+
+        std::unique_lock lock(impl.su_mtx);
+        auto &paths = impl.contextPackagePaths[ctxKey];
+        for (const auto &existing : paths) {
+            if (existing == canonical) {
+                MgrLog.langCoreDebug("Duplicate package path skipped for context '%1': %2", ctxKey.toString(), canonical);
+                return {};
+            }
+        }
+        paths.push_back(canonical);
+        impl.packagePathsDirty = true;
+        return {};
     }
 
     Expected<void> PackageManager::addPackagePath(const std::string &context, const stdc::VersionNumber &version,
@@ -555,6 +581,10 @@ namespace LangCore
 
         if (context.empty() && !version.isEmpty())
             return Error(Error::ValidationError, "R-8: Default context cannot have a version");
+
+        if (!context.empty() && version.isEmpty())
+            return Error(Error::ValidationError,
+                         "Context '" + context + "': version cannot be empty or zero (0.0.0) for a versioned context");
 
         __stdc_impl_t;
         if (!fs::exists(path) || !fs::is_directory(path)) {
@@ -566,7 +596,6 @@ namespace LangCore
 
         std::unique_lock lock(impl.su_mtx);
         auto &paths = impl.contextPackagePaths[ctxKey];
-        // Check duplicate
         for (const auto &existing : paths) {
             if (existing == canonical) {
                 MgrLog.langCoreDebug("Duplicate package path skipped for context '%1': %2", ctxKey.toString(), canonical);
@@ -580,7 +609,22 @@ namespace LangCore
 
     Expected<void> PackageManager::setPackagePaths(const std::string &context,
                                                    const std::vector<std::filesystem::path> &paths) {
-        return setPackagePaths(context, {}, paths);
+        if (auto exp = ContextUtils::validateContextName(context); !exp)
+            return exp.error();
+
+        __stdc_impl_t;
+        ContextKey ctxKey(context);  // unversioned
+        std::unique_lock lock(impl.su_mtx);
+        auto &ctxPaths = impl.contextPackagePaths[ctxKey];
+        ctxPaths.clear();
+        for (const auto &path : paths) {
+            if (!fs::is_directory(path)) {
+                continue;
+            }
+            ctxPaths.push_back(fs::canonical(path));
+        }
+        impl.packagePathsDirty = true;
+        return {};
     }
 
     Expected<void> PackageManager::setPackagePaths(const std::string &context, const stdc::VersionNumber &version,
@@ -590,6 +634,10 @@ namespace LangCore
 
         if (context.empty() && !version.isEmpty())
             return Error(Error::ValidationError, "R-8: Default context cannot have a version");
+
+        if (!context.empty() && version.isEmpty())
+            return Error(Error::ValidationError,
+                         "Context '" + context + "': version cannot be empty or zero (0.0.0) for a versioned context");
 
         __stdc_impl_t;
         ContextKey ctxKey(context, version);
