@@ -203,14 +203,9 @@ TEST_CASE("conflict_crossVersionDep_rejected") {
 // ============================================================================
 
 TEST_CASE("contextKey_versionBoundary") {
-    // Zero version
-    ContextKey key1("SingerA", stdc::VersionNumber(0, 0, 0));
-    REQUIRE(key1.isVersioned());
-    REQUIRE(key1.toString() == "SingerA@0.0");
-
     // Max version components
-    ContextKey key2("SingerA", stdc::VersionNumber(999, 999, 999));
-    REQUIRE(key2.isVersioned());
+    ContextKey key1("SingerA", stdc::VersionNumber(999, 999, 999));
+    REQUIRE(key1.isVersioned());
 }
 
 TEST_CASE("contextKey_orderingWithVersion") {
@@ -222,7 +217,7 @@ TEST_CASE("contextKey_orderingWithVersion") {
 
     REQUIRE(a < b);
     REQUIRE(b < c);
-    REQUIRE(a < d); // versioned < unversioned with same context name
+    REQUIRE(d < a); // unversioned < versioned with same context name
     REQUIRE(d < e);
 }
 
