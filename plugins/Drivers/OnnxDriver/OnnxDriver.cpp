@@ -87,7 +87,7 @@ namespace LangPlugins::OnnxDriver::V1
 
 #if defined(_WIN32)
             // Windows: Use GetModuleHandle and GetProcAddress
-            if (const HMODULE module = GetModuleHandleA(ONNXRUNTIME_DYLIB_FILENAME)) {
+            if (const HMODULE module = GetModuleHandleW(ONNXRUNTIME_DYLIB_FILENAME)) {
                 handle = reinterpret_cast<void *>(GetProcAddress(module, "OrtGetApiBase"));
             }
 #else
@@ -100,8 +100,10 @@ namespace LangPlugins::OnnxDriver::V1
                 if (library) {
                     handle = dlsym(library, "OrtGetApiBase");
                     // Note: We do not call dlclose(library) here to avoid decrementing the reference count.
-                    // This is to match the behavior on Windows where GetModuleHandle does not increment the reference count.
-                    // However, this may cause a small reference count leak if this code is called multiple times, but that is acceptable since the library is expected to remain loaded for the program's lifetime.
+                    // This is to match the behavior on Windows where GetModuleHandle does not increment the reference
+                    // count. However, this may cause a small reference count leak if this code is called multiple
+                    // times, but that is acceptable since the library is expected to remain loaded for the program's
+                    // lifetime.
                 }
             }
 #endif

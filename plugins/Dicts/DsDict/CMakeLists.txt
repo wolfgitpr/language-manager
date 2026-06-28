@@ -3,8 +3,6 @@ project(DsDict
         LANGUAGES CXX
 )
 
-find_package(LangCore REQUIRED)
-
 file(GLOB_RECURSE _src *.h *.cpp)
 
 LangPlugins_add_plugin(${PROJECT_NAME} dict ${PROJECT_NAME} NO_EXPORT
