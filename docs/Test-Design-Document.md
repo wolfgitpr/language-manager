@@ -774,7 +774,7 @@ tst_plugin / tst_dict / tst_integration → 依赖全部核心
 
 ## 13. Voice Bank Context 测试（tst_context）— 已实现
 
-> 对应设计文档：`docs/VoiceBank-Scoped-Package-Design.md`
+> 对应设计文档：`docs/design/VoiceBank-Scoped-Package-Design.md`
 
 ### 13.1 测试目标
 

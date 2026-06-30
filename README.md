@@ -21,7 +21,7 @@ library for [ds-editor-lite](https://github.com/flutydeer/ds-editor-lite).
 
 ## Call Flow
 
-![Call Flow](./docs/image/g2p.png)
+![Call Flow](./docs/reference/image/g2p.png)
 
 ## How To Use
 
@@ -71,7 +71,7 @@ ctest --test-dir build -C Debug
 
 ## Add New G2p
 
-Referring to the 3-digit code in [iso-639-3.tab](./docs/iso-639-3.tab), add a suffix of '-' to the commonly used
+Referring to the 3-digit code in [iso-639-3.tab](./docs/reference/iso-639-3.tab), add a suffix of '-' to the commonly used
 phonetic notation system, such as "eng-cmu", "cmn-pinyin", "jpn-romaji".
 
 Name the new G2p according to the standard and add it to the above table.

@@ -222,9 +222,9 @@ language-manager/
 │   └── Phonetic-Suite-Unknown/       未知语言
 │
 ├── tests/
-│   ├── tst_unit/                     单元测试（无需插件/运行时）
-│   ├── tst_context/                  Context 与版本化模块测试（无需插件/运行时）
-│   └── tst_langCore/                 集成测试（含本地 Splitter/Tagger 实现）
+│   ├── catch2/                       Catch2 L1/L2 测试（单一可执行目标 LangMgrTests，无需插件/运行时）
+│   ├── common/                       Catch2 v2.13.10 单头文件 (catch.hpp)
+│   └── tst_langCore/                 L4 集成测试（含本地 Splitter/Tagger 实现）
 │       └── configs/                  测试用简化配置
 │
 └── docs/                              设计文档

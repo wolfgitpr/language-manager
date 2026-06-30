@@ -77,6 +77,9 @@ namespace LangCore
         /// 列出所有初始化失败的 context（不含默认 context，默认 context 失败会阻塞 initialize）。
         std::vector<ContextKey> failedContexts() const;
 
+        /// 打开并解析单个包（解析 package.json + 模块 spec），注册到 loadedPackageMap。
+        /// 注意：本方法不解析传递依赖。传递依赖解析与拓扑加载由 addPackagePath + Manager::initialize()
+        /// 全流程负责（DependencyGraph → getPackageInitializationOrder → open）。
         Expected<Package> open(const std::filesystem::path &path);
         Package find(const std::string_view &id, const stdc::VersionNumber &version) const;
         std::vector<Package> find(const std::string_view &id) const;

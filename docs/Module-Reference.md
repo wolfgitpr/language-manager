@@ -162,30 +162,27 @@
 
 ## §4 测试 (`tests/`)
 
-### tst_unit/ (L1 单元测试)
+### catch2/ (L1/L2 单元与组件测试)
 
-不依赖插件和运行时环境，可独立编译运行。
+所有 Catch2 测试合并为单一可执行目标 `LangMgrTests`，不依赖插件和运行时环境。测试框架为 Catch2 v2.13.10 单头文件（位于 `tests/common/catch.hpp`）。
 
 | 文件 | 覆盖范围 |
 |------|----------|
-| `tst_error_expected.cpp` | `Error`、`Expected<T>` |
+| `tst_base_types.cpp` | `LangCommon` 基础类型 |
+| `tst_error.cpp` | `Error` 类型与错误码 |
+| `tst_expected.cpp` | `Expected<T>` 值/错误语义 |
+| `tst_error_expected.cpp` | `Error`、`Expected<T>` 综合用例 |
 | `tst_json_config.cpp` | `JSON`、`ConfigAccessor` |
 | `tst_version_dep.cpp` | `VersionUtils`、依赖解析 |
-| `tst_base_types.cpp` | `LangCommon` 基础类型 |
-| `tst_framework.h` | 测试框架公共头 |
-
-### tst_langCore/ (L4 集成测试)
-
-需要插件和资源包就绪后运行。包含本地 Splitter/Tagger 实现及简化 JSON 配置（位于 `tests/tst_langCore/configs/`）。
-
-### tst_context/ (Context 与版本化模块测试)
-
-不依赖插件和运行时环境。
-
-| 文件 | 覆盖范围 |
-|------|----------|
+| `tst_dependency_graph.cpp` | `DependencyGraph`（Kahn 拓扑排序） |
+| `tst_dependency_resolver.cpp` | `DependencyResolver` |
 | `tst_fqid.cpp` | FQID 解析/格式化, context 名称校验, moduleId 校验 |
+| `tst_context_validation.cpp` | Context/版本字段合法性校验 |
 | `tst_context_convert.cpp` | G2pInput/G2pRes context 字段, convert API context 校验 |
 | `tst_context_isolation.cpp` | Context 隔离, 跨 context 依赖失败, 默认 context 回退 |
 | `tst_context_dedup.cpp` | 模块去重 (isSameMainModule), selectBestModules |
 | `tst_context_version.cpp` | ContextKey, 带版本 FQID, 版本化 context 隔离/回退/去重 |
+
+### tst_langCore/ (L4 集成测试)
+
+需要插件和资源包就绪后运行。包含本地 Splitter/Tagger 实现及简化 JSON 配置（位于 `tests/tst_langCore/configs/`）。不使用 Catch2，为独立可执行目标。

@@ -29,7 +29,7 @@
 
 **验证标准**: 编译通过 + 单元测试通过 + 现有 catch2 测试全通过
 
-**状态**: ✅ 已完成（contextKey getter + createModuleTask 注入；编译通过，CLion 无诊断错误；构建环境存在 MinGW/MSVC 库不匹配的预存链接错误，与本次改动无关；contextKey 端到端验证见任务 1.5）
+**状态**: ⬜ 未开始
 
 ---
 
@@ -61,7 +61,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **验证标准**: S5 场景 convert 成功 + 官方包场景行为不变
 
-**状态**: ✅ 已完成（ModelStep 改为 FQID 两级查找：本 context 优先，非默认 context 找不到时回退默认 context；ModelStep.cpp 编译通过，CLion 无诊断错误；S5 端到端验证见任务 1.5）
+**状态**: ⬜ 未开始
 
 ---
 
@@ -85,7 +85,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **验证标准**: 编译通过 + 宿主侧 ds-editor-lite 编译通过（确认未调用，无警告触发）
 
-**状态**: ✅ 已完成（三个 deprecated 扁平化方法追加 `[[deprecated]]` 编译期警告；保留 public 可见性；私有化推迟到 v4.x 并递增 Level；Manager::initialize() 不调用这三个方法；框架内部 PackageManager.cpp 交叉调用产生的预期警告不阻断编译）
+**状态**: ⬜ 未开始（推迟到 v4.x 的私有化部分不在本 Level 范围）
 
 ---
 
@@ -109,7 +109,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **验证标准**: 编译通过 + 单元测试通过
 
-**状态**: ✅ 已完成（新增 ContextState 四态公共枚举；contextState() 三级判定：contextStates 命中→对应态、contextPackagePaths 命中→Pending、均未命中→NotRegistered；failedContexts() 遍历 contextStates 收集 Failed 且排除默认 context；状态查询测试归入任务 1.5 集成测试）
+**状态**: ⬜ 未开始
 
 ---
 
@@ -175,7 +175,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **验证标准**: 编译通过 + 单元测试通过（4 种组合覆盖）
 
-**状态**: ✅ 已完成（G2pRes 新增 isOk()/isFailed() inline 方法；isOk 仅看 errorType==NoError，含合法原词保留；4 种组合单元测试已添加到 tst_base_types.cpp，使用 8 参数构造避免 deprecated 警告）
+**状态**: ⬜ 未开始
 
 ---
 
@@ -241,12 +241,12 @@ if (!g2pObj && !ctxKey.isDefault()) {
 - ✅ [docs/design/VoiceBank-Scoped-Package-Design.md](file:///D:/projects/language-manager/docs/design/VoiceBank-Scoped-Package-Design.md) — 删除 §11 过期文本，版本回退 v3.1（已在前序文档清理中完成）
 - ✅ [docs/Architecture-Overview.md](file:///D:/projects/language-manager/docs/Architecture-Overview.md) — §3 测试目录描述修正为 catch2/ + common/ + tst_langCore/（已在前序文档清理中完成）
 - ✅ [docs/Module-Reference.md](file:///D:/projects/language-manager/docs/Module-Reference.md) — §4 测试目录描述同步修正（已在前序文档清理中完成）
-- ⬜ [core/include/LangCore/Core/PackageManager.h](file:///D:/projects/language-manager/core/include/LangCore/Core/PackageManager.h) — `open()` 注释明确"不解析传递依赖"
-- ⬜ [docs/Issues-Tracker.md](file:///D:/projects/language-manager/docs/Issues-Tracker.md) — 引用旧 `refactoring/` 路径更新指向 `refactor-plan/`
+- ✅ [core/include/LangCore/Core/PackageManager.h](file:///D:/projects/language-manager/core/include/LangCore/Core/PackageManager.h) — `open()` 注释明确"不解析传递依赖，使用 addPackagePath + initialize 全流程"
+- ✅ [docs/Issues-Tracker.md](file:///D:/projects/language-manager/docs/Issues-Tracker.md) — 核实后确认无 `refactoring/` 路径引用（任务描述基于历史信息，实际文档已无过期路径）
 
 **验证标准**: 文档与代码一致
 
-**状态**: 🟡 部分完成（前 3 项已在文档清理中完成；后 2 项待处理）
+**状态**: ✅ 已完成（PackageManager::open() 添加注释明确"不解析传递依赖"；Issues-Tracker.md 核实无 `refactoring/` 路径引用，无需更新）
 
 ---
 
@@ -264,9 +264,20 @@ if (!g2pObj && !ctxKey.isDefault()) {
 **修改文件**（视核实结果而定）：
 - [core/lib/Module/Dependency/DependencyResolver.cpp](file:///D:/projects/language-manager/core/lib/Module/Dependency/DependencyResolver.cpp) — 若需补充 level 维度
 
+**核实结论**：
+- ✅ `selectBestModules`（[DependencyResolver.cpp:211-244](file:///D:/projects/language-manager/core/lib/Module/Dependency/DependencyResolver.cpp)）按 `packageId:moduleId:level:context:contextVersion` uniqueKey 去重，保留最高 version
+- ✅ Level 精确匹配在 `VersionResolver::resolveDependency`（[VersionUtils.cpp:331-539](file:///D:/projects/language-manager/core/lib/Module/Dependency/VersionUtils.cpp)）实现：
+  - 第 353-354 行：`dependency.level != -1 && module.level != dependency.level` → `continue`（过滤掉 level 不匹配的候选）
+  - 第 466-489 行：二阶段过滤，`versionsInRange` 仅保留 `versionToLevel[version] == dependency.level` 的版本
+  - 第 490-514 行：`dependency.level == -1`（通配）时，回退到 `requestingModule.level` 匹配
+- ✅ Dep-2 回退（[DependencyResolver.cpp:79-92](file:///D:/projects/language-manager/core/lib/Module/Dependency/DependencyResolver.cpp)）：当前 context 无匹配模块（`candidates.empty()`）时，搜索 `fallbackModules`（默认 context）
+- ✅ 四维匹配跨两函数实现：DependencyResolver 负责 packageId+moduleId（+ Dep-2 回退），VersionResolver 负责 level+version
+- ✅ `LevelCompatibilityChecker` 是系统 Level 范围校验（minimumLevel..maximumLevel），与依赖 level 匹配是分层语义，不涉及依赖解析
+- 结论：**Level 精确匹配已支持，无需新增逻辑**。"若不支持 level" 的条件不成立，故不触发新增逻辑分支
+
 **验证标准**: level 不匹配时触发 Dep-1（依赖缺失），走 Dep-2 回退默认 context
 
-**状态**: ⬜ 未开始（待核实）
+**状态**: ✅ 已完成（核实结论：Level 精确匹配已在 VersionResolver::resolveDependency 实现；selectBestModules 按 4 维 + context 去重；Dep-2 回退在 candidates.empty() 时触发；无需代码改动）
 
 ---
 
@@ -300,7 +311,7 @@ Error Manager::initialize() {
 
 **验证标准**: 编译通过 + 二次调用返回 `AlreadyInitialized` + 现有测试通过
 
-**状态**: ✅ 已完成（Error::Type 新增 AlreadyInitialized 枚举值；Manager::initialize() 开头检查 initialized 标志位；复用 PackageManager::Impl 已有的 initialized 字段，无需新增 m_initialized；幂等性测试需成功 initialize() 后验证，归入任务 1.5 集成测试）
+**状态**: ⬜ 未开始
 
 ---
 
