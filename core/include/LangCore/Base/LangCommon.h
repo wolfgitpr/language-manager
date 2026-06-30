@@ -51,6 +51,16 @@ namespace LangCore
         std::string mode = "copy";
         G2pErrorType errorType = NoError;
 
+        /// 是否未发生错误（含合法的原词保留，如标点/数字）。
+        /// true 表示 errorType == NoError（mode 可能是 "convert" / "copy" / "skip"）。
+        /// false 表示推理失败（errorType != NoError），调用方应考虑回退。
+        /// 注：若需区分"真正转换"与"原词保留"，额外检查 mode == "convert"。
+        bool isOk() const { return errorType == NoError; }
+
+        /// 是否为推理失败兜底（需回退的场景）。
+        /// 等价于 !isOk()。
+        bool isFailed() const { return errorType != NoError; }
+
         G2pRes() {}
 
         G2pRes(std::string lyric, std::string g2pId, std::string context = {},
@@ -68,6 +78,7 @@ namespace LangCore
         }
 
         /// Legacy convenience constructor (no contextVersion)
+        [[deprecated("Use 8-parameter constructor with contextVersion")]]
         G2pRes(std::string lyric, std::string g2pId, std::string context, std::string pronunciation,
                std::vector<std::string> candidates = {}, std::string mode = "copy",
                const G2pErrorType errorType = NoError) :

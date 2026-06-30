@@ -1,5 +1,5 @@
-#ifndef LANGCORE_ENGINEFACTORYPLUGIN_H
-#define LANGCORE_ENGINEFACTORYPLUGIN_H
+#ifndef LANGCORE_TASKPLUGIN_H
+#define LANGCORE_TASKPLUGIN_H
 
 #include <LangCore/Core/Plugin.h>
 #include <LangCore/Task/TaskFactory.h>
@@ -32,4 +32,4 @@ namespace LangCore
 
 } // namespace LangCore
 
-#endif // LANGCORE_ENGINEFACTORYPLUGIN_H
+#endif // LANGCORE_TASKPLUGIN_H

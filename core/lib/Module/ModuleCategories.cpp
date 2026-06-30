@@ -1,4 +1,4 @@
-#include "LangCore/Module/ModuleCategories.h"
+#include <LangCore/Module/ModuleCategories.h>
 #include "Module_p.h"
 #include "PackageManager_p.h"
 

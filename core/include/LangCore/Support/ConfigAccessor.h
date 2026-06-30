@@ -131,6 +131,19 @@ namespace LangCore
         /// @return 成功返回路径，失败返回错误
         Expected<std::filesystem::path> getPath(const std::string &key) const;
 
+        /// 获取配置中的路径并解析为规范化绝对路径。
+        /// 内部调用 canonical() 并回退 absolute()。
+        /// @param key 配置键名
+        /// @return 规范化后的绝对路径；键缺失或路径无效时返回错误
+        Expected<std::filesystem::path> getResolvedPath(const std::string &key) const;
+
+        /// 获取配置中的路径并相对于指定 basePath 解析为规范化绝对路径。
+        /// @param key 配置键名
+        /// @param basePath 解析相对路径时使用的基础路径（覆盖默认的模块路径）
+        /// @return 规范化后的绝对路径；键缺失或路径无效时返回错误
+        Expected<std::filesystem::path> getResolvedPath(const std::string &key,
+                                                        const std::filesystem::path &basePath) const;
+
         /// 获取必需的字符串数组
         /// @param key 配置键名
         /// @return 成功返回字符串数组，失败返回错误

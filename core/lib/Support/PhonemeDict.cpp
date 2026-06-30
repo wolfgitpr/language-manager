@@ -64,6 +64,8 @@ namespace LangCore
 
     PhonemeDict::~PhonemeDict() = default;
 
+    void PhonemeDict::reset() { _impl = std::make_shared<Impl>(); }
+
     bool PhonemeDict::load(const std::filesystem::path &path, std::error_code *ec) {
         if (ec)
             ec->clear();
@@ -108,68 +110,49 @@ namespace LangCore
         {
             auto start = buffer_begin;
             while (start < buffer_end) {
+                // Skip line breaks
                 while (start < buffer_end && (*start == '\r' || *start == '\n')) {
                     *start = '\0';
                     start++;
                 }
+                if (start >= buffer_end)
+                    break;
 
                 const char *value_start = nullptr;
                 uint32_t value_cnt = 0;
 
-                // Find tab
+                // Find tab or line break
                 auto p = start + 1;
-                while (p < buffer_end) {
-                    switch (*p) {
-                    case '\t':
-                        value_start = p + 1;
-                        *p = '\0';
-                        goto out_tab_find;
-
-                    case '\r':
-                    case '\n':
-                        start = p + 1;
-                        goto out_next_line;
-
-                    default:
-                        break;
-                    }
+                while (p < buffer_end && *p != '\t' && *p != '\r' && *p != '\n') {
                     ++p;
                 }
 
-                // Tab not found
-                while (start < buffer_end && *start != '\r' && *start != '\n') {
-                    *start = '\0';
-                    start++;
-                }
-                goto out_next_line;
-
-            out_tab_find:
-                // Find space or line break
-                while (p < buffer_end) {
-                    switch (*p) {
-                    case ' ':
-                        value_cnt++;
-                        *p = '\0';
-                        break;
-
-                    case '\r':
-                    case '\n':
-                        value_cnt++;
-                        *p = '\0';
-                        goto out_success;
-
-                    default:
-                        break;
-                    }
-                    ++p;
-                }
-
-            out_success:
-                {
-                    map[start] = Impl::Entry{static_cast<uint32_t>(value_start - buffer_begin), value_cnt};
+                if (p >= buffer_end || *p == '\r' || *p == '\n') {
+                    // Tab not found, skip to next line
                     start = p + 1;
+                    continue;
                 }
-            out_next_line:;
+
+                // Tab found at p
+                *p = '\0';
+                value_start = p + 1;
+
+                // Count values until line end
+                ++p; // move past tab
+                while (p < buffer_end) {
+                    if (*p == ' ') {
+                        value_cnt++;
+                        *p = '\0';
+                    } else if (*p == '\r' || *p == '\n') {
+                        value_cnt++;
+                        *p = '\0';
+                        break;
+                    }
+                    ++p;
+                }
+
+                map[start] = Impl::Entry{static_cast<uint32_t>(value_start - buffer_begin), value_cnt};
+                start = p + 1;
             }
         }
         return true;
@@ -215,6 +198,7 @@ namespace LangCore
         if (!key) {
             return end();
         }
+        // const_cast is safe: sparsepp::sparse_hash_map::find() takes non-const key but does not modify it
         const auto it = map.find(const_cast<char *>(key));
         if (it == map.end()) {
             return end();
@@ -231,6 +215,7 @@ namespace LangCore
         if (!key) {
             return false;
         }
+        // const_cast is safe: sparsepp::sparse_hash_map::find() only reads, never modifies
         return map.find(const_cast<char *>(key)) != map.end();
     }
 
@@ -240,6 +225,7 @@ namespace LangCore
         if (!key) {
             return PhonemeList();
         }
+        // const_cast is safe: sparsepp::sparse_hash_map::find() only reads, never modifies
         const auto it = map.find(const_cast<char *>(key));
         if (it == map.end()) {
             return PhonemeList();

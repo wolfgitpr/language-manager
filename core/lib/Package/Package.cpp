@@ -135,59 +135,50 @@ namespace LangCore
                         R"("modules" field has invalid value in package manifest)",
                     };
                 }
-            }
 
-            do {
-                Error error1;
                 for (const auto &[fst, snd] : it->second.toObject()) {
                     const auto &moduleKey = fst;
                     auto it2 = categories.find(moduleKey);
                     if (it2 == categories.end()) {
-                        error1 = {
+                        stdc::delete_all(modules_);
+                        return Error{
                             Error::NotImplementedError,
                             stdc::formatN(R"(unknown module "%1")", moduleKey),
                         };
-                        goto out_failed;
                     }
 
                     const auto &cc = it2->second;
                     if (!snd.isArray()) {
-                        error1 = {
+                        stdc::delete_all(modules_);
+                        return Error{
                             Error::ConfigError,
                             stdc::formatN(R"(module "%1" field has invalid value in package manifest)", moduleKey),
                         };
-                        goto out_failed;
                     }
 
                     std::set<std::string_view> idSet;
                     for (const auto &item : snd.toArray()) {
                         auto module = cc->parseSpec(canonicalDir, item);
                         if (!module) {
-                            error1 = module.error();
-                            goto out_failed;
+                            auto err = module.error();
+                            stdc::delete_all(modules_);
+                            return err;
                         }
                         modules_.push_back(module.get());
 
                         // Check id
                         const auto &moduleId = module.get()->id();
                         if (idSet.count(moduleId)) {
-                            error1 = {
+                            stdc::delete_all(modules_);
+                            return Error{
                                 Error::ConfigError,
                                 stdc::formatN(R"(module "%1" object has duplicated id "%2")", fst, moduleId),
                             };
-                            goto out_failed;
                         }
                         idSet.emplace(moduleId);
                     }
                 }
-
-                break;
-
-            out_failed:
-                stdc::delete_all(modules_);
-                return error1;
             }
-            while (false);
         }
 
         path = canonicalDir;

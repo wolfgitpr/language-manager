@@ -1,4 +1,4 @@
-#include "LangCore/Task/Task.h"
+#include <LangCore/Task/Task.h>
 #include "Task_p.h"
 
 #include <stdcorelib/pimpl.h>

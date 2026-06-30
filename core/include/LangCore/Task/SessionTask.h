@@ -1,5 +1,5 @@
-#ifndef LANGUAGE_MANAGER_SESSIONTASK_H
-#define LANGUAGE_MANAGER_SESSIONTASK_H
+#ifndef LANGCORE_SESSIONTASK_H
+#define LANGCORE_SESSIONTASK_H
 
 #include <filesystem>
 #include <map>
@@ -61,4 +61,4 @@ namespace LangCore
     };
 
 } // namespace LangCore
-#endif // LANGUAGE_MANAGER_SESSIONTASK_H
+#endif // LANGCORE_SESSIONTASK_H

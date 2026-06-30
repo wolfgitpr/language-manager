@@ -41,7 +41,7 @@ namespace LangPlugins::Common
         }
         m_verifier = verifierExp.take();
 
-        auto dictPathExp = cfg.getPath(m_langConfig.dictPathKey);
+        auto dictPathExp = cfg.getResolvedPath(m_langConfig.dictPathKey);
         if (!dictPathExp) {
             return dictPathExp.takeError();
         }

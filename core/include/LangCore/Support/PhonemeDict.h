@@ -90,6 +90,15 @@ namespace LangCore
         PhonemeDict();
         ~PhonemeDict();
 
+        // Internal map stores char* pointers into filebuf memory.
+        // Copying/moving would create dangling pointers into a different buffer.
+        PhonemeDict(const PhonemeDict &) = delete;
+        PhonemeDict &operator=(const PhonemeDict &) = delete;
+        PhonemeDict(PhonemeDict &&) = delete;
+        PhonemeDict &operator=(PhonemeDict &&) = delete;
+
+        void reset();
+
         /// Loads a pronunciation lexicon into a memory-mapped hash table.
         ///
         /// Reads a text file where each line contains:

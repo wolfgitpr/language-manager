@@ -22,7 +22,8 @@ namespace LangCore
             ValidationError, // 验证错误（参数验证失败、数据验证失败等）
             NullPointerError, // 空指针错误（nullptr 访问、无效指针等）
             IndexError, // 索引错误（数组越界、无效索引等）
-            TimeoutError // 超时错误（操作超时、响应超时等）
+            TimeoutError, // 超时错误（操作超时、响应超时等）
+            AlreadyInitialized // 已初始化错误（Manager::initialize() 重复调用等）
         };
 
         /// 错误上下文信息

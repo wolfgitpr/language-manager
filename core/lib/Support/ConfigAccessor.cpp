@@ -104,6 +104,27 @@ namespace LangCore
         return stdc::path::clean_path(m_basePath / stdc::path::from_utf8(*strExp));
     }
 
+    Expected<std::filesystem::path> ConfigAccessor::getResolvedPath(const std::string &key) const {
+        return getResolvedPath(key, m_basePath);
+    }
+
+    Expected<std::filesystem::path> ConfigAccessor::getResolvedPath(const std::string &key,
+                                                                    const std::filesystem::path &basePath) const {
+        auto strExp = getString(key);
+        if (!strExp) {
+            return strExp.takeError();
+        }
+        auto path = stdc::path::clean_path(basePath / stdc::path::from_utf8(strExp.take()));
+
+        std::error_code ec;
+        auto canonical = std::filesystem::canonical(path, ec);
+        if (!ec) {
+            return canonical;
+        }
+        // Fallback: use absolute() if canonical() fails (e.g. path does not exist yet)
+        return std::filesystem::absolute(path);
+    }
+
     Expected<std::vector<std::string>> ConfigAccessor::getStringArray(const std::string &key) const {
         auto itExp = checkRequiredField<std::vector<std::string>>(m_config, key);
         if (!itExp) {

@@ -41,7 +41,6 @@ namespace LangPlugins::ChainG2p
 
         std::vector<VerifyEntry> m_verifyEntries;
         std::vector<CompiledVerifyEntry> m_compiledEntries;
-        const LangCore::ModuleSpec* m_spec = nullptr;
 
         bool verifyWord(const std::string &word, std::string &mode) const;
         void compileEntries();

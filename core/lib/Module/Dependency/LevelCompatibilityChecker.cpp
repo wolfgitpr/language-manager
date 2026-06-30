@@ -1,5 +1,5 @@
-#include "LangCore/Module/Dependency/LevelCompatibilityChecker.h"
-#include "LangCore/Core/PackageManager.h"
+#include <LangCore/Module/Dependency/LevelCompatibilityChecker.h>
+#include <LangCore/Core/PackageManager.h>
 
 #include <algorithm>
 #include <sstream>

@@ -34,7 +34,7 @@ namespace LangCore
     /// NO - A shared pointer wrapper for \c NamedObject instance.
     template <class T>
     class NO : public std::shared_ptr<T> {
-        static_assert(std::is_base_of_v<NamedObject, T>, "T should inherit from LangPlugins::NamedObject");
+        static_assert(std::is_base_of_v<NamedObject, T>, "T should inherit from LangCore::NamedObject");
 
     public:
         using Base = std::shared_ptr<T>;

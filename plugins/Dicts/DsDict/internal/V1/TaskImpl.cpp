@@ -81,9 +81,18 @@ namespace LangPlugins::DsDict::Internal::V1
                 continue;
             }
 
-            // Resolve relative to the module's base path
-            auto resolvedPath = cfg.basePath() / pathStr;
-            auto result = loadDictionary(dictId, resolvedPath);
+            // Resolve via ConfigAccessor's unified path normalization
+            // (canonical() with absolute() fallback), consistent with other plugins.
+            JsonObject pathConfig;
+            pathConfig["path"] = pathStr;
+            LangCore::ConfigAccessor pathCfg(pathConfig);
+            auto resolvedExp = pathCfg.getResolvedPath("path", cfg.basePath());
+            if (!resolvedExp) {
+                Log.langCoreWarning("DsDict: dictionary '%1' path invalid: %2",
+                                    dictId, resolvedExp.error().message());
+                continue;
+            }
+            auto result = loadDictionary(dictId, resolvedExp.take());
             if (!result) {
                 Log.langCoreWarning("DsDict: failed to load dictionary '%1': %2",
                                     dictId, result.error().message());

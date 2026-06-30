@@ -23,38 +23,13 @@ namespace LangPlugins::ChainG2p
             return {};
         }
 
-        // 解析 dictPath - 从传入的 config 中读取
-        auto fileIt = config.find("file");
-        if (fileIt == config.end() || !fileIt->second.isString()) {
-            return LangCore::Error(LangCore::Error::ConfigError, "Missing required field: file");
+        // 解析 dictPath - 使用 ConfigAccessor 统一路径规范化
+        auto cfg = LangCore::ConfigAccessor(config, spec->path());
+        auto dictPathExp = cfg.getResolvedPath("file");
+        if (!dictPathExp) {
+            return dictPathExp.takeError();
         }
-        
-        std::string fileStr = fileIt->second.toString();
-        m_dictPath = std::filesystem::path(fileStr);
-        
-        // 如果是相对路径，则相对于配置文件的路径解析
-        if (m_dictPath.is_relative()) {
-            auto configPath = spec->path();
-            if (!configPath.empty()) {
-                auto absolutePath = configPath / m_dictPath;
-                // 使用 canonical() 来规范化路径并解析所有 .. 和 .
-                std::error_code ec;
-                auto canonicalPath = std::filesystem::canonical(absolutePath, ec);
-                if (!ec) {
-                    m_dictPath = canonicalPath;
-                } else {
-                    // 如果 canonical 失败，使用 absolute
-                    m_dictPath = std::filesystem::absolute(absolutePath);
-                }
-            }
-        } else {
-            // 绝对路径也尝试规范化
-            std::error_code ec;
-            auto canonicalPath = std::filesystem::canonical(m_dictPath, ec);
-            if (!ec) {
-                m_dictPath = canonicalPath;
-            }
-        }
+        m_dictPath = dictPathExp.take();
 
         // 加载字典
         if (m_dictPath.empty()) {
@@ -104,8 +79,7 @@ namespace LangPlugins::ChainG2p
 
     void DictStep::cleanup()
     {
-        // PhonemeDict does not have a clear() method, so we reset it
-        m_phonemeDict = LangCore::PhonemeDict();
+        m_phonemeDict.reset();
     }
 
     std::vector<std::string> DictStep::lookup(const std::string &key) const

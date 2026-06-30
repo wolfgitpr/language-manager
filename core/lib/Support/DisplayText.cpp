@@ -88,7 +88,7 @@ namespace LangCore
     std::string DisplayText::text() const {
         __stdc_impl_t;
 
-        // 返回默认文本
+        // 本地化查找尚未实现，当前始终返回 defaultText
         return impl.defaultText;
     }
 

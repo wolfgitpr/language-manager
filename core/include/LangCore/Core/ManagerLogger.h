@@ -1,5 +1,5 @@
-#ifndef LANGUAGE_MANAGER_MANAGERLOGGER_H
-#define LANGUAGE_MANAGER_MANAGERLOGGER_H
+#ifndef LANGCORE_MANAGERLOGGER_H
+#define LANGCORE_MANAGERLOGGER_H
 
 #include <LangCore/Support/Logging.h>
 
@@ -10,4 +10,4 @@ namespace LangCore
     inline LogCategory DependencyLog("LangCore::Dependency");
     inline LogCategory ConfigLog("LangCore::Config");
 }
-#endif // LANGUAGE_MANAGER_MANAGERLOGGER_H
+#endif // LANGCORE_MANAGERLOGGER_H

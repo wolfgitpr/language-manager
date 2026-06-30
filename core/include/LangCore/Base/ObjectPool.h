@@ -12,7 +12,7 @@ namespace LangCore
 
     class LANGCORE_EXPORT ObjectPool : public NamedObject {
     public:
-        explicit ObjectPool();
+        ObjectPool();
         ~ObjectPool() override;
 
         void addObject(const NO<NamedObject> &obj);

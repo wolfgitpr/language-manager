@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include <LangCore/Module/Module.h>
+#include <LangCore/Support/ContextUtils.h>
 #include <LangCore/Support/Expected.h>
 
 #include "ObjectPool_p.h"
@@ -35,7 +36,7 @@ namespace LangCore
 
         JsonObject manifestConfiguration;
         NO<TaskConfiguration> configuration;
-        
+
         // 配置键名的显示名称（用于 UI 显示）
         std::map<std::string, DisplayText> configurationDisplayNames;
 
@@ -43,6 +44,9 @@ namespace LangCore
 
         State state;
         PackageData *package;
+
+        // 模块所属 context（createModuleTask 阶段注入；parseSpec/loadSpec 阶段为默认值 ContextKey()）
+        LangCore::ContextKey contextKey;
     };
 
     class LANGCORE_EXPORT ModuleCategory::Impl : public ObjectPool::Impl {

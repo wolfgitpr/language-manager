@@ -8,6 +8,7 @@
 
 #include <LangCore/Base/NamedObject.h>
 #include <LangCore/Base/ObjectPool.h>
+#include <LangCore/Support/ContextUtils.h>
 #include <LangCore/Support/DisplayText.h>
 #include <LangCore/Support/Expected.h>
 #include <LangCore/Support/JSON.h>
@@ -84,6 +85,12 @@ namespace LangCore
         Package parent() const;
         PackageManager *Mgr() const;
 
+        /// 返回此模块所属的 ContextKey。
+        /// 默认 context 模块返回 ContextKey()（空 context + 空 version）。
+        /// 声库私有模块返回 ContextKey(singerId, packageVersion)。
+        /// 注：contextKey 在 createModuleTask 阶段注入，parseSpec/loadSpec 阶段为默认值。
+        ContextKey contextKey() const;
+
         template <class T>
         constexpr T *as();
 
@@ -102,13 +109,13 @@ namespace LangCore
 
     template <class T>
     constexpr T *ModuleSpec::as() {
-        static_assert(std::is_base_of_v<ModuleSpec, T>, "T must inherit from LangPlugins::ModuleSpec");
+        static_assert(std::is_base_of_v<ModuleSpec, T>, "T must inherit from LangCore::ModuleSpec");
         return static_cast<T *>(this);
     }
 
     template <class T>
     constexpr const T *ModuleSpec::as() const {
-        static_assert(std::is_base_of_v<ModuleSpec, T>, "T must inherit from LangPlugins::ModuleSpec");
+        static_assert(std::is_base_of_v<ModuleSpec, T>, "T must inherit from LangCore::ModuleSpec");
         return static_cast<const T *>(this);
     }
 
@@ -149,13 +156,13 @@ namespace LangCore
 
     template <class T>
     constexpr T *ModuleCategory::as() {
-        static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangPlugins::ModuleCategory");
+        static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangCore::ModuleCategory");
         return static_cast<T *>(this);
     }
 
     template <class T>
     constexpr const T *ModuleCategory::as() const {
-        static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangPlugins::ModuleCategory");
+        static_assert(std::is_base_of_v<ModuleCategory, T>, "T must inherit from LangCore::ModuleCategory");
         return static_cast<const T *>(this);
     }
 

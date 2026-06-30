@@ -44,13 +44,13 @@ namespace LangCore
 
     template <class T>
     T *PluginFactory::plugin(const char *key) const {
-        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangPlugins::Plugin");
+        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangCore::Plugin");
         return static_cast<T *>(plugin(reinterpret_cast<T *>(0)->T::iid(), key));
     }
 
     template <class T>
     T *PluginFactory::plugin(const char *iid, const char *key) const {
-        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangPlugins::Plugin");
+        static_assert(std::is_base_of_v<Plugin, T>, "T should inherit from LangCore::Plugin");
         return static_cast<T *>(plugin(iid, key));
     }
 

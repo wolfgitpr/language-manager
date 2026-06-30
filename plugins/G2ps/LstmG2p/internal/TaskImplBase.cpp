@@ -86,20 +86,20 @@ namespace LangPlugins::LstmG2p::Internal
         auto cfg = LangCore::config(m_spec);
 
         // Required fields - 存储到私有成员变量
-        auto encoderExp = cfg.getPath("encoder");
+        auto encoderExp = cfg.getResolvedPath("encoder");
         if (!encoderExp) {
             return encoderExp.takeError();
         }
         m_encoderPath = encoderExp.take();
 
-        auto decoderExp = cfg.getPath("decoder");
+        auto decoderExp = cfg.getResolvedPath("decoder");
         if (!decoderExp) {
             return decoderExp.takeError();
         }
         m_decoderPath = decoderExp.take();
 
         // Load charVocab
-        auto charVocabPathExp = cfg.getPath("charVocab");
+        auto charVocabPathExp = cfg.getResolvedPath("charVocab");
         if (!charVocabPathExp) {
             return charVocabPathExp.takeError();
         }
@@ -111,7 +111,7 @@ namespace LangPlugins::LstmG2p::Internal
         m_charVocab = charVocabMapping.take();
 
         // Load phonemeVocab
-        auto phonemeVocabPathExp = cfg.getPath("phonemeVocab");
+        auto phonemeVocabPathExp = cfg.getResolvedPath("phonemeVocab");
         if (!phonemeVocabPathExp) {
             return phonemeVocabPathExp.takeError();
         }

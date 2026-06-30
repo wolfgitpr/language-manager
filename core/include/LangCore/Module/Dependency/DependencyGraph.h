@@ -85,9 +85,9 @@ namespace LangCore
         DependencyGraph(DependencyGraph &&) noexcept;
         DependencyGraph &operator=(DependencyGraph &&) noexcept;
 
-        void addModule(const ModuleMetadata &module) const;
-        bool buildGraph() const;
-        void clear() const;
+        void addModule(const ModuleMetadata &module);
+        bool buildGraph();
+        void clear();
 
         std::vector<std::vector<ModuleMetadata>> findCycles() const;
         std::vector<ModuleMetadata> getAllModules() const;

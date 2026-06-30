@@ -61,6 +61,12 @@ namespace LangCore
     Expected<void> Manager::initialize() {
         __stdc_impl_t;
 
+        // 幂等防护：已初始化则直接返回错误，避免重跑全流程导致 task 状态不一致
+        if (impl.initialized) {
+            return Error(Error::AlreadyInitialized,
+                         "Manager::initialize() has already been called");
+        }
+
         // Phase 1: Default context ("")
         {
             MgrLog.langCoreInfo("Phase 1: Initializing default context");

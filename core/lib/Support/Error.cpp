@@ -17,7 +17,8 @@ namespace LangCore
             "validation error",  // ValidationError
             "null pointer error",  // NullPointerError
             "index error",  // IndexError
-            "timeout error"  // TimeoutError
+            "timeout error",  // TimeoutError
+            "already initialized error"  // AlreadyInitialized
         };
 
         static const size_t messageCount = sizeof(messages) / sizeof(messages[0]);

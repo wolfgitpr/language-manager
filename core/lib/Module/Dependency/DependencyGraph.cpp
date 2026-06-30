@@ -378,11 +378,11 @@ namespace LangCore
     DependencyGraph::DependencyGraph(DependencyGraph &&) noexcept = default;
     DependencyGraph &DependencyGraph::operator=(DependencyGraph &&) noexcept = default;
 
-    void DependencyGraph::addModule(const ModuleMetadata &module) const { _impl->addModule(module); }
+    void DependencyGraph::addModule(const ModuleMetadata &module) { _impl->addModule(module); }
 
-    bool DependencyGraph::buildGraph() const { return _impl->buildGraph(); }
+    bool DependencyGraph::buildGraph() { return _impl->buildGraph(); }
 
-    void DependencyGraph::clear() const { _impl->clear(); }
+    void DependencyGraph::clear() { _impl->clear(); }
 
     std::vector<std::vector<ModuleMetadata>> DependencyGraph::findCycles() const { return _impl->getCycles(); }
 

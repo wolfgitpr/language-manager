@@ -1,4 +1,4 @@
-#include "LangCore/Core/PluginFactory.h"
+#include <LangCore/Core/PluginFactory.h>
 #include "PluginFactory_p.h"
 
 #include <cstring>
@@ -13,7 +13,6 @@
 
 #include <LangCore/Core/ManagerLogger.h>
 #include <LangCore/Support/JSON.h>
-
 
 namespace fs = std::filesystem;
 

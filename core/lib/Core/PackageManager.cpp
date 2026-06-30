@@ -687,6 +687,47 @@ namespace LangCore
         return result;
     }
 
+    ContextState PackageManager::contextState(const ContextKey &ctxKey) const {
+        __stdc_impl_t;
+        std::shared_lock lock(impl.su_mtx);
+
+        // 1. 查 contextStates（initialize() 阶段填充）
+        const auto it = impl.contextStates.find(ctxKey);
+        if (it != impl.contextStates.end()) {
+            switch (it->second) {
+            case Impl::ContextState::Pending:
+                return ContextState::Pending;
+            case Impl::ContextState::Ready:
+                return ContextState::Ready;
+            case Impl::ContextState::Failed:
+                return ContextState::Failed;
+            }
+        }
+
+        // 2. 未在 contextStates 中：检查是否已注册（在 contextPackagePaths 中）
+        if (impl.contextPackagePaths.find(ctxKey) != impl.contextPackagePaths.end()) {
+            return ContextState::Pending; // 已注册但尚未初始化
+        }
+
+        // 3. 未注册
+        return ContextState::NotRegistered;
+    }
+
+    std::vector<ContextKey> PackageManager::failedContexts() const {
+        __stdc_impl_t;
+        std::shared_lock lock(impl.su_mtx);
+        std::vector<ContextKey> result;
+        for (const auto &[ctxKey, state] : impl.contextStates) {
+            if (state == Impl::ContextState::Failed) {
+                // 排除默认 context（空 context 名 + 空 version）
+                if (!ctxKey.isDefault()) {
+                    result.push_back(ctxKey);
+                }
+            }
+        }
+        return result;
+    }
+
     Expected<Package> PackageManager::open(const std::filesystem::path &path) {
         __stdc_impl_t;
         auto result = impl.open(path);
@@ -809,6 +850,9 @@ namespace LangCore
                     moduleInfo.packageId, moduleInfo.moduleId, moduleInfo.type, moduleInfo.iid,
                     stdc::join(availableIds, ", ")));
         }
+
+        // 注入 contextKey（friend 访问 _impl）— parseSpec/loadSpec 阶段未知 context，此处补齐
+        moduleSpec->_impl->contextKey = ContextKey(moduleInfo.context, moduleInfo.contextVersion);
 
         // 使用完整的 iid 作为 pluginKey
         const auto taskPlugin = this->plugin<TaskPlugin>("org.openvpi.Task", moduleInfo.iid.c_str());

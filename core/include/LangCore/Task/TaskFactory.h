@@ -1,5 +1,5 @@
-#ifndef LANGCORE_ENGINEFACTORY_H
-#define LANGCORE_ENGINEFACTORY_H
+#ifndef LANGCORE_TASKFACTORY_H
+#define LANGCORE_TASKFACTORY_H
 
 #include <LangCore/Module/Module.h>
 #include <LangCore/Support/Expected.h>
@@ -36,4 +36,4 @@ namespace LangCore
 
 } // namespace LangCore
 
-#endif // LANGCORE_ENGINEFACTORY_H
+#endif // LANGCORE_TASKFACTORY_H

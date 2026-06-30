@@ -1,4 +1,4 @@
-#include "LangCore/Module/Module.h"
+#include <LangCore/Module/Module.h>
 #include "Module_p.h"
 
 #include <cstdlib>
@@ -172,6 +172,11 @@ namespace LangCore
     PackageManager *ModuleSpec::Mgr() const {
         __stdc_impl_t;
         return impl.package->mgr;
+    }
+
+    ContextKey ModuleSpec::contextKey() const {
+        __stdc_impl_t;
+        return impl.contextKey;
     }
 
     ModuleSpec::ModuleSpec(Impl &impl) : _impl(&impl) {}

@@ -1,5 +1,5 @@
-#ifndef LANGCORE_ITASK_H
-#define LANGCORE_ITASK_H
+#ifndef LANGCORE_TASK_H
+#define LANGCORE_TASK_H
 
 #include <filesystem>
 
@@ -23,17 +23,17 @@ namespace LangCore
 
     class TaskInitArgs : public TaskInfoBase {
     public:
-        explicit TaskInitArgs() = default;
+        TaskInitArgs() = default;
     };
 
     class TaskInput : public TaskInfoBase {
     public:
-        explicit TaskInput() = default;
+        TaskInput() = default;
     };
 
     class TaskResult : public TaskInfoBase {
     public:
-        explicit TaskResult() = default;
+        TaskResult() = default;
 
         Error error;
     };
@@ -88,4 +88,4 @@ namespace LangCore
 
 } // namespace LangCore
 
-#endif // LANGCORE_ITASK_H
+#endif // LANGCORE_TASK_H

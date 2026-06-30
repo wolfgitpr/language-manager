@@ -155,6 +155,34 @@ TEST_CASE("G2pErrorType Values") {
     REQUIRE(static_cast<int>(UnknownError) == 5);
 }
 
+// G2pRes::isOk / isFailed — 4 种 mode + errorType 组合
+TEST_CASE("g2pRes_isOk_convert_success") {
+    G2pRes res("hello", "eng", "", {}, "hh ah l ow", {}, "convert", NoError);
+    REQUIRE(res.isOk());
+    REQUIRE_FALSE(res.isFailed());
+}
+
+TEST_CASE("g2pRes_isOk_copy_noError") {
+    // 合法的原词保留（如标点/数字），mode=="copy" + NoError → 不是失败
+    G2pRes res("hello", "eng", "", {}, "hello", {}, "copy", NoError);
+    REQUIRE(res.isOk());
+    REQUIRE_FALSE(res.isFailed());
+}
+
+TEST_CASE("g2pRes_isFailed_copy_withError") {
+    // 推理失败兜底：mode=="copy" + 非 NoError → 失败
+    G2pRes res("hello", "eng", "", {}, "hello", {}, "copy", ModelInferenceFailed);
+    REQUIRE_FALSE(res.isOk());
+    REQUIRE(res.isFailed());
+}
+
+TEST_CASE("g2pRes_isOk_skip_noError") {
+    // 空 lyric 跳过：mode=="skip" + NoError → 不是失败
+    G2pRes res("", "eng", "", {}, "", {}, "skip", NoError);
+    REQUIRE(res.isOk());
+    REQUIRE_FALSE(res.isFailed());
+}
+
 // =============================================================================
 // DisplayText
 // =============================================================================

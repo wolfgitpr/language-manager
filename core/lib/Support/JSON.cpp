@@ -2,6 +2,9 @@
 
 #include <nlohmann/json.hpp>
 
+static_assert(sizeof(nlohmann::json) <= 64,
+              "nlohmann::json exceeds 64-byte in-place buffer; increase buf size or disable LANGCORE_JSON_IN_PLACE");
+
 namespace LangCore
 {
     struct EmptyValues {

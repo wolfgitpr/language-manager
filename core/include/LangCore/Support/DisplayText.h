@@ -44,6 +44,7 @@ namespace LangCore
         void swap(DisplayText &RHS) noexcept { _impl.swap(RHS._impl); }
 
         /// 获取文本（自动返回当前语言的本地化文本，无感调用）
+        /// @note 本地化查找尚未实现，当前始终返回 defaultText
         /// @return 当前语言的本地化文本，如果不存在则返回默认文本
         std::string text() const;
         
