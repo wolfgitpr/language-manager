@@ -119,6 +119,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **修改文件**：
 - [tests/tst_langCore/main.cpp](file:///D:/projects/language-manager/tests/tst_langCore/main.cpp) 或新建 `tests/tst_langCore/tst_multi_context.cpp`
+- ✅ [tests/catch2/tst_context_validation.cpp](file:///D:/projects/language-manager/tests/catch2/tst_context_validation.cpp) — L1 单元测试（Pending/NotRegistered/empty failedContexts）
 
 **测试用例**：
 1. **S5 场景**：注册声库 context（含私有 ChainG2p + 私有 LstmG2p），convert 验证 ModelStep 找到声库私有 LstmG2p，`errorType == NoError && mode == "convert"`
@@ -132,7 +133,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **验证标准**: 4 个测试用例通过
 
-**状态**: ⬜ 未开始
+**状态**: 🟡 部分完成（L1 单元测试已添加到 tst_context_validation.cpp：8 个用例覆盖 Pending/NotRegistered/empty failedContexts，使用 temp_directory_path 构造合法路径；L3 集成测试（Ready/Failed 状态、S5 场景、官方回退、initialize 幂等性）受阻于构建环境 MinGW/MSVC 库不匹配 + 缺少测试声库包 + 需 ONNX Runtime 初始化，待环境就绪后补充）
 
 ---
 

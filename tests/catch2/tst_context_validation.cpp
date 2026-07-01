@@ -1,5 +1,7 @@
 #include "catch.hpp"
 
+#include <filesystem>
+
 #include <LangCore/Base/LangCommon.h>
 #include <LangCore/Core/PackageManager.h>
 #include <LangCore/Module/Dependency/DependencyGraph.h>
@@ -279,4 +281,97 @@ TEST_CASE("validateContextName_invalidChars") {
     REQUIRE_FALSE(ContextUtils::validateContextName("a\"b").hasValue());
     REQUIRE_FALSE(ContextUtils::validateContextName("a[b").hasValue());
     REQUIRE_FALSE(ContextUtils::validateContextName("a]b").hasValue());
+}
+
+// ============================================================================
+// contextState() / failedContexts() observability API (Task 1.4)
+// L1 unit tests: Pending / NotRegistered / empty failedContexts
+// Ready / Failed states require Manager::initialize() → L3 integration tests (Task 1.5)
+// ============================================================================
+
+TEST_CASE("contextState_unregisteredContext_returnsNotRegistered") {
+    PackageManager mgr;
+    // 未调用 addPackagePath，context 不在 contextPackagePaths 中
+    ContextKey unregisteredCtx("SingerX", stdc::VersionNumber(1, 0, 0));
+    REQUIRE(mgr.contextState(unregisteredCtx) == ContextState::NotRegistered);
+}
+
+TEST_CASE("contextState_defaultUnregistered_returnsNotRegistered") {
+    PackageManager mgr;
+    // 默认 context 未注册
+    ContextKey defaultCtx("");
+    REQUIRE(mgr.contextState(defaultCtx) == ContextState::NotRegistered);
+}
+
+TEST_CASE("contextState_registeredButNotInitialized_returnsPending") {
+    PackageManager mgr;
+    // 注册一个声库 context（使用 temp 目录作为合法路径）
+    const auto tempDir = std::filesystem::temp_directory_path();
+    auto exp = mgr.addPackagePath("SingerA", stdc::VersionNumber(1, 0, 0), tempDir);
+    REQUIRE(exp.hasValue());
+
+    // 已注册但未 initialize() → Pending
+    ContextKey ctxKey("SingerA", stdc::VersionNumber(1, 0, 0));
+    REQUIRE(mgr.contextState(ctxKey) == ContextState::Pending);
+}
+
+TEST_CASE("contextState_defaultContextRegistered_returnsPending") {
+    PackageManager mgr;
+    const auto tempDir = std::filesystem::temp_directory_path();
+    auto exp = mgr.addPackagePath("", tempDir);
+    REQUIRE(exp.hasValue());
+
+    // 默认 context 已注册但未 initialize() → Pending
+    ContextKey defaultCtx("");
+    REQUIRE(mgr.contextState(defaultCtx) == ContextState::Pending);
+}
+
+TEST_CASE("contextState_wrongVersion_returnsNotRegistered") {
+    PackageManager mgr;
+    const auto tempDir = std::filesystem::temp_directory_path();
+    // 注册 SingerA@1.0.0
+    auto exp = mgr.addPackagePath("SingerA", stdc::VersionNumber(1, 0, 0), tempDir);
+    REQUIRE(exp.hasValue());
+
+    // 查询 SingerA@2.0.0（未注册的版本）→ NotRegistered
+    ContextKey wrongVersionCtx("SingerA", stdc::VersionNumber(2, 0, 0));
+    REQUIRE(mgr.contextState(wrongVersionCtx) == ContextState::NotRegistered);
+}
+
+TEST_CASE("contextState_wrongContextName_returnsNotRegistered") {
+    PackageManager mgr;
+    const auto tempDir = std::filesystem::temp_directory_path();
+    auto exp = mgr.addPackagePath("SingerA", stdc::VersionNumber(1, 0, 0), tempDir);
+    REQUIRE(exp.hasValue());
+
+    // 查询 SingerB（不同的 context 名）→ NotRegistered
+    ContextKey wrongNameCtx("SingerB", stdc::VersionNumber(1, 0, 0));
+    REQUIRE(mgr.contextState(wrongNameCtx) == ContextState::NotRegistered);
+}
+
+TEST_CASE("failedContexts_noInitialization_returnsEmpty") {
+    PackageManager mgr;
+    // 未调用 initialize()，contextStates 为空 → failedContexts 返回空
+    const auto tempDir = std::filesystem::temp_directory_path();
+    mgr.addPackagePath("SingerA", stdc::VersionNumber(1, 0, 0), tempDir);
+    mgr.addPackagePath("SingerB", stdc::VersionNumber(1, 0, 0), tempDir);
+
+    auto failed = mgr.failedContexts();
+    REQUIRE(failed.empty());
+}
+
+TEST_CASE("contextState_multipleContextsMixedRegistration") {
+    PackageManager mgr;
+    const auto tempDir = std::filesystem::temp_directory_path();
+    // 注册 SingerA@1.0.0 和默认 context
+    mgr.addPackagePath("SingerA", stdc::VersionNumber(1, 0, 0), tempDir);
+    mgr.addPackagePath("", tempDir);
+
+    // 已注册的 → Pending
+    REQUIRE(mgr.contextState(ContextKey("SingerA", stdc::VersionNumber(1, 0, 0))) == ContextState::Pending);
+    REQUIRE(mgr.contextState(ContextKey("")) == ContextState::Pending);
+
+    // 未注册的 → NotRegistered
+    REQUIRE(mgr.contextState(ContextKey("SingerB", stdc::VersionNumber(1, 0, 0))) == ContextState::NotRegistered);
+    REQUIRE(mgr.contextState(ContextKey("SingerA", stdc::VersionNumber(2, 0, 0))) == ContextState::NotRegistered);
 }
