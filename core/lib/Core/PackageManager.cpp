@@ -415,7 +415,7 @@ namespace LangCore
         packagePathsDirty = false;
     }
 
-    PackageManager::PackageManager() : PluginFactory(*new Impl(this)) {}
+    PackageManager::PackageManager() : _impl(new Impl(this)) {}
 
     PackageManager::~PackageManager() = default;
 

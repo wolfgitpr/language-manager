@@ -1,4 +1,5 @@
 #include "TaskImpl.h"
+#include <mutex>
 #include <LangCore/Support/ConfigAccessor.h>
 #include <LangCore/Support/Error.h>
 #include <LangCore/Support/Logging.h>

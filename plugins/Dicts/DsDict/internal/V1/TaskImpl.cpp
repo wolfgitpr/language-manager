@@ -83,7 +83,7 @@ namespace LangPlugins::DsDict::Internal::V1
 
             // Resolve via ConfigAccessor's unified path normalization
             // (canonical() with absolute() fallback), consistent with other plugins.
-            JsonObject pathConfig;
+            LangCore::JsonObject pathConfig;
             pathConfig["path"] = pathStr;
             LangCore::ConfigAccessor pathCfg(pathConfig);
             auto resolvedExp = pathCfg.getResolvedPath("path", cfg.basePath());
