@@ -1,202 +1,218 @@
 # 03 · 宿主集成契约
 
-本文档定义 LangCore 宿主（`ds-editor-lite`、`synthrt`）集成的契约：必须履行的步骤、禁止行为、加载约束、初始化顺序、ONNX 驱动注册模式与错误处理。
+本文档定义宿主工程（如 `ds-editor-lite`、`synthrt`）集成 LangCore 框架时必须遵守的契约，包括必须做、禁止做、加载约束、初始化顺序、ONNX 驱动注册模式、错误处理与回退策略。
 
-## 1. 宿主必须做的事
+> 2026-07-02 修订：修正 `addPluginPath` 参数（IID 非 category 名）、移除 tagger/splitter 分类、修正 `initialize()` 幂等行为（返回 Error 非 no-op）、修正 `addPackagePath` 后置行为（静默注册非 no-op）、修正 L-4 保证机制（Phase 顺序非注册顺序）。
 
-### 1.1 添加插件路径
+## 1. 宿主必须做（Must Do）
 
-按分类添加插件搜索路径，覆盖 Drivers / G2ps / Taggers / Splitters：
+### 1.1 按 IID 注册插件路径
 
 ```cpp
-auto mgr = Manager::instance();
-mgr->addPluginPath("driver",   driversPath);
-mgr->addPluginPath("g2p",      g2psPath);
-mgr->addPluginPath("tagger",   taggersPath);
-mgr->addPluginPath("splitter", splittersPath);
+mgr->addPluginPath("org.openvpi.Driver", driversPath);   // 驱动插件
+mgr->addPluginPath("org.openvpi.Task", g2psPath);        // G2P 任务插件
+mgr->addPluginPath("org.openvpi.Task", taggersPath);     // Tagger 任务插件（可选）
+mgr->addPluginPath("org.openvpi.Task", splittersPath);   // Splitter 任务插件（可选）
 ```
 
-### 1.2 添加包路径（先官方后私有）
+> ⚠️ `addPluginPath` 首参是 **IID 字符串**（`org.openvpi.Driver` / `org.openvpi.Task`），不是 category 名（如 `"driver"`/`"g2p"`）。Tagger/Splitter 通过同一 IID `org.openvpi.Task` 注册不同目录。
 
-- **官方默认上下文**：`context=""`，必须最先注册（约束 L-4）。
-- **声库私有上下文**：`context=singerId`，在官方之后注册。
+### 1.2 先注册官方默认上下文
 
 ```cpp
-// 官方默认上下文（必须先注册）
-mgr->addPackagePath("", officialG2pPackagesPath);
-
-// 声库私有上下文（在官方之后）
-for (auto &singer : singers) {
-    if (!singer.g2pPackagePath.empty()) {
-        mgr->addPackagePath(singer.id, singer.g2pPackagePath);
-    }
-}
+mgr->addPackagePath("", officialPackagesPath);   // 官方默认上下文，version 隐含为空
 ```
 
-### 1.3 初始化 ONNX 驱动（裸名，不参与上下文隔离）
-
-ONNX 驱动作为 **全局基础设施**，以裸名 `g2pOnnxDriver` 注册到 `driver` 分类（决策 D5），**不绑定到任何私有上下文**：
+### 1.3 再注册声库私有上下文（逐声库）
 
 ```cpp
+// 对每个含自定义 G2P 的声库语言：
+mgr->addPackagePath(singerId, version, voicebankPackagePath);
+```
+
+> `registerAll()` **不是框架 API**。宿主需自行遍历已安装声库，对含自定义 G2P 的语言调用 `addPackagePath`。ds-editor-lite 的 `LanguagePackageRegistrar::registerAll()` 是此逻辑的宿主侧实现。
+
+### 1.4 初始化 ONNX 驱动（裸名注册）
+
+```cpp
+// 1. 加载 ONNX 驱动插件
+const auto onnxDriverPlugin = mgr->plugin<LangCore::DriverPlugin>("onnx");
+auto expOnnxDriver = onnxDriverPlugin->create();
+const auto onnxDriver = expOnnxDriver.take();
+
+// 2. 初始化驱动（按需配置 ExecutionProvider 等）
+onnxDriver->initialize(onnxArgs);
+
+// 3. 以裸名注册到 driver 分类（不参与上下文隔离）
 auto &driverCategory = *mgr->category("driver");
 driverCategory.addObject("g2pOnnxDriver", onnxDriver);
 ```
 
-> 注意：`g2pOnnxDriver` 是裸名，不经过 `context:` 前缀化，对所有上下文全局可见。模型模块通过 ModelStep 两级查找引用底层驱动（见 [02-context-isolation-mechanism.md](02-context-isolation-mechanism.md) 第 5 节）。
-
-### 1.4 调用 initialize()（一次性，幂等）
+### 1.5 调用 initialize() 完成初始化
 
 ```cpp
-mgr->initialize();  // 幂等，重复调用为 no-op（L-2）
-```
-
-### 1.5 调用 convert() 执行 G2P 转换
-
-```cpp
-auto results = mgr->convert(inputs);  // inputs: vector<G2pInput>
-for (auto &r : results) {
-    if (r.isOk()) { /* 使用 r.pronunciation */ }
-    else         { /* 处理失败，按策略回退 */ }
+const auto initResult = mgr->initialize();
+if (!initResult) {
+    // 失败处理：initResult.error() 含错误信息
+}
+if (!mgr->initialized()) {
+    // 验证失败
 }
 ```
 
-## 2. 宿主禁止做的事
+### 1.6 调用 convert() 执行转换
 
-| 禁止行为 | 原因 |
-| --- | --- |
-| 在 `initialize()` 之后调用 `addPackagePath()` | 已初始化后注册被忽略（no-op），无法生效；需重启（L-3） |
-| 多次调用 `initialize()` | 幂等守卫使其为 no-op，但不应依赖此行为；语义上只应调用一次（L-2） |
-| 将 ONNX 驱动注册到私有上下文 | ONNX 驱动是全局基础设施，必须裸名注册（D5） |
-| 运行时加载自定义 G2P | 自定义 G2P 仅启动时加载（L-1），运行时新增声库需重启（L-3） |
-| 跨私有上下文引用模块 | 上下文隔离禁止 `SingerA` 解析到 `SingerB` 的模块 |
-| 在 `initialize()` 完成前调用 `convert()` | `Pending` 状态下转换不可用 |
+```cpp
+std::vector<LangCore::G2pInput> inputs = /* 构造输入 */;
+auto results = mgr->convert(inputs);
+// 依据 G2pRes::isOk() / isFailed() 判断结果
+```
+
+## 2. 宿主禁止做（Must Not Do）
+
+| 禁止行为 | 原因 | 后果 |
+| --- | --- | --- |
+| 在 `initialize()` 成功后再次调用 `initialize()` | success-gated 幂等（L-2） | 返回 `Error::AlreadyInitialized` |
+| 期望运行时 `addPackagePath` 生效 | L-1 约束 | 路径静默注册但永不被处理，需重启 |
+| 为默认上下文传非空 version | R-8 硬约束 | `addPackagePath` 返回 `Error::ValidationError` |
+| 为私有上下文（版本化重载）传空 version | R-8 硬约束 | `addPackagePath` 返回 `Error::ValidationError` |
+| 使用 `:g2pId` 作为默认上下文 FQID | `formatFqid` 对默认上下文返回裸 moduleId | 查找失败 |
+| 期望 `convert()` 跨上下文回退 | C-6 不变式 | `convert()` 不跨上下文查找；回退由宿主 `G2pConvertRunner` 实现 |
+| 在 `Manager` 单例之外创建 `Manager` 实例 | 单例模式 | 未定义行为 |
+| 期望默认上下文失败后私有上下文可用 | Ord-1 | 默认上下文失败整体中止 |
+
+> 注：`addPackagePath` 在 `initialize()` 后调用**不会**被拒绝（不返回 Error），而是静默注册但永不处理。宿主应在 `initialize()` 前完成所有 `addPackagePath` 调用。
 
 ## 3. 加载约束（L-1～L-4）
 
-| 约束 | 内容 | 实现依据 |
-| --- | --- | --- |
-| **L-1** | 自定义 G2P 仅在启动时加载 | 插件与包扫描发生在 `initialize()`，之后不再扫描 |
-| **L-2** | `initialize()` 幂等，不可重复调用 | `Manager.cpp:64-68` 幂等守卫 |
-| **L-3** | 运行时新增声库需重启 | `addPackagePath` 在 `initialize()` 后失效 |
-| **L-4** | 官方上下文必须在私有上下文之前注册 | 默认上下文作为兜底来源，须先就绪 |
+### L-1：自定义 G2P 仅在启动时加载
+
+- **约束**：自定义 G2P 包仅在应用启动阶段加载，运行时禁止加载。
+- **框架行为**：`addPackagePath` 不检查 `initialized`，但新路径因 `initialize()` 不可重跑而永不被处理。
+- **宿主守卫**：ds-editor-lite 的 `LanguagePackageRegistrar::registerAll()` 在 `langMgr->initialized()` 为 true 时直接返回 0。
+
+### L-2：initialize() success-gated 幂等
+
+- **约束**：`initialize()` 成功后再次调用返回 `Error::AlreadyInitialized`；失败的 `initialize()` 允许重试。
+- **实现**：`initialized` 标志仅在成功末尾置 true（`Manager.cpp:256`）。
+- **测试**：`tests/catch2/tst_init_constraints.cpp` 的 `ic_failedInit_allowsRetry_notBlocked`。
+
+### L-3：运行时安装新声音库需重启
+
+- **约束**：运行时安装的新声音库（含自定义 G2P）需重启应用才能生效。
+- **原因**：L-1 推论。
+
+### L-4：官方上下文先于私有上下文初始化
+
+- **约束**：默认上下文必须先于私有上下文**初始化**。
+- **保证机制**：由 `initialize()` Phase 1（默认）/ Phase 2（私有）顺序硬编码保证（`Manager.cpp:74` 硬编码 `ContextKey("")`），**与 `addPackagePath` 调用顺序无关**。
+- **影响**：宿主即使先注册私有上下文、后注册官方上下文，`initialize()` 仍保证官方先处理。
 
 ## 4. 初始化顺序
 
-完整初始化顺序（参照 `ds-editor-lite` 的 `LaunchLanguageEngineTask` 模式）：
+### 4.1 完整初始化序列
 
 ```
-① addPluginPath(driver/g2p/tagger/splitter)
-        │
-        ▼
-② addPackagePath("", officialPath)          ← 官方默认上下文（L-4 最先）
-        │
-        ▼
-③ 为每个声库 addPackagePath(singerId, path) ← 私有上下文（L-4 之后）
-        │
-        ▼
-④ initializeOnnxDriver → category("driver").addObject("g2pOnnxDriver", drv)  ← 裸名注册（D5）
-        │
-        ▼
-⑤ mgr->initialize()                         ← 幂等初始化（L-2）
-        │
-        ▼
-⑥ 可调用 mgr->convert(inputs)               ← G2P 转换
+1. addPluginPath(iid, path) ×N
+   │  按 IID 注册插件搜索路径
+   │  IID: "org.openvpi.Driver" / "org.openvpi.Task"
+   ▼
+2. addPackagePath("", officialPath)
+   │  注册官方默认上下文（version 隐含为空）
+   ▼
+3. addPackagePath(singerId, version, voicebankPath) ×N
+   │  逐声库注册私有上下文（宿主侧编排，如 LanguagePackageRegistrar::registerAll）
+   ▼
+4. ONNX 驱动初始化 + 裸名注册
+   │  category("driver")->addObject("g2pOnnxDriver", drv)
+   ▼
+5. initialize()
+   │  success-gated 幂等（L-2）
+   │  Phase 1: 默认上下文（失败则整体中止，Ord-1）
+   │  Phase 2: 私有上下文（失败标记 Failed 并继续，collectError）
+   │  Phase 3: Task 加载
+   ▼
+6. initialized() 验证
+   ▼
+7. convert(inputs) 执行 G2P 转换
 ```
 
-> 顺序违规的后果：
-> - ③ 在 ② 之前：违反 L-4，兜底来源未就绪。
-> - ②/③ 在 ⑤ 之后：注册被忽略（no-op），上下文未生效。
-> - ④ 在 ⑤ 之后：驱动注册晚于初始化，依赖该驱动的模块解析失败。
+### 4.2 ds-editor-lite 实际序列参考
+
+ds-editor-lite 的 `LaunchLanguageEngineTask::runTask()`（`file:///D:/projects/ds-editor-lite/src/app/Controller/Tasks/LaunchLanguageEngineTask.cpp` 第 130-186 行）实现了上述序列，含 `waitForPackageModuleReady` 等待 PackageManager 扫描就绪的额外步骤。
+
+### 4.3 降级行为
+
+即使声库私有上下文注册全部失败（步骤 3 跳过），只要 `initialize()` 成功，官方 G2P（默认上下文）仍可用。
 
 ## 5. ONNX 驱动注册模式
 
-### 5.1 裸名注册
+ONNX 驱动是**全局基础设施**，以裸名注册，不参与上下文隔离（决策 D5）：
 
-```cpp
-auto &driverCategory = *mgr->category("driver");
-driverCategory.addObject("g2pOnnxDriver", onnxDriver);
-```
+| 属性 | 值 |
+| --- | --- |
+| 注册分类 | `driver` |
+| 注册名 | `"g2pOnnxDriver"`（裸名） |
+| 注册方式 | `category("driver")->addObject("g2pOnnxDriver", drv)` |
+| 上下文隔离 | ❌ 不参与 |
+| 生命周期 | 应用级（全局单例） |
+| 注册时机 | `initialize()` 之前 |
 
-- **裸名**：`g2pOnnxDriver`，不带任何 `context:` 前缀。
-- **位置**：`driver` 分类，全局可见。
-- **隔离性**：不参与上下文隔离，所有上下文共享同一驱动实例。
+> 裸名注册意味着不经过 `formatFqid()` 命名空间化，独立于 `(context, version)` 键空间，所有上下文共享同一 ONNX 驱动实例。
 
-### 5.2 为什么不上下文隔离
+## 6. 错误处理
 
-ONNX 驱动是底层推理引擎，属于进程级共享资源。若每个私有上下文各注册一份：
+### 6.1 initialize() 错误
 
-- 重复加载模型，内存浪费。
-- 驱动实例与 G2P 模块的多对多关系复杂化。
-- 与「模型模块通过 ModelStep 两级查找共享」的设计冲突。
-
-因此驱动层全局化（D5），模型模块层通过两级查找实现「私有优先 + 默认兜底」（D4），两者分层配合。
-
-## 6. 错误处理：collectError 模式
-
-### 6.1 单包失败不阻塞
-
-`PackageManager` 在扫描与依赖解析时采用 `collectError` 模式（决策 D7）：
-
-- 单个 G2P 包解析失败 → 收集错误，**继续解析其余包**。
-- 受影响的上下文置为 `Failed`，其他上下文正常进入 `Ready`。
-
-### 6.2 宿主侧处理
-
-- 宿主通过 `ContextState` 查询各上下文可用性。
-- `convert()` 返回的 `G2pRes` 通过 `isOk()` / `isFailed()` 判定单条结果成败。
-- 失败结果按回退策略处理（见第 7 节）。
-
-## 7. 回退策略（宿主侧，G2pConvertRunner）
-
-> `G2pConvertRunner` 位于 `ds-editor-lite`，不在 LangCore 内；此处仅描述契约以指导测试设计。
-
-### 7.1 两条调用路径
-
-| 路径 | 触发场景 | 回退策略 |
+| 错误源 | 错误码 | 处理 |
 | --- | --- | --- |
-| FillLyric（填词） | 用户填词 | `ToOfficial`：私有失败 → 回退官方上下文重试 |
-| Inference（推理） | `GetPronunciationTask` | `Never`：仅主转换，失败时复制 fallback（lyric），不回退官方 |
+| 重复调用（成功后） | `AlreadyInitialized` | 宿主应避免；检查 `initialized()` |
+| 默认上下文失败 | Ord-1 | 整体中止，宿主应提示用户检查官方 G2P 包 |
+| 私有上下文失败 | collectError 收集 | 不中止；可通过 `failedContexts()` 查询失败列表 |
 
-### 7.2 ToOfficial 流程
+### 6.2 addPackagePath 错误
 
-1. 主转换：`mgr->convert(inputs)`，使用声库私有上下文。
-2. 检测失败：若 `result.isFailed()` 且 `context` 非空（私有上下文）。
-3. 回退转换：将 `context` 改为 `""`（官方），再次 `mgr->convert(inputs)`。
-4. 结果映射到 `G2pResult`。
+| 错误源 | 错误码 | 处理 |
+| --- | --- | --- |
+| 默认上下文传 version | `ValidationError` (R-8) | 宿主应传空 version |
+| 私有上下文传空 version | `ValidationError` (R-8) | 宿主应传声库声明版本 |
+| context 名非法 | `ValidationError` | 宿主应校验 `singerId` 字符集 |
+| 路径不存在/非目录 | `ValidationError` | 宿主应校验路径 |
 
-### 7.3 Never 流程
+### 6.3 convert() 错误
 
-1. 主转换：`mgr->convert(inputs)`，使用声库私有上下文。
-2. 检测失败：若 `result.isFailed()`。
-3. **不回退官方**，直接复制 fallback（如原始 lyric）。
-4. 结果映射到 pronunciation 字符串。
+`convert()` 返回 `vector<G2pRes>`，每个 `G2pRes` 含 `errorType`：
 
-### 7.4 路由两级决策（G2pRouteResolver）
+| 字段 | 判定 | 宿主处理 |
+| --- | --- | --- |
+| `isOk()` | `errorType == NoError` | 使用 `pronunciation`/`candidates` |
+| `isFailed()` | `errorType != NoError` | 依据场景选择回退策略 |
 
-在调用 `convert` 之前，`G2pRouteResolver::resolve(singerInfo, language)` 进行两级路由：
+> 框架 `convert()` 本身无回退策略。回退由宿主侧 `G2pConvertRunner` 实现。
 
-- **第一级（声库上下文）**：若声库 `g2pPackagePaths` 非空 → `context = singerId`，`source = voicebank`。
-- **第二级（官方上下文）**：若 `g2pPackagePaths` 为空 → `context = ""`，`source = official`。
-- 路由无效条件：`resolutionState` 为 `Pending`/`Missing`、语言未找到、`g2pId` 为空/未知。
+## 7. 回退策略（宿主侧，D11 统一 Never-only）
 
-> 详细测试设计见 [04-test-design.md](04-test-design.md) 测试领域 2。
+> **2026-07-02 决策（D11）**：回退策略统一为 `Never`-only，移除原 `ToOfficial` 策略与 `G2pFallbackPolicy` 枚举。
 
-## 8. 宿主集成检查清单
+回退策略位于 `ds-editor-lite` 的 `G2pConvertRunner`，框架不参与：
 
-集成完成前，请逐项核对：
+| 场景 | 策略 | 说明 |
+| --- | --- | --- |
+| 推理（Inference） | `Never` | 私有上下文失败不回退；copy fallback（原词保留）+ 精准 `G2pErrorType` 上报 |
+| FillLyric（填词） | `Never` | 私有上下文失败不回退；copy fallback（原词保留）+ 精准 `G2pErrorType` 上报 |
 
-- [ ] 已按分类添加所有插件路径（Drivers / G2ps / Taggers / Splitters）
-- [ ] 官方默认上下文（`context=""`）已最先注册（L-4）
-- [ ] 所有声库私有上下文已在官方之后注册
-- [ ] ONNX 驱动以裸名 `g2pOnnxDriver` 注册到 `driver` 分类（D5）
-- [ ] `initialize()` 仅调用一次（L-2）
-- [ ] `convert()` 在 `initialize()` 完成后调用
-- [ ] 失败结果按 `ToOfficial` / `Never` 策略处理
-- [ ] 未在运行时加载自定义 G2P（L-1、L-3）
+**D11 前**：FillLyric 链路使用 `ToOfficial`（私有上下文失败时用默认上下文参数再次调用 `convert()`）。
+**D11 后**：所有链路统一 `Never`，宿主不再二次调用 `convert()`；框架 `convert()` 行为不变（本就无策略）。失败由 UI 显式提示用户手动调整。
 
-## 9. 源码引用
+> `G2pErrorType`（D12）由本仓库独家定义，宿主侧直接透传，不新增 caller 级错误枚举。
 
-- Manager 头文件：`file:///D:/projects/language-manager/core/include/LangCore/Core/Manager.h`
-- Manager 实现（幂等守卫）：`file:///D:/projects/language-manager/core/lib/Core/Manager.cpp`
-- 公共类型（G2pRes / G2pInput）：`file:///D:/projects/language-manager/core/include/LangCore/Base/LangCommon.h`
-- 端到端测试（宿主流程参考）：`file:///D:/projects/language-manager/tests/tst_langCore/main.cpp`
+## 8. 源码引用
+
+- Manager API：`file:///D:/projects/language-manager/core/include/LangCore/Core/Manager.h`
+- PluginFactory（addPluginPath）：`file:///D:/projects/language-manager/core/include/LangCore/Core/PluginFactory.h`
+- PackageManager（addPackagePath）：`file:///D:/projects/language-manager/core/include/LangCore/Core/PackageManager.h`
+- initialize 幂等守卫：`file:///D:/projects/language-manager/core/lib/Core/Manager.cpp`（第 61-68 行）
+- R-8 版本约束：`file:///D:/projects/language-manager/core/lib/Core/PackageManager.cpp`（第 582-587 行）
+- ds-editor-lite 启动序列：`file:///D:/projects/ds-editor-lite/src/app/Controller/Tasks/LaunchLanguageEngineTask.cpp`（第 130-186 行）
+- ds-editor-lite 声库注册：`file:///D:/projects/ds-editor-lite/src/app/Modules/Language/LanguagePackageRegistrar.cpp`（第 69-136 行）
+- 约束测试：`file:///D:/projects/language-manager/tests/catch2/tst_init_constraints.cpp`

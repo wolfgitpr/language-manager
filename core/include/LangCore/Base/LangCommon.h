@@ -23,14 +23,14 @@ namespace LangCore
     struct G2pInput {
         std::string lyric;
         std::string g2pId;
-        std::string context;                    // Voice bank name (empty = default context)
-        stdc::VersionNumber contextVersion;     // Voice bank version (isEmpty() = unversioned)
+        std::string g2pContext;                    // Voice bank name (empty = default context)
+        stdc::VersionNumber g2pContextVersion;     // Voice bank version (isEmpty() = unversioned)
 
         G2pInput() = default;
-        G2pInput(std::string lyric, std::string g2pId, std::string context = {},
-                 stdc::VersionNumber contextVersion = {})
-            : lyric(std::move(lyric)), g2pId(std::move(g2pId)), context(std::move(context)),
-              contextVersion(std::move(contextVersion)) {}
+        G2pInput(std::string lyric, std::string g2pId, std::string g2pContext = {},
+                 stdc::VersionNumber g2pContextVersion = {})
+            : lyric(std::move(lyric)), g2pId(std::move(g2pId)), g2pContext(std::move(g2pContext)),
+              g2pContextVersion(std::move(g2pContextVersion)) {}
     };
 
     enum G2pErrorType {
@@ -44,8 +44,9 @@ namespace LangCore
     struct G2pRes {
         std::string lyric;
         std::string g2pId;
-        std::string context;
-        stdc::VersionNumber contextVersion;     // Voice bank version (isEmpty() = unversioned)
+        std::string g2pContext;
+        stdc::VersionNumber g2pContextVersion;     // Voice bank version (isEmpty() = unversioned)
+        std::string g2pSource;                     // Source context: "official" (default) or "voicebank"
         std::string pronunciation;
         std::vector<std::string> candidates;
         std::string mode = "copy";
@@ -63,13 +64,14 @@ namespace LangCore
 
         G2pRes() {}
 
-        G2pRes(std::string lyric, std::string g2pId, std::string context = {},
-               stdc::VersionNumber contextVersion = {}, std::string pronunciation = {},
+        G2pRes(std::string lyric, std::string g2pId, std::string g2pContext = {},
+               stdc::VersionNumber g2pContextVersion = {}, std::string pronunciation = {},
                std::vector<std::string> candidates = {}, std::string mode = "copy",
-               const G2pErrorType errorType = NoError) :
-            lyric(std::move(lyric)), g2pId(std::move(g2pId)), context(std::move(context)),
-            contextVersion(std::move(contextVersion)), pronunciation(std::move(pronunciation)),
-            candidates(std::move(candidates)), mode(std::move(mode)), errorType(errorType) {
+               const G2pErrorType errorType = NoError, std::string g2pSource = {}) :
+            lyric(std::move(lyric)), g2pId(std::move(g2pId)), g2pContext(std::move(g2pContext)),
+            g2pContextVersion(std::move(g2pContextVersion)), g2pSource(std::move(g2pSource)),
+            pronunciation(std::move(pronunciation)), candidates(std::move(candidates)),
+            mode(std::move(mode)), errorType(errorType) {
             if (this->candidates.empty() && !this->pronunciation.empty())
                 this->candidates.push_back(this->pronunciation);
 
@@ -77,12 +79,12 @@ namespace LangCore
                 this->pronunciation = this->lyric;
         }
 
-        /// Legacy convenience constructor (no contextVersion)
-        [[deprecated("Use 8-parameter constructor with contextVersion")]]
-        G2pRes(std::string lyric, std::string g2pId, std::string context, std::string pronunciation,
+        /// Legacy convenience constructor (no g2pContextVersion)
+        [[deprecated("Use 9-parameter constructor with g2pContextVersion")]]
+        G2pRes(std::string lyric, std::string g2pId, std::string g2pContext, std::string pronunciation,
                std::vector<std::string> candidates = {}, std::string mode = "copy",
                const G2pErrorType errorType = NoError) :
-            G2pRes(std::move(lyric), std::move(g2pId), std::move(context), {},
+            G2pRes(std::move(lyric), std::move(g2pId), std::move(g2pContext), {},
                    std::move(pronunciation), std::move(candidates), std::move(mode), errorType) {}
     };
 } // namespace LangCore

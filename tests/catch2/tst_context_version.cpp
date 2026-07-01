@@ -106,34 +106,34 @@ TEST_CASE("fqid_roundtrip_versioned") {
 
 TEST_CASE("g2pInput_withVersion") {
     G2pInput input("你好", "g2p-cmn", "SingerA", stdc::VersionNumber(1, 0, 0));
-    REQUIRE(input.context == "SingerA");
-    REQUIRE_FALSE(input.contextVersion.isEmpty());
-    REQUIRE(input.contextVersion.major() == 1);
+    REQUIRE(input.g2pContext == "SingerA");
+    REQUIRE_FALSE(input.g2pContextVersion.isEmpty());
+    REQUIRE(input.g2pContextVersion.major() == 1);
 }
 
 TEST_CASE("g2pInput_withoutVersion_backward_compat") {
     G2pInput input("hello", "g2p-eng", "SingerA");
-    REQUIRE(input.context == "SingerA");
-    REQUIRE(input.contextVersion.isEmpty());
+    REQUIRE(input.g2pContext == "SingerA");
+    REQUIRE(input.g2pContextVersion.isEmpty());
 }
 
 TEST_CASE("g2pInput_default_backward_compat") {
     G2pInput input("hello", "g2p-eng");
-    REQUIRE(input.context == "");
-    REQUIRE(input.contextVersion.isEmpty());
+    REQUIRE(input.g2pContext == "");
+    REQUIRE(input.g2pContextVersion.isEmpty());
 }
 
 TEST_CASE("g2pRes_withVersion") {
     G2pRes res("hello", "eng", "SingerA", stdc::VersionNumber(2, 0, 0), "hh ah l ow");
-    REQUIRE(res.context == "SingerA");
-    REQUIRE(res.contextVersion.major() == 2);
+    REQUIRE(res.g2pContext == "SingerA");
+    REQUIRE(res.g2pContextVersion.major() == 2);
     REQUIRE(res.pronunciation == "hh ah l ow");
 }
 
 TEST_CASE("g2pRes_legacy_constructor") {
     G2pRes res("hello", "eng", "SingerA", "hh ah l ow");
-    REQUIRE(res.context == "SingerA");
-    REQUIRE(res.contextVersion.isEmpty());
+    REQUIRE(res.g2pContext == "SingerA");
+    REQUIRE(res.g2pContextVersion.isEmpty());
     REQUIRE(res.pronunciation == "hh ah l ow");
 }
 

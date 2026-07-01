@@ -9,41 +9,41 @@ TEST_CASE("convertInput_defaultConstruction") {
     LangCore::G2pInput input;
     REQUIRE(input.lyric.empty());
     REQUIRE(input.g2pId.empty());
-    REQUIRE(input.context.empty());
+    REQUIRE(input.g2pContext.empty());
 }
 
 TEST_CASE("convertInput_withContext") {
     LangCore::G2pInput input("你好", "g2p-cmn-custom", "SingerA");
     REQUIRE(input.lyric == "你好");
     REQUIRE(input.g2pId == "g2p-cmn-custom");
-    REQUIRE(input.context == "SingerA");
+    REQUIRE(input.g2pContext == "SingerA");
 }
 
 TEST_CASE("convertInput_defaultContext") {
     LangCore::G2pInput input("hello", "g2p-eng", "");
-    REQUIRE(input.context == "");
+    REQUIRE(input.g2pContext == "");
 }
 
 TEST_CASE("convertInput_contextOmitted") {
     LangCore::G2pInput input("hello", "g2p-eng");
-    REQUIRE(input.context == "");
+    REQUIRE(input.g2pContext == "");
 }
 
 // --- G2pRes context field ---
 
 TEST_CASE("g2pRes_contextField") {
     LangCore::G2pRes res("hello", "eng", "SingerA", "hh ah l ow");
-    REQUIRE(res.context == "SingerA");
+    REQUIRE(res.g2pContext == "SingerA");
 }
 
 TEST_CASE("g2pRes_defaultContext") {
     LangCore::G2pRes res("hello", "eng", "", "hh ah l ow");
-    REQUIRE(res.context == "");
+    REQUIRE(res.g2pContext == "");
 }
 
 TEST_CASE("g2pRes_contextPreserved") {
     LangCore::G2pRes res("hello", "eng", "SingerA", "hh ah l ow");
-    REQUIRE(res.context == "SingerA");
+    REQUIRE(res.g2pContext == "SingerA");
     REQUIRE(res.lyric == "hello");
     REQUIRE(res.g2pId == "eng");
     REQUIRE(res.pronunciation == "hh ah l ow");

@@ -17,6 +17,13 @@ namespace fs = std::filesystem;
 
 namespace LangCore
 {
+    namespace {
+        // D10: g2pSource 填充规则 — 依据 g2pContext 判定来源（空=官方默认上下文，非空=声库私有上下文）
+        std::string g2pSourceFromContext(const std::string &g2pContext) {
+            return g2pContext.empty() ? "official" : "voicebank";
+        }
+    } // namespace
+
     Manager::Impl::Impl(Manager *decl) : PackageManager::Impl(decl) {}
 
     Manager::Impl::~Impl() = default;
@@ -372,10 +379,10 @@ namespace LangCore
         std::vector<G2pRes> result;
         result.reserve(input.size());
 
-        // Group by (context, contextVersion, g2pId) — adjacent grouping
+        // Group by (g2pContext, g2pContextVersion, g2pId) — adjacent grouping
         struct Group {
-            std::string context;
-            stdc::VersionNumber contextVersion;
+            std::string g2pContext;
+            stdc::VersionNumber g2pContextVersion;
             std::string g2pId;
             std::vector<std::string> lyrics;
             std::vector<size_t> resultIndexes;
@@ -389,30 +396,31 @@ namespace LangCore
 
             // C-2: skip empty lyric
             if (item.lyric.empty()) {
-                result[i] = G2pRes("", item.g2pId, item.context, item.contextVersion, "", {}, "skip", NoError);
+                result[i] = G2pRes("", item.g2pId, item.g2pContext, item.g2pContextVersion, "", {}, "skip",
+                                   NoError, g2pSourceFromContext(item.g2pContext));
                 continue;
             }
 
             // C-3: skip empty g2pId
             if (item.g2pId.empty()) {
-                result[i] = G2pRes(item.lyric, "", item.context, item.contextVersion, item.lyric, {item.lyric},
-                                   "copy", UnknownError);
+                result[i] = G2pRes(item.lyric, "", item.g2pContext, item.g2pContextVersion, item.lyric,
+                                   {item.lyric}, "copy", UnknownError, g2pSourceFromContext(item.g2pContext));
                 MgrLog.langCoreWarning("C-3: empty g2pId for lyric '%1', skipping", item.lyric);
                 continue;
             }
 
             // C-4: validate context chars
-            if (auto exp = ContextUtils::validateContextName(item.context); !exp) {
-                result[i] = G2pRes(item.lyric, item.g2pId, item.context, item.contextVersion, item.lyric,
-                                   {item.lyric}, "copy", UnknownError);
-                MgrLog.langCoreWarning("C-4: invalid context '%1' for lyric '%2'", item.context, item.lyric);
+            if (auto exp = ContextUtils::validateContextName(item.g2pContext); !exp) {
+                result[i] = G2pRes(item.lyric, item.g2pId, item.g2pContext, item.g2pContextVersion, item.lyric,
+                                   {item.lyric}, "copy", UnknownError, g2pSourceFromContext(item.g2pContext));
+                MgrLog.langCoreWarning("C-4: invalid context '%1' for lyric '%2'", item.g2pContext, item.lyric);
                 continue;
             }
 
             // Adjacent grouping
-            if (groups.empty() || groups.back().context != item.context ||
-                groups.back().contextVersion != item.contextVersion || groups.back().g2pId != item.g2pId) {
-                groups.push_back({item.context, item.contextVersion, item.g2pId, {}, {}});
+            if (groups.empty() || groups.back().g2pContext != item.g2pContext ||
+                groups.back().g2pContextVersion != item.g2pContextVersion || groups.back().g2pId != item.g2pId) {
+                groups.push_back({item.g2pContext, item.g2pContextVersion, item.g2pId, {}, {}});
             }
             groups.back().lyrics.push_back(item.lyric);
             groups.back().resultIndexes.push_back(i);
@@ -426,10 +434,10 @@ namespace LangCore
             NO<Task> taskObj;
             if (catIt != impl.tasks.end()) {
                 // Two-step ContextKey lookup
-                ContextKey ctxKey(group.context, group.contextVersion);
+                ContextKey ctxKey(group.g2pContext, group.g2pContextVersion);
                 auto ctxIt = catIt->second.find(ctxKey);
-                if (ctxIt == catIt->second.end() && !group.contextVersion.isEmpty()) {
-                    ctxIt = catIt->second.find(ContextKey(group.context));
+                if (ctxIt == catIt->second.end() && !group.g2pContextVersion.isEmpty()) {
+                    ctxIt = catIt->second.find(ContextKey(group.g2pContext));
                 }
                 if (ctxIt != catIt->second.end()) {
                     auto idIt = ctxIt->second.find(group.g2pId);
@@ -442,28 +450,30 @@ namespace LangCore
                 // Diagnose why the lookup failed
                 bool contextEverRegistered = false;
                 for (const auto &[regKey, _] : impl.contextPackagePaths) {
-                    if (regKey.context == group.context) {
+                    if (regKey.context == group.g2pContext) {
                         contextEverRegistered = true;
                         break;
                     }
                 }
 
-                if (!contextEverRegistered && !group.context.empty()) {
-                    MgrLog.langCoreCritical("C-5: context '%1' was never registered via addPackagePath", group.context);
+                if (!contextEverRegistered && !group.g2pContext.empty()) {
+                    MgrLog.langCoreCritical("C-5: context '%1' was never registered via addPackagePath",
+                                            group.g2pContext);
                 } else if (contextEverRegistered) {
                     // Context was registered but g2pId or version not found
-                    auto ctxDisplay = ContextKey(group.context, group.contextVersion).toString();
+                    auto ctxDisplay = ContextKey(group.g2pContext, group.g2pContextVersion).toString();
                     MgrLog.langCoreCritical("C-6: g2p '%1' not found in context '%2' (check g2pId spelling or version)",
                                             group.g2pId, ctxDisplay);
                 } else {
                     MgrLog.langCoreCritical("C-6: fail to find g2p '%1' in context '%2'",
                                             group.g2pId,
-                                            ContextKey(group.context, group.contextVersion).toString());
+                                            ContextKey(group.g2pContext, group.g2pContextVersion).toString());
                 }
+                const auto src = g2pSourceFromContext(group.g2pContext);
                 for (size_t j = 0; j < group.lyrics.size(); ++j) {
                     result[group.resultIndexes[j]] =
-                        G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],
-                               {group.lyrics[j]}, "copy", UnknownError);
+                        G2pRes(group.lyrics[j], group.g2pId, group.g2pContext, group.g2pContextVersion,
+                               group.lyrics[j], {group.lyrics[j]}, "copy", UnknownError, src);
                 }
                 continue;
             }
@@ -473,10 +483,11 @@ namespace LangCore
             if (!resultExp) {
                 MgrLog.langCoreCritical("inference failed for g2p '%1': %2",
                                         group.g2pId, resultExp.error().message());
+                const auto src = g2pSourceFromContext(group.g2pContext);
                 for (size_t j = 0; j < group.lyrics.size(); ++j) {
                     result[group.resultIndexes[j]] =
-                        G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],
-                               {group.lyrics[j]}, "copy", ModelInferenceFailed);
+                        G2pRes(group.lyrics[j], group.g2pId, group.g2pContext, group.g2pContextVersion,
+                               group.lyrics[j], {group.lyrics[j]}, "copy", ModelInferenceFailed, src);
                 }
                 continue;
             }
@@ -486,18 +497,21 @@ namespace LangCore
                 if (!g2pRes->errorMessage.empty())
                     MgrLog.langCoreCritical("Error: %1", g2pRes->errorMessage);
 
+                const auto src = g2pSourceFromContext(group.g2pContext);
                 for (size_t j = 0; j < g2pRes->g2pResult.size() && j < group.resultIndexes.size(); ++j) {
                     auto res = g2pRes->g2pResult[j];
-                    res.context = group.context;
-                    res.contextVersion = group.contextVersion;
+                    res.g2pContext = group.g2pContext;
+                    res.g2pContextVersion = group.g2pContextVersion;
+                    res.g2pSource = src;
                     result[group.resultIndexes[j]] = std::move(res);
                 }
             } else {
                 MgrLog.langCoreCritical("unexpected result type for g2p '%1'", group.g2pId);
+                const auto src = g2pSourceFromContext(group.g2pContext);
                 for (size_t j = 0; j < group.lyrics.size(); ++j) {
                     result[group.resultIndexes[j]] =
-                        G2pRes(group.lyrics[j], group.g2pId, group.context, group.contextVersion, group.lyrics[j],
-                               {group.lyrics[j]}, "copy", UnknownError);
+                        G2pRes(group.lyrics[j], group.g2pId, group.g2pContext, group.g2pContextVersion,
+                               group.lyrics[j], {group.lyrics[j]}, "copy", UnknownError, src);
                 }
             }
         }

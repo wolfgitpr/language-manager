@@ -2,6 +2,8 @@
 
 本文档定义 LangCore 宿主集成相关的测试设计，覆盖三大测试领域，采用双层测试策略。这是本目录最核心的文档，包含具体的测试用例描述与实现计划。
 
+> 2026-07-02 修订：修正 I-C2/I-C3 用例预期以匹配实际框架行为（`addPackagePath` 静默注册但永不被处理，非 no-op；`initialize()` 成功后第二次返回 `Error::AlreadyInitialized`，非幂等 no-op）。详见 [01-framework-capabilities.md](01-framework-capabilities.md) §1.2/§1.3 与 [03-host-integration-contract.md](03-host-integration-contract.md) §3。
+
 ## 1. 测试策略：双层架构
 
 采用 **双层测试策略**，兼顾速度与真实度：
@@ -58,7 +60,7 @@
 **实现要点**：
 - 使用 mock `ModuleMetadata` 构造默认上下文与私有上下文的模块集合。
 - 使用 mock `DependencyResolver` 控制依赖解析结果。
-- 断言 `G2pRes::isOk()` / `isFailed()`，并校验 `context` 字段指向正确上下文。
+- 断言 `G2pRes::isOk()` / `isFailed()`，并校验 `g2pContext` 字段指向正确上下文（D10：原 `context`）。
 - 参考 `tst_context_isolation.cpp` 现有的 mock 模式。
 
 #### 2.1.2 tst_langCore 层：真实多上下文端到端
@@ -77,6 +79,7 @@
 - S5-E2：构造自定义 G2P 必失败的场景（如损坏的模型），验证 `G2pConvertRunner::convert(..., ToOfficial)` 的回退。
 - S5-E3：同样失败场景，验证 `G2pConvertRunner::convert(..., Never)` 直接复制 fallback。
 - 模拟 `ds-editor-lite` 的 `G2pConvertRunner` 流程：主转换 → 检测 `isFailed()` → 按策略回退或不回退。
+- **g2pSource 字段验证（D10）**：S5-E1 私有上下文转换成功时，断言 `G2pRes.g2pSource == "voicebank"`；对照默认上下文转换结果 `g2pSource == "official"`。失败路径（S5-E2/E3）同样需断言 `g2pSource` 与 `g2pContext` 一致（来源由输入参数 `G2pInput.g2pContext` 判定，非由成败判定）。
 
 ---
 
@@ -113,9 +116,9 @@
 | R-E2 | 移除自定义 G2P（仅官方上下文）；转换 | 回退到官方上下文，结果为官方 G2P 输出 |
 
 **实现要点**：
-- R-E1：`addPackagePath("SingerA", customPath)` 后转换，验证 `G2pRes.context == "SingerA"`。
+- R-E1：`addPackagePath("SingerA", customPath)` 后转换，验证 `G2pRes.g2pContext == "SingerA"`。
 - R-E2：模拟「移除」可通过重启进程时不注册私有上下文实现（受 L-3 约束，运行时无法移除）。
-- 验证 `G2pRes.context` 与 `g2pId` 字段指向预期的上下文与模块。
+- 验证 `G2pRes.g2pContext` 与 `g2pId` 字段指向预期的上下文与模块。
 
 ---
 
@@ -130,17 +133,17 @@
 | 用例编号 | 场景 | 预期 |
 | --- | --- | --- |
 | I-C1 | `addPackagePath` 在 `initialize()` 之前调用 | 注册成功，上下文进入 `Pending` → `Ready` |
-| I-C2 | `addPackagePath` 在 `initialize()` 之后调用 | no-op，被忽略，上下文未注册 |
-| I-C3 | `initialize()` 调用两次 | 幂等，第二次为 no-op |
+| I-C2 | `addPackagePath` 在 `initialize()` 之后调用 | 路径静默注册，但**永不被处理**，上下文停留 `Pending` 直至进程结束 |
+| I-C3 | `initialize()` 调用两次 | 第一次成功；第二次返回 `Error::AlreadyInitialized`（success-gated 幂等，非静默 no-op） |
 | I-C4 | `initialized()` 在 `initialize()` 之前 | 返回 `false` |
 | I-C5 | `initialized()` 在 `initialize()` 之后 | 返回 `true` |
 
 **实现要点**：
 - I-C1：`addPackagePath` → `initialize()` → `ContextState == Ready`。
-- I-C2：`initialize()` → `addPackagePath` → 验证上下文仍为 `NotRegistered`（或未生效）。
-- I-C3：连续两次 `initialize()`，验证状态不变、无副作用。
+- I-C2：`initialize()` 成功 → `addPackagePath` → 路径已被加入内部列表，但 `initialize()` 不可重跑（L-2），新路径永不进入扫描/依赖解析流程；验证上下文状态为 `Pending`（已注册未处理），非 `NotRegistered`。
+- I-C3：连续两次 `initialize()`，第一次返回成功；第二次断言返回 `Error{Error::AlreadyInitialized}`（依据 `Manager.cpp:61-68` 的 `impl.initialized` 守卫，**不**是 no-op）。
 - I-C4 / I-C5：调用 `initialized()` 断言返回值。
-- 依据 `Manager.cpp:64-68` 的幂等守卫设计。
+- 依据 `Manager.cpp:61-68` 的 success-gated 幂等守卫设计。
 
 #### 2.3.2 tst_langCore 层：完整启动序列模拟
 
@@ -205,7 +208,7 @@ tests/
 │   ├── tst_context_isolation.cpp   (扩展：S5 FQID 两级查找测试)
 │   ├── tst_routing_decision.cpp    (新建：路由两级决策)
 │   ├── tst_init_constraints.cpp    (新建：启动时序/初始化约束)
-│   ├── tst_context_convert.cpp     (已有：context 字段校验)
+│   ├── tst_context_convert.cpp     (已有：g2pContext 字段校验)
 │   ├── tst_context_dedup.cpp       (已有：模块去重)
 │   ├── tst_context_version.cpp     (已有：版本化上下文)
 │   ├── tst_context_validation.cpp  (已有：上下文名校验)
@@ -262,7 +265,7 @@ tests/
 - 两条路径的核心 LangCore API 都是 `mgr->convert(inputs)`。
 - `ToOfficial`：主转换 → 检测失败 → 用官方上下文回退转换。
 - `Never`：仅主转换 → 失败时复制 fallback，不回退官方。
-- 路由两级决策（`G2pRouteResolver`）决定 `convert` 使用的 `context`。
+- 路由两级决策（`G2pRouteResolver`）决定 `convert` 使用的 `g2pContext`（映射到 `G2pInput.g2pContext`，D10）。
 
 ## 6. 测试用例与代码事实映射
 
@@ -271,8 +274,8 @@ tests/
 | S5-C1～C4 | `ModelStep.cpp:53-60`（两级查找） | FQID 回退正确性 |
 | S5-E1～E3 | `G2pConvertRunner` ToOfficial/Never | 端到端回退策略 |
 | R-C1～C6 | `G2pRouteResolver::resolve` 两级路由 | 路由决策与无效判定 |
-| R-E1～E2 | `convert` 的 `context` 字段 | 真实包路由 |
-| I-C1～C5 | `Manager.cpp:64-68`（幂等守卫）、`Manager.h:27`（`initialized()`） | 初始化约束 |
+| R-E1～E2 | `convert` 的 `g2pContext` 字段 | 真实包路由 |
+| I-C1～C5 | `Manager.cpp:61-68`（success-gated 幂等守卫）、`Manager.h:27`（`initialized()`）、`PackageManager.cpp:552-575`（`addPackagePath` 不检查 `initialized`） | 初始化约束（L-1/L-2/L-3） |
 | I-E1～E2 | 完整启动序列 | 端到端初始化 |
 
 ## 7. 源码引用

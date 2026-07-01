@@ -215,7 +215,12 @@ int main() {
 
         for (const auto &g2pRes : g2pResult) {
             std::cout << "  lyric: '" << g2pRes.lyric << "' g2pId: '" << g2pRes.g2pId << "' pronunciation: '"
-                      << g2pRes.pronunciation << "' mode: '" << g2pRes.mode << "'" << std::endl;
+                      << g2pRes.pronunciation << "' mode: '" << g2pRes.mode << "' g2pContext: '"
+                      << g2pRes.g2pContext << "' g2pSource: '" << g2pRes.g2pSource << "'";
+            if (g2pRes.errorType != LangCore::NoError) {
+                std::cout << " [Error: " << g2pRes.errorType << "]";
+            }
+            std::cout << std::endl;
         }
 
         std::cout << "\n========================================" << std::endl;
