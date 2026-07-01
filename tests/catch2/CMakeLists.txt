@@ -1,4 +1,4 @@
-file(GLOB _catch2_src ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB _catch2_src CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 find_package(stdcorelib CONFIG REQUIRED)
 

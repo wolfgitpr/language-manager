@@ -1,7 +1,10 @@
 #include "catch.hpp"
 
+#include <LangCore/Base/NamedObject.h>
+#include <LangCore/Core/PackageManager.h>
 #include <LangCore/Module/Dependency/DependencyResolver.h>
 #include <LangCore/Module/Dependency/DependencyGraph.h>
+#include <LangCore/Support/ContextUtils.h>
 
 static LangCore::ModuleMetadata makeModule(const std::string &context, const std::string &pkgId,
                                             const std::string &modId, const std::string &version = "1.0.0",
@@ -168,4 +171,147 @@ TEST_CASE("otherContext_notVisibleToDefault") {
     std::vector<LangCore::ModuleMetadata> modules = {defaultMod};
     LangCore::DependencyResolver resolver;
     REQUIRE_FALSE(resolver.resolveAllDependencies(modules));
+}
+
+// ============================================================================
+// S5: ModelStep FQID two-level lookup (Decision D4)
+// Tests the ObjectPool lookup pattern used by ModelStep::configure() without
+// requiring the ChainG2p plugin. Mirrors the exact lookup logic:
+//   1. formatFqid(ctxKey, g2pId) → try "context:g2pId"
+//   2. if not found && !ctxKey.isDefault() → try bare "g2pId" (default fallback)
+// See ModelStep.cpp:53-60
+// ============================================================================
+
+using LangCore::ContextKey;
+using LangCore::ContextUtils;
+using LangCore::NamedObject;
+using LangCore::NO;
+using LangCore::ObjectPool;
+using LangCore::PackageManager;
+
+// Simulate the ModelStep FQID two-level lookup against a real ObjectPool.
+// Returns the found object (or null) exactly as ModelStep::configure() would.
+static NO<NamedObject> modelStepFqidLookup(const ObjectPool *cate, const ContextKey &ctxKey,
+                                          const std::string &g2pId) {
+    const auto fqid = ContextUtils::formatFqid(ctxKey, g2pId);
+    auto obj = cate->getFirstObject(fqid);
+    if (!obj && !ctxKey.isDefault()) {
+        // 声库 context 找不到 → 回退默认 context（裸 id = 默认 context 的 FQID）
+        obj = cate->getFirstObject(g2pId);
+    }
+    return obj;
+}
+
+// S5-C1: g2pId only in default context, private context does not have it.
+// FQID lookup falls back to default context (bare id), succeeds.
+TEST_CASE("s5_c1_defaultFallback_succeeds") {
+    PackageManager mgr;
+    auto *g2pCate = mgr.category("g2p");
+    REQUIRE(g2pCate != nullptr);
+
+    // Register only in default context (bare id)
+    auto defaultObj = NO<NamedObject>::create("default-g2p");
+    g2pCate->addObject("g2p-model", defaultObj);
+
+    // Private context lookup → fallback to default
+    ContextKey privateCtx("SingerA");
+    auto found = modelStepFqidLookup(g2pCate, privateCtx, "g2p-model");
+    REQUIRE(found);
+    REQUIRE(found->objectName() == "default-g2p");
+}
+
+// S5-C2: g2pId only in private context.
+// FQID lookup hits private context directly, no fallback needed.
+TEST_CASE("s5_c2_privateOnly_succeeds") {
+    PackageManager mgr;
+    auto *g2pCate = mgr.category("g2p");
+    REQUIRE(g2pCate != nullptr);
+
+    // Register only in private context (FQID key)
+    auto privateObj = NO<NamedObject>::create("private-g2p");
+    g2pCate->addObject("SingerA:g2p-model", privateObj);
+
+    ContextKey privateCtx("SingerA");
+    auto found = modelStepFqidLookup(g2pCate, privateCtx, "g2p-model");
+    REQUIRE(found);
+    REQUIRE(found->objectName() == "private-g2p");
+}
+
+// S5-C3: g2pId in both contexts.
+// Private context (FQID) is preferred over default (bare id).
+TEST_CASE("s5_c3_bothPresent_prefersPrivate") {
+    PackageManager mgr;
+    auto *g2pCate = mgr.category("g2p");
+    REQUIRE(g2pCate != nullptr);
+
+    auto defaultObj = NO<NamedObject>::create("default-g2p");
+    auto privateObj = NO<NamedObject>::create("private-g2p");
+    g2pCate->addObject("g2p-model", defaultObj);           // default (bare)
+    g2pCate->addObject("SingerA:g2p-model", privateObj);    // private (FQID)
+
+    ContextKey privateCtx("SingerA");
+    auto found = modelStepFqidLookup(g2pCate, privateCtx, "g2p-model");
+    REQUIRE(found);
+    REQUIRE(found->objectName() == "private-g2p");  // private preferred
+}
+
+// S5-C4: g2pId in neither context.
+// Lookup fails (both FQID and bare id miss), returns null.
+TEST_CASE("s5_c4_neitherPresent_notFound") {
+    PackageManager mgr;
+    auto *g2pCate = mgr.category("g2p");
+    REQUIRE(g2pCate != nullptr);
+
+    // Register unrelated objects
+    g2pCate->addObject("other-id", NO<NamedObject>::create("other"));
+
+    ContextKey privateCtx("SingerA");
+    auto found = modelStepFqidLookup(g2pCate, privateCtx, "g2p-missing");
+    REQUIRE_FALSE(found);
+}
+
+// S5-C5: default context lookup does not trigger fallback (isDefault() guard).
+// When ctxKey is default, only bare id is tried (formatFqid returns bare id).
+TEST_CASE("s5_c5_defaultContext_noFallbackBranch") {
+    PackageManager mgr;
+    auto *g2pCate = mgr.category("g2p");
+    REQUIRE(g2pCate != nullptr);
+
+    auto defaultObj = NO<NamedObject>::create("default-g2p");
+    g2pCate->addObject("g2p-model", defaultObj);
+
+    ContextKey defaultCtx;
+    // formatFqid(defaultCtx, "g2p-model") == "g2p-model" (bare, no prefix)
+    REQUIRE(ContextUtils::formatFqid(defaultCtx, "g2p-model") == "g2p-model");
+
+    auto found = modelStepFqidLookup(g2pCate, defaultCtx, "g2p-model");
+    REQUIRE(found);
+    REQUIRE(found->objectName() == "default-g2p");
+}
+
+// S5-C6: versioned private context FQID lookup.
+// FQID for a versioned context is "context@version:moduleId".
+// Note: VersionNumber(1,0,0).toString() returns "1.0" (trailing .0 truncated),
+// so the FQID is built dynamically to avoid hardcoding the canonical form.
+TEST_CASE("s5_c6_versionedContext_fqidLookup") {
+    PackageManager mgr;
+    auto *g2pCate = mgr.category("g2p");
+    REQUIRE(g2pCate != nullptr);
+
+    // Use a version with non-zero patch so toString() yields the full form.
+    // VersionNumber(2, 0, 5).toString() == "2.0.5"
+    ContextKey versionedCtx("SingerA", stdc::VersionNumber(2, 0, 5));
+    REQUIRE(versionedCtx.isVersioned());
+    REQUIRE_FALSE(versionedCtx.isDefault());
+
+    // Build the expected FQID dynamically from the context's own toString().
+    const auto expectedFqid = ContextUtils::formatFqid(versionedCtx, "g2p-model");
+    REQUIRE(expectedFqid == "SingerA@2.0.5:g2p-model");
+
+    auto versionedObj = NO<NamedObject>::create("versioned-g2p");
+    g2pCate->addObject(expectedFqid, versionedObj);
+
+    auto found = modelStepFqidLookup(g2pCate, versionedCtx, "g2p-model");
+    REQUIRE(found);
+    REQUIRE(found->objectName() == "versioned-g2p");
 }
