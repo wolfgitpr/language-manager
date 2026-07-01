@@ -61,7 +61,7 @@ if (!g2pObj && !ctxKey.isDefault()) {
 
 **验证标准**: S5 场景 convert 成功 + 官方包场景行为不变
 
-**状态**: ⬜ 未开始
+**状态**: ✅ 已完成（ModelStep 改为 FQID 两级查找：本 context 优先，非默认 context 找不到时回退默认 context；ModelStep.cpp 编译通过，CLion 无诊断错误；S5 端到端验证见任务 1.5）
 
 ---
 

@@ -1,5 +1,6 @@
 #include "ModelStep.h"
 #include <LangCore/Support/ConfigAccessor.h>
+#include <LangCore/Support/ContextUtils.h>
 #include <LangCore/Support/Error.h>
 #include <LangCore/Support/Logging.h>
 #include <LangCore/Core/PackageManager.h>
@@ -49,7 +50,14 @@ namespace LangPlugins::ChainG2p
             return {};
         }
 
-        auto g2pObj = g2pCate->getFirstObject(m_onnxG2pId);
+        // FQID 两级查找：本 context 优先，找不到且非默认 context 时回退默认 context（官方兜底）
+        const auto ctxKey = spec->contextKey();
+        const auto fqid = LangCore::ContextUtils::formatFqid(ctxKey, m_onnxG2pId);
+        auto g2pObj = g2pCate->getFirstObject(fqid);
+        if (!g2pObj && !ctxKey.isDefault()) {
+            // 声库 context 找不到 → 回退默认 context（裸 id = 默认 context 的 FQID）
+            g2pObj = g2pCate->getFirstObject(m_onnxG2pId);
+        }
         if (!g2pObj) {
             ModelLog.langCoreWarning("Model step: g2p task '%1' not found, "
                                      "model inference will be disabled. Words needing inference will use original lyrics.",
