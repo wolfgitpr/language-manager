@@ -176,4 +176,4 @@
 ---
 
 **文档版本**: 1.0  
-**关联文档**: [PRD-v2.0.md](file:///d:/projects/language-manager/docs/PRD-v2.0.md) · [Conventions-and-Standards.md](file:///d:/projects/language-manager/docs/Conventions-and-Standards.md) · [Issues-Tracker.md](file:///d:/projects/language-manager/docs/Issues-Tracker.md) · [Test-Design-Document.md](file:///d:/projects/language-manager/docs/Test-Design-Document.md) · [refactor-plan/README.md](file:///d:/projects/language-manager/docs/refactor-plan/README.md)
+**关联文档**: [PRD-v2.0.md](file:///d:/projects/language-manager/docs/PRD-v2.0.md) · [Conventions-and-Standards.md](file:///d:/projects/language-manager/docs/Conventions-and-Standards.md) · [Issues-Tracker.md](file:///d:/projects/language-manager/docs/Issues-Tracker.md) · [Test-Design-Document.md](file:///d:/projects/language-manager/docs/Test-Design-Document.md) · [host-integration/README.md](file:///d:/projects/language-manager/docs/host-integration/README.md)

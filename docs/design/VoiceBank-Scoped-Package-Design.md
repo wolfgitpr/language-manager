@@ -5,7 +5,7 @@
 **关联 PRD**：PRD-v2.0.md §14  
 **状态**：v3.1 确认版 — 保留 `ContextKey{context, version}` 双维度。v4.0 简化方案（移除 version 维度）已撤销。
 
-> ⚠️ **v4.0 撤销声明**：本文档早期版本（v4.0）曾提议移除 `ContextKey` 的 `version` 维度，理由为"框架不需要感知版本"。经与调用方 ds-editor-lite 实施代码双向核对，该前提与实际数据流不符——version 维度被实际使用（voicebank context 回退到 `singer.packageVersion()`，参与 `addPackagePath`/`G2pInput`/`task` 全链路）。v4.0 方案予以撤销，恢复 v3.0 双维度设计。详见 [refactor-plan/01-current-state-audit.md §6](../refactor-plan/01-current-state-audit.md)。
+> ⚠️ **v4.0 撤销声明**：本文档早期版本（v4.0）曾提议移除 `ContextKey` 的 `version` 维度，理由为"框架不需要感知版本"。经与调用方 ds-editor-lite 实施代码双向核对，该前提与实际数据流不符——version 维度被实际使用（voicebank context 回退到 `singer.packageVersion()`，参与 `addPackagePath`/`G2pInput`/`task` 全链路）。v4.0 方案予以撤销，恢复 v3.0 双维度设计。详见 [host-integration/02-context-isolation-mechanism.md](../host-integration/02-context-isolation-mechanism.md)。
 
 ---
 

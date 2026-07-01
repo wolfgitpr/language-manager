@@ -12,14 +12,13 @@
 
 - [decisions/human-decisions.md](decisions/human-decisions.md) — 人工决策记录（ARCH/ROBUST/INFRA/PACK 系列设计准则，框架演进的权威依据）
 
-## 重构方案
+## 宿主集成
 
-- [refactor-plan/](refactor-plan/README.md) — 重构方案总览（基于 v3.1，对齐 synthrt/dspk-g2p-design 优化建议 O-1~O-5）— 状态：设计稿，待评审
-  - [01-current-state-audit.md](refactor-plan/01-current-state-audit.md) — 现状审计（框架能力、VULN-1 漏洞、架构债、文档不一致）
-  - [02-interface-design.md](refactor-plan/02-interface-design.md) — 接口与修复设计（稳定公共面、ModelStep FQID 修复、可观测性 API）
-  - [03-host-integration-contract.md](refactor-plan/03-host-integration-contract.md) — 宿主集成契约（框架与宿主边界、ONNX driver 边界、三层校验、启动期加载边界）
-  - [04-implementation-tasks.md](refactor-plan/04-implementation-tasks.md) — 实施任务清单（含验证步骤、执行顺序、风险控制）
-  - [05-design-principles-check.md](refactor-plan/05-design-principles-check.md) — 设计原则核对（与 human-decisions.md 17 条原则逐项核对）
+- [host-integration/](host-integration/README.md) — LangCore 宿主集成指南（面向 ds-editor-lite / synthrt 等宿主工程接入）
+  - [01-framework-capabilities.md](host-integration/01-framework-capabilities.md) — 框架能力审计（Manager API、PackageManager、ContextState 状态机、G2pRes、插件系统、幂等守卫）
+  - [02-context-isolation-mechanism.md](host-integration/02-context-isolation-mechanism.md) — 上下文隔离机制（三维路由模型、默认/私有上下文、S5 漏洞修复、跨上下文依赖、命名校验）
+  - [03-host-integration-contract.md](host-integration/03-host-integration-contract.md) — 宿主集成契约（必须做 / 禁止做、加载约束 L-1~L-4、初始化顺序、ONNX 注册模式、错误处理）
+  - [04-test-design.md](host-integration/04-test-design.md) — 测试设计（双层测试策略、三大测试领域、L1 已完成实现计划）
 
 ## 开发指南
 
